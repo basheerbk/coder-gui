@@ -1,6 +1,7 @@
 import ScratchStorage from 'scratch-storage';
 
 import defaultProject from './default-project';
+import {isLocalSpriteAsset} from './local-sprites';
 
 /**
  * Wrapper for ScratchStorage which adds default web sources.
@@ -12,6 +13,11 @@ class Storage extends ScratchStorage {
         this.cacheDefaultProject();
     }
     addOfficialScratchWebStores () {
+        // Custom sprites hosted under /static/sprites/{md5}.{ext}
+        this.addWebStore(
+            [this.AssetType.ImageVector, this.AssetType.ImageBitmap],
+            this.getLocalSpriteGetConfig.bind(this)
+        );
         this.addWebStore(
             [this.AssetType.Project],
             this.getProjectGetConfig.bind(this),
@@ -31,6 +37,12 @@ class Storage extends ScratchStorage {
             [this.AssetType.Sound],
             asset => `static/extension-assets/scratch3_music/${asset.assetId}.${asset.dataFormat}`
         );
+    }
+    getLocalSpriteGetConfig (asset) {
+        if (!isLocalSpriteAsset(asset.assetId)) {
+            return false;
+        }
+        return `static/sprites/${asset.assetId}.${asset.dataFormat}`;
     }
     setProjectHost (projectHost) {
         this.projectHost = projectHost;

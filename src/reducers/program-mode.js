@@ -3,7 +3,7 @@ const SET_REALTIME_MODE = 'scratch-gui/progran-mode/SET_REALTIME_MODE';
 const SET_SUPPORT_SWITCH_MODE = 'scratch-gui/progran-mode/SET_SUPPORT_SWITCH_MODE';
 
 const initialState = {
-    isRealtimeMode: true,
+    isRealtimeMode: false, // Upload / programming mode by default
     isSupportSwitchMode: false
 };
 

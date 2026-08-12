@@ -2,17 +2,28 @@ import {addLocaleData} from 'react-intl';
 
 import {localeData, isRtl} from 'openblock-l10n';
 import editorMessages from 'openblock-l10n/locales/editor-msgs';
+import arduinoUnoMessages from '../lib/device-msgs-arduino-uno.json';
 
 addLocaleData(localeData);
+
+const mergeDeviceMessages = messagesByLocale => {
+    const merged = {};
+    Object.keys(messagesByLocale).forEach(locale => {
+        merged[locale] = Object.assign({}, messagesByLocale[locale], arduinoUnoMessages);
+    });
+    return merged;
+};
 
 const UPDATE_LOCALES = 'scratch-gui/locales/UPDATE_LOCALES';
 const SELECT_LOCALE = 'scratch-gui/locales/SELECT_LOCALE';
 
+const messagesByLocaleWithDevices = mergeDeviceMessages(editorMessages);
+
 const initialState = {
     isRtl: false,
     locale: 'en',
-    messagesByLocale: editorMessages,
-    messages: editorMessages.en
+    messagesByLocale: messagesByLocaleWithDevices,
+    messages: messagesByLocaleWithDevices.en
 };
 
 const reducer = function (state, action) {
@@ -29,8 +40,8 @@ const reducer = function (state, action) {
         return Object.assign({}, state, {
             isRtl: state.isRtl,
             locale: state.locale,
-            messagesByLocale: action.messagesByLocale,
-            messages: action.messagesByLocale[state.locale]
+            messagesByLocale: mergeDeviceMessages(action.messagesByLocale),
+            messages: mergeDeviceMessages(action.messagesByLocale)[state.locale]
         });
     default:
         return state;

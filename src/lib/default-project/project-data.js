@@ -61,7 +61,7 @@ const projectData = translateFunction => {
             },
             {
                 isStage: false,
-                name: translator(messages.sprite, {index: 1}),
+                name: 'Robot',
                 variables: {},
                 lists: {},
                 broadcasts: {},
@@ -69,22 +69,13 @@ const projectData = translateFunction => {
                 currentCostume: 0,
                 costumes: [
                     {
-                        assetId: '5de48e72637db4d7fc7f6bb526354114',
-                        name: translator(messages.costume, {index: 1}),
-                        bitmapResolution: 1,
-                        md5ext: '5de48e72637db4d7fc7f6bb526354114.svg',
-                        dataFormat: 'svg',
-                        rotationCenterX: 93,
-                        rotationCenterY: 80
-                    },
-                    {
-                        assetId: '48bbc82a10af3d0e0b7d5c677097df0e',
-                        name: translator(messages.costume, {index: 2}),
-                        bitmapResolution: 1,
-                        md5ext: '48bbc82a10af3d0e0b7d5c677097df0e.svg',
-                        dataFormat: 'svg',
-                        rotationCenterX: 93,
-                        rotationCenterY: 80
+                        assetId: '1cf36a1be1c4e229c2f38cee179dd27d',
+                        name: 'robot',
+                        bitmapResolution: 2,
+                        md5ext: '1cf36a1be1c4e229c2f38cee179dd27d.png',
+                        dataFormat: 'png',
+                        rotationCenterX: 250,
+                        rotationCenterY: 250
                     }
                 ],
                 sounds: [
@@ -102,7 +93,7 @@ const projectData = translateFunction => {
                 visible: true,
                 x: 0,
                 y: 0,
-                size: 100,
+                size: 60,
                 direction: 90,
                 draggable: false,
                 rotationStyle: 'all around'

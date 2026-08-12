@@ -79,6 +79,7 @@
 }
 
 .openblock-logo {
+    display: none; /* temporarily hidden — replace assets / remove this to show again */
     height:  1.6rem;
     vertical-align: middle;
 }

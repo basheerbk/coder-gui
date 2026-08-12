@@ -1,5 +1,18 @@
 [
     {
+        "name": "Robot",
+        "tags": [
+            "fantasy",
+            "people"
+        ],
+        "assetId": "1cf36a1be1c4e229c2f38cee179dd27d",
+        "bitmapResolution": 2,
+        "dataFormat": "png",
+        "md5ext": "1cf36a1be1c4e229c2f38cee179dd27d.png",
+        "rotationCenterX": 250,
+        "rotationCenterY": 250
+    },
+    {
         "name": "Abby-a",
         "tags": [
             "people",

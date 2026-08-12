@@ -4,6 +4,7 @@ import React from 'react';
 import {injectIntl, intlShape} from 'react-intl';
 
 import LibraryItemComponent from '../components/library-item/library-item.jsx';
+import {isLocalSpriteAsset, getLocalSpriteUrl} from '../lib/local-sprites';
 
 class LibraryItem extends React.PureComponent {
     constructor (props) {
@@ -124,10 +125,16 @@ class LibraryItem extends React.PureComponent {
     }
     render () {
         const iconMd5 = this.curIconMd5();
-        const iconURL = iconMd5 ? (this.props.intl.locale === 'zh-cn' ?
-            `https://openblockcc.gitee.io/openblock-assets/assets/${iconMd5}` :
-            `https://openblockcc.github.io/openblock-assets/assets/${iconMd5}`
-        ) : this.props.iconRawURL;
+        let iconURL = this.props.iconRawURL;
+        if (iconMd5) {
+            if (isLocalSpriteAsset(iconMd5)) {
+                iconURL = getLocalSpriteUrl(iconMd5);
+            } else {
+                iconURL = this.props.intl.locale === 'zh-cn' ?
+                    `https://openblockcc.gitee.io/openblock-assets/assets/${iconMd5}` :
+                    `https://openblockcc.github.io/openblock-assets/assets/${iconMd5}`;
+            }
+        }
         return (
             <LibraryItemComponent
                 author={this.props.author}

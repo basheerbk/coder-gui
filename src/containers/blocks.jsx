@@ -33,11 +33,13 @@ import {setCodeEditorValue} from '../reducers/code';
 import {setDeviceId, setDeviceName, setDeviceType} from '../reducers/device';
 import {setSupportSwitchMode} from '../reducers/program-mode';
 import {setBaudrate} from '../reducers/hardware-console';
-
 import {
     activateTab,
     SOUNDS_TAB_INDEX
 } from '../reducers/editor-tab';
+import {getIsLoadingWithId} from '../reducers/project-state';
+
+const DEFAULT_DEVICE_ID = 'arduinoUno';
 
 const addFunctionListener = (object, property, callback) => {
     const oldFn = object[property];
@@ -76,6 +78,7 @@ class Blocks extends React.Component {
             'handlePromptClose',
             'handleToolboxUploadFinish',
             'handleCustomProceduresClose',
+            'loadDefaultDevice',
             'onCodeNeedUpdate',
             'onScriptGlowOn',
             'onScriptGlowOff',
@@ -164,6 +167,10 @@ class Blocks extends React.Component {
         if (this.props.isVisible) {
             this.setLocale();
         }
+        // Project already showing with no board → select Arduino Uno.
+        if (!this.props.isLoadingWithId) {
+            this.loadDefaultDevice();
+        }
     }
     shouldComponentUpdate (nextProps, nextState) {
         return (
@@ -176,7 +183,8 @@ class Blocks extends React.Component {
             this.props.anyModalVisible !== nextProps.anyModalVisible ||
             this.props.stageSize !== nextProps.stageSize ||
             this.props.isRealtimeMode !== nextProps.isRealtimeMode ||
-            this.props.isCodeEditorLocked !== nextProps.isCodeEditorLocked
+            this.props.isCodeEditorLocked !== nextProps.isCodeEditorLocked ||
+            this.props.isLoadingWithId !== nextProps.isLoadingWithId
         );
     }
     componentDidUpdate (prevProps) {
@@ -190,6 +198,12 @@ class Blocks extends React.Component {
             // Clear possible errors witch print in to code editor.
             this.props.onSetCodeEditorValue('');
             this.onProgramModeUpdate();
+        }
+
+        // After a project finishes loading with no device, select Arduino Uno.
+        // Must wait until load completes — deserialize clears any earlier device.
+        if (prevProps.isLoadingWithId && !this.props.isLoadingWithId) {
+            this.loadDefaultDevice();
         }
 
         // Only rerender the toolbox when the blocks are visible and the xml is
@@ -611,6 +625,20 @@ class Blocks extends React.Component {
             this.workspace.toolbox_.setSelectedCategoryById(categoryId);
         });
     }
+    loadDefaultDevice () {
+        // Don't override a board already chosen by the user or project.
+        if (this.props.deviceId) return;
+        const loadedDevice = this.props.vm.runtime.getDevice();
+        if (loadedDevice && loadedDevice.deviceId) return;
+
+        const device = this.props.deviceData.find(ext => ext.deviceId === DEFAULT_DEVICE_ID);
+        if (!device || device.disabled) return;
+        if (this.props.vm.extensionManager.isDeviceLoaded(DEFAULT_DEVICE_ID)) return;
+
+        this.props.vm.extensionManager.loadDeviceURL(device).catch(err => {
+            log.error(`Failed to load default device ${DEFAULT_DEVICE_ID}`, err);
+        });
+    }
     handleDeviceSelected (categoryId) {
         const device = this.props.deviceData.find(ext => ext.deviceId === categoryId);
 
@@ -799,6 +827,7 @@ Blocks.propTypes = {
     deviceLibraryVisible: PropTypes.bool,
     extensionLibraryVisible: PropTypes.bool,
     isCodeEditorLocked: PropTypes.bool.isRequired,
+    isLoadingWithId: PropTypes.bool,
     isRealtimeMode: PropTypes.bool,
     isRtl: PropTypes.bool,
     isVisible: PropTypes.bool,
@@ -902,6 +931,7 @@ const mapStateToProps = state => ({
     deviceLibraryVisible: state.scratchGui.modals.deviceLibrary,
     extensionLibraryVisible: state.scratchGui.modals.extensionLibrary,
     isCodeEditorLocked: state.scratchGui.code.isCodeEditorLocked,
+    isLoadingWithId: getIsLoadingWithId(state.scratchGui.projectState.loadingState),
     isRealtimeMode: state.scratchGui.programMode.isRealtimeMode,
     isRtl: state.locales.isRtl,
     locale: state.locales.locale,

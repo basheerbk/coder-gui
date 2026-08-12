@@ -56,8 +56,9 @@ class DeviceLibrary extends React.PureComponent {
         ]);
     }
     componentDidMount () {
+        // Keep built-in boards if Link/resource server is unavailable.
         this.props.vm.extensionManager.getDeviceList().then(data => {
-            this.props.onSetDeviceData(makeDeviceLibrary(data));
+            this.props.onSetDeviceData(makeDeviceLibrary(data || null));
         })
             .catch(() => {
                 this.props.onSetDeviceData(makeDeviceLibrary());

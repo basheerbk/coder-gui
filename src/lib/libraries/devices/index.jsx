@@ -137,6 +137,7 @@ const deviceData = [
             />
         ),
         programMode: ['realtime', 'upload'],
+        defaultProgramMode: 'upload',
         programLanguage: ['block', 'c', 'cpp'],
         tags: ['arduino'],
         helpLink: 'https://wiki.openblock.cc/general-hardware-guidelines/boards/arduino-uno'
@@ -813,29 +814,36 @@ const analysisRealDeviceId = deviceId => {
  * @return {string} fullData - processed data of devices.
  */
 const makeDeviceLibrary = (deviceList = null) => {
-    let regeneratedDeviceData = [];
+    // Always start from built-in GUI devices so boards still show when
+    // OpenBlock Link is offline or returns an incomplete list.
+    const regeneratedDeviceData = [];
+    const seenDeviceIds = new Set();
 
-    if (deviceList) {
-        if (deviceList[0].isOrdered) { // External resources customize the device arrangement
-            regeneratedDeviceData.push(deviceData[0]);
-        } else {
-            deviceList = deviceData.concat(deviceList);
+    const pushUnique = entry => {
+        if (!entry || !entry.deviceId || seenDeviceIds.has(entry.deviceId)) {
+            return;
         }
+        seenDeviceIds.add(entry.deviceId);
+        regeneratedDeviceData.push(entry);
+    };
 
+    deviceData.forEach(pushUnique);
+
+    if (deviceList && deviceList.length) {
         deviceList.forEach(dev => {
+            if (!dev || !dev.deviceId) return;
             const realDeviceId = analysisRealDeviceId(dev.deviceId);
             const matchedDevice = deviceData.find(item => realDeviceId === item.deviceId);
-            if (matchedDevice) {
-                if (realDeviceId !== dev.deviceId) {
-                    return regeneratedDeviceData.push(defaults({}, dev, {hide: false}, matchedDevice));
-                }
-                return regeneratedDeviceData.push(matchedDevice);
+            if (!matchedDevice) {
+                // Pure third-party device from Link — skip if we can't map it
+                log.warn('Unable to find the corresponding built-in device:', dev.deviceId);
+                return;
             }
-            log.warn('Unable to find the corresponding built-in device:', dev.deviceId);
-            return;
+            // Inherited / customized device (e.g. kit_arduinoUno)
+            if (realDeviceId !== dev.deviceId) {
+                pushUnique(defaults({}, dev, {hide: false}, matchedDevice));
+            }
         });
-    } else {
-        regeneratedDeviceData = deviceData;
     }
 
     return regeneratedDeviceData;

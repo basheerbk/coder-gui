@@ -1,0 +1,76 @@
+diff --git a/node_modules/openblock-vm/src/devices/arduinoUno/arduinoUno.js b/node_modules/openblock-vm/src/devices/arduinoUno/arduinoUno.js
+index 157a595..d4e7868 100644
+--- a/node_modules/openblock-vm/src/devices/arduinoUno/arduinoUno.js
++++ b/node_modules/openblock-vm/src/devices/arduinoUno/arduinoUno.js
+@@ -946,6 +946,54 @@ class OpenBlockArduinoUnoDevice {
+         this._peripheral.setServoOutput(args.PIN, args.OUT);
+         return Promise.resolve();
+     }
++
++    /**
++     * Upload-mode-only blocks: used for codegen, not realtime VM execution.
++     * Stubs silence registration warnings when methods are missing.
++     */
++    attachInterrupt () {
++        return Promise.resolve();
++    }
++    detachInterrupt () {
++        return Promise.resolve();
++    }
++    serialBegin () {
++        return Promise.resolve();
++    }
++    serialPrint () {
++        return Promise.resolve();
++    }
++    serialAvailable () {
++        return Promise.resolve(0);
++    }
++    serialReadAByte () {
++        return Promise.resolve(0);
++    }
++    dataMap (args) {
++        const value = Number(args.DATA);
++        const fromLow = Number(args.ARG0);
++        const fromHigh = Number(args.ARG1);
++        const toLow = Number(args.ARG2);
++        const toHigh = Number(args.ARG3);
++        if (fromHigh === fromLow) return toLow;
++        return (value - fromLow) * (toHigh - toLow) / (fromHigh - fromLow) + toLow;
++    }
++    dataConstrain (args) {
++        const value = Number(args.DATA);
++        const min = Number(args.ARG0);
++        const max = Number(args.ARG1);
++        return Math.min(Math.max(value, min), max);
++    }
++    dataConvert (args) {
++        return args.DATA;
++    }
++    dataConvertASCIICharacter (args) {
++        return String.fromCharCode(Number(args.DATA) || 0);
++    }
++    dataConvertASCIINumber (args) {
++        const text = String(args.DATA || '');
++        return text.length ? text.charCodeAt(0) : 0;
++    }
+ }
+ 
+ module.exports = OpenBlockArduinoUnoDevice;
+diff --git a/node_modules/openblock-vm/src/virtual-machine.js b/node_modules/openblock-vm/src/virtual-machine.js
+index d278803..681e9a6 100644
+--- a/node_modules/openblock-vm/src/virtual-machine.js
++++ b/node_modules/openblock-vm/src/virtual-machine.js
+@@ -1313,9 +1313,9 @@ class VirtualMachine extends EventEmitter {
+      *     updated for a new locale (or empty if locale hasn't changed.)
+      */
+     setLocale (locale, messages) {
+-        if (locale !== formatMessage.setup().locale) {
+-            formatMessage.setup({locale: locale, translations: {[locale]: messages}});
+-        }
++        // Always apply messages. Skipping when locale is unchanged left device
++        // strings (e.g. arduinoUno.*) unregistered and flooded the console.
++        formatMessage.setup({locale: locale, translations: {[locale]: messages || {}}});
+         return this.extensionManager.refreshBlocks();
+     }
+ 

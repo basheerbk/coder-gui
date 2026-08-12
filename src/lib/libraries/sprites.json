@@ -1,5 +1,37 @@
 [
     {
+        "name": "Robot",
+        "tags": [
+            "fantasy",
+            "people"
+        ],
+        "isStage": false,
+        "variables": {},
+        "costumes": [
+            {
+                "assetId": "1cf36a1be1c4e229c2f38cee179dd27d",
+                "name": "robot",
+                "bitmapResolution": 2,
+                "md5ext": "1cf36a1be1c4e229c2f38cee179dd27d.png",
+                "dataFormat": "png",
+                "rotationCenterX": 250,
+                "rotationCenterY": 250
+            }
+        ],
+        "sounds": [
+            {
+                "assetId": "83a9787d4cb6f3b7632b4ddfebf74367",
+                "name": "pop",
+                "dataFormat": "wav",
+                "format": "",
+                "rate": 44100,
+                "sampleCount": 1032,
+                "md5ext": "83a9787d4cb6f3b7632b4ddfebf74367.wav"
+            }
+        ],
+        "blocks": {}
+    },
+    {
         "name": "Abby",
         "tags": [
             "people",
