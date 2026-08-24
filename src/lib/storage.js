@@ -44,6 +44,36 @@ class Storage extends ScratchStorage {
         }
         return `static/sprites/${asset.assetId}.${asset.dataFormat}`;
     }
+    getLocalSpriteGetConfig (asset) {
+        // Only serve assets that exist in static/sprites; otherwise try the next store.
+        const localSpriteIds = new Set([
+            '1cf36a1be1c4e229c2f38cee179dd27d' // Robot
+        ]);
+        if (!localSpriteIds.has(asset.assetId)) {
+            return false;
+        }
+        return `static/sprites/${asset.assetId}.${asset.dataFormat}`;
+    }
+    getLocalSpriteGetConfig (asset) {
+        // Only serve assets that exist in static/sprites; otherwise try the next store.
+        const localSpriteIds = new Set([
+            '1cf36a1be1c4e229c2f38cee179dd27d' // Robot
+        ]);
+        if (!localSpriteIds.has(asset.assetId)) {
+            return false;
+        }
+        return `static/sprites/${asset.assetId}.${asset.dataFormat}`;
+    }
+    getLocalSpriteGetConfig (asset) {
+        // Only serve assets that exist in static/sprites; otherwise try the next store.
+        const localSpriteIds = new Set([
+            '1cf36a1be1c4e229c2f38cee179dd27d' // Robot
+        ]);
+        if (!localSpriteIds.has(asset.assetId)) {
+            return false;
+        }
+        return `static/sprites/${asset.assetId}.${asset.dataFormat}`;
+    }
     setProjectHost (projectHost) {
         this.projectHost = projectHost;
     }

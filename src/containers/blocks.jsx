@@ -38,6 +38,7 @@ import {
     SOUNDS_TAB_INDEX
 } from '../reducers/editor-tab';
 import {getIsLoadingWithId} from '../reducers/project-state';
+import {isWebSerialUploadDevice} from '../lib/web-serial/device-profiles';
 
 const DEFAULT_DEVICE_ID = 'arduinoUno';
 
@@ -202,7 +203,7 @@ class Blocks extends React.Component {
 
         // After a project finishes loading with no device, select Arduino Uno.
         // Must wait until load completes — deserialize clears any earlier device.
-        if (prevProps.isLoadingWithId && !this.props.isLoadingWithId) {
+        if ((prevProps.isLoadingWithId && !this.props.isLoadingWithId) || !this.props.deviceId) {
             this.loadDefaultDevice();
         }
 
@@ -423,11 +424,15 @@ class Blocks extends React.Component {
         try {
             let {editingTarget: target, runtime} = this.props.vm;
             const stage = runtime.getTargetForStage();
+            if (!stage) return null;
             if (!target) target = stage; // If no editingTarget, use the stage
+            if (!target || typeof target.getCostumes !== 'function') return null;
 
             const stageCostumes = stage.getCostumes();
             const targetCostumes = target.getCostumes();
             const targetSounds = target.getSounds();
+            if (!stageCostumes.length || !targetCostumes.length) return null;
+
             const dynamicBlocksXML = this.props.vm.runtime.getBlocksXML(target);
 
             const device = this.props.deviceData.find(item => item.deviceId === this.props.deviceId);
@@ -494,6 +499,9 @@ class Blocks extends React.Component {
 
         if (deviceId) {
             const dev = this.props.deviceData.find(ext => ext.deviceId === deviceId);
+            if (!dev) {
+                return;
+            }
             this.props.onDeviceSelected(dev.deviceId, dev.name, dev.type);
             this.ScratchBlocks.Device.setDevice(dev.deviceId, dev.type);
             if (dev.defaultBaudRate) {
@@ -501,10 +509,14 @@ class Blocks extends React.Component {
             }
 
             const supportUploadMode = dev.programMode.includes('upload');
-            const supportRealtimeMode = dev.programMode.includes('realtime');
+            const supportRealtimeMode = dev.programMode.includes('realtime') &&
+                !isWebSerialUploadDevice(dev.deviceId);
 
-            // eslint-disable-next-line no-negated-condition
-            if (supportUploadMode && supportRealtimeMode) {
+            // Web Serial boards compile on EC2 and flash in-browser — upload mode only.
+            if (isWebSerialUploadDevice(dev.deviceId)) {
+                this.props.vm.runtime.setRealtimeMode(false);
+                this.props.onSetSupportSwitchMode(false);
+            } else if (supportUploadMode && supportRealtimeMode) {
                 this.props.onSetSupportSwitchMode(true);
 
                 const defaultProgramMode = dev.defaultProgramMode;
@@ -546,7 +558,9 @@ class Blocks extends React.Component {
                         // otherwise it's a non-block entry such as '---'
                     });
 
-                    this.ScratchBlocks.defineBlocksWithJsonArray(staticBlocksJson);
+                    this.ScratchBlocks.defineBlocksWithJsonArray(
+                        staticBlocksJson.filter(json => json && json.type && !this.ScratchBlocks.Blocks[json.type])
+                    );
                     dynamicBlocksInfo.forEach(blockInfo => {
                         // This is creating the block factory / constructor -- NOT a specific instance of the block.
                         // The factory should only know static info about the block: the category info and the opcode.
@@ -628,6 +642,7 @@ class Blocks extends React.Component {
     loadDefaultDevice () {
         // Don't override a board already chosen by the user or project.
         if (this.props.deviceId) return;
+        if (!this.props.vm.runtime.getTargetForStage()) return;
         const loadedDevice = this.props.vm.runtime.getDevice();
         if (loadedDevice && loadedDevice.deviceId) return;
 

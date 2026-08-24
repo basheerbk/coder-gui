@@ -19,3 +19,12 @@ npm-*
 /locale
 
 .vercel
+
+# Secrets / local keys
+MakerShop.pem
+*.pem
+
+# Local recovery helpers
+scripts/recover-from-transcript.js
+scripts/apply-strreplace.js
+scripts/recover-report.json

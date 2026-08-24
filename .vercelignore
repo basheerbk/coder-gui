@@ -1,0 +1,9 @@
+MakerShop.pem
+*.pem
+scripts/recover-from-transcript.js
+scripts/apply-strreplace.js
+scripts/recover-report.json
+serial_monitor_integration.md
+build-log.txt
+.git
+node_modules

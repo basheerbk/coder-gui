@@ -11,6 +11,7 @@ import ConnectingStep from './connecting-step.jsx';
 import ConnectedStep from './connected-step.jsx';
 import ErrorStep from './error-step.jsx';
 import UnavailableStep from './unavailable-step.jsx';
+import WebSerialConnectStep from '../../containers/web-serial-connect-step.jsx';
 
 import styles from './connection-modal.css';
 
@@ -33,8 +34,16 @@ const ConnectionModalComponent = props => (
         onRequestClose={props.onCancel}
     >
         <Box className={styles.body}>
-            {props.phase === PHASES.scanning && !props.useAutoScan && <ScanningStep {...props} />}
-            {props.phase === PHASES.scanning && props.useAutoScan && <AutoScanningStep {...props} />}
+            {props.useWebSerial && props.phase === PHASES.scanning && (
+                <WebSerialConnectStep
+                    deviceId={props.deviceId}
+                    keepPortOpen
+                    onCancel={props.onCancel}
+                    onConnected={props.onWebSerialConnected}
+                />
+            )}
+            {!props.useWebSerial && props.phase === PHASES.scanning && !props.useAutoScan && <ScanningStep {...props} />}
+            {!props.useWebSerial && props.phase === PHASES.scanning && props.useAutoScan && <AutoScanningStep {...props} />}
             {props.phase === PHASES.connecting && <ConnectingStep {...props} />}
             {props.phase === PHASES.connected && <ConnectedStep {...props} />}
             {props.phase === PHASES.error && <ErrorStep {...props} />}
@@ -50,9 +59,11 @@ ConnectionModalComponent.propTypes = {
     name: PropTypes.node,
     onCancel: PropTypes.func.isRequired,
     onHelp: PropTypes.func.isRequired,
+    onWebSerialConnected: PropTypes.func,
     phase: PropTypes.oneOf(Object.keys(PHASES)).isRequired,
     title: PropTypes.string.isRequired,
-    useAutoScan: PropTypes.bool.isRequired
+    useAutoScan: PropTypes.bool.isRequired,
+    useWebSerial: PropTypes.bool
 };
 
 ConnectionModalComponent.defaultProps = {

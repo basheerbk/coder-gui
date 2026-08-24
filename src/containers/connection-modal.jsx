@@ -6,7 +6,9 @@ import VM from 'openblock-vm';
 import analytics from '../lib/analytics';
 import {connect} from 'react-redux';
 import {closeConnectionModal} from '../reducers/modals';
-import {setConnectionModalPeripheralName, setListAll} from '../reducers/connection-modal';
+import {setConnectionModalPeripheralName, setListAll, clearConnectionModalPeripheralName} from '../reducers/connection-modal';
+import {isWebSerialUploadDevice} from '../lib/web-serial/device-profiles';
+import {closePort, isConnected as isWebSerialConnected} from '../lib/web-serial/web-serial-port';
 
 class ConnectionModal extends React.Component {
     constructor (props) {
@@ -18,19 +20,42 @@ class ConnectionModal extends React.Component {
             'handleConnecting',
             'handleDisconnect',
             'handleError',
-            'handleHelp'
+            'handleHelp',
+            'handleWebSerialConnected'
         ]);
+        const useWebSerial = isWebSerialUploadDevice(props.deviceId);
         this.state = {
             device: this.props.deviceData.find(device => device.deviceId === props.deviceId),
-            phase: props.vm.getPeripheralIsConnected(props.deviceId) ?
-                PHASES.connected : PHASES.scanning,
+            phase: useWebSerial ?
+                (isWebSerialConnected() ? PHASES.connected : PHASES.scanning) :
+                (props.vm.getPeripheralIsConnected(props.deviceId) ?
+                    PHASES.connected : PHASES.scanning),
             peripheralName: null,
-            errorMessage: null
+            errorMessage: null,
+            useWebSerial
         };
     }
     componentDidMount () {
         this.props.vm.on('PERIPHERAL_CONNECTED', this.handleConnected);
         this.props.vm.on('PERIPHERAL_REQUEST_ERROR', this.handleError);
+    }
+    componentDidUpdate (prevProps) {
+        if (prevProps.deviceId !== this.props.deviceId) {
+            const useWebSerial = isWebSerialUploadDevice(this.props.deviceId);
+            if (useWebSerial || this.state.useWebSerial) {
+                closePort();
+                this.props.onClearConnected();
+            }
+            this.setState({
+                device: this.props.deviceData.find(device => device.deviceId === this.props.deviceId),
+                phase: useWebSerial ?
+                    (isWebSerialConnected() ? PHASES.connected : PHASES.scanning) :
+                    PHASES.scanning,
+                peripheralName: null,
+                errorMessage: null,
+                useWebSerial
+            });
+        }
     }
     componentWillUnmount () {
         this.props.vm.removeListener('PERIPHERAL_CONNECTED', this.handleConnected);
@@ -59,21 +84,33 @@ class ConnectionModal extends React.Component {
     }
     handleDisconnect () {
         try {
-            this.props.vm.disconnectPeripheral(this.props.deviceId);
+            if (this.state.useWebSerial) {
+                closePort();
+                this.props.onClearConnected();
+            } else {
+                this.props.vm.disconnectPeripheral(this.props.deviceId);
+            }
         } finally {
             this.props.onCancel();
         }
     }
     handleCancel () {
         try {
-            // If we're not connected to a peripheral, close the websocket so we stop scanning.
-            if (!this.props.vm.getPeripheralIsConnected(this.props.deviceId)) {
+            if (this.state.useWebSerial) {
+                // Keep port open after modal close if already connected.
+            } else if (!this.props.vm.getPeripheralIsConnected(this.props.deviceId)) {
                 this.props.vm.disconnectPeripheral(this.props.deviceId);
             }
         } finally {
-            // Close the modal.
             this.props.onCancel();
         }
+    }
+    handleWebSerialConnected (label) {
+        this.setState({
+            phase: PHASES.connected,
+            peripheralName: label
+        });
+        this.props.onConnected(label);
     }
     handleError (err) {
         // Assume errors that come in during scanning phase are the result of not
@@ -136,6 +173,8 @@ class ConnectionModal extends React.Component {
                 onDisconnect={this.handleDisconnect}
                 onHelp={this.handleHelp}
                 onScanning={this.handleScanning}
+                onWebSerialConnected={this.handleWebSerialConnected}
+                useWebSerial={this.state.useWebSerial}
             />
         );
     }
@@ -148,6 +187,7 @@ ConnectionModal.propTypes = {
     isRealtimeMode: PropTypes.bool,
     isListAll: PropTypes.bool,
     onCancel: PropTypes.func.isRequired,
+    onClearConnected: PropTypes.func.isRequired,
     onConnected: PropTypes.func.isRequired,
     onClickListAll: PropTypes.func.isRequired,
     vm: PropTypes.instanceOf(VM).isRequired
@@ -164,6 +204,9 @@ const mapStateToProps = state => ({
 const mapDispatchToProps = dispatch => ({
     onCancel: () => {
         dispatch(closeConnectionModal());
+    },
+    onClearConnected: () => {
+        dispatch(clearConnectionModalPeripheralName());
     },
     onConnected: peripheralName => {
         dispatch(setConnectionModalPeripheralName(peripheralName));

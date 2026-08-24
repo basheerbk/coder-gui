@@ -1,0 +1,19 @@
+[Unit]
+Description=Tingaroo Arduino Compile API
+After=network.target
+
+[Service]
+Type=simple
+User=openblock
+Group=openblock
+WorkingDirectory=/opt/compile-api
+EnvironmentFile=/etc/compile-api/env
+ExecStart=/usr/bin/node server.js
+Restart=always
+RestartSec=3
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=compile-api
+
+[Install]
+WantedBy=multi-user.target

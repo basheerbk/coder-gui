@@ -2,5 +2,23 @@
   "buildCommand": "npm run build",
   "outputDirectory": "build",
   "framework": null,
-  "installCommand": "npm install"
+  "installCommand": "rm -rf node_modules && npm install",
+  "rewrites": [
+    {
+      "source": "/api/compile",
+      "destination": "http://13.217.19.72/api/compile"
+    },
+    {
+      "source": "/api/compile/health",
+      "destination": "http://13.217.19.72/api/compile/health"
+    },
+    {
+      "source": "/devices/:path*",
+      "destination": "http://13.217.19.72/devices/:path*"
+    },
+    {
+      "source": "/extensions/:path*",
+      "destination": "http://13.217.19.72/extensions/:path*"
+    }
+  ]
 }

@@ -15,14 +15,31 @@ var postcssImport = require('postcss-import');
 
 const STATIC_PATH = process.env.STATIC_PATH || '/static';
 const MONACO_DIR = path.resolve(__dirname, './node_modules/monaco-editor');
+const LINK_PROXY_TARGET = process.env.COMPILE_PROXY_TARGET || 'http://13.217.19.72';
+const linkProxy = {
+    target: LINK_PROXY_TARGET,
+    changeOrigin: true,
+    secure: false
+};
 
 const base = {
     mode: process.env.NODE_ENV === 'production' ? 'production' : 'development',
     devtool: 'cheap-module-source-map',
     devServer: {
-        contentBase: path.resolve(__dirname, 'build'),
+        contentBase: [
+            path.resolve(__dirname, 'build'),
+            path.resolve(__dirname, 'test')
+        ],
         host: '0.0.0.0',
-        port: process.env.PORT || 8601
+        port: process.env.PORT || 8601,
+        proxy: {
+            '/api/compile': Object.assign({}, linkProxy, {
+                timeout: 180000,
+                proxyTimeout: 180000
+            }),
+            '/devices': linkProxy,
+            '/extensions': linkProxy
+        }
     },
     output: {
         library: 'GUI',
@@ -136,7 +153,21 @@ module.exports = [
         optimization: {
             splitChunks: {
                 chunks: 'all',
-                name: 'lib.min'
+                cacheGroups: {
+                    esptool: {
+                        test: /[\\/]node_modules[\\/](esptool-js|pako|atob-lite|tslib)[\\/]/,
+                        name: 'esptool',
+                        chunks: 'all',
+                        enforce: true,
+                        priority: 30
+                    },
+                    vendors: {
+                        test: /[\\/]node_modules[\\/]/,
+                        name: 'lib.min',
+                        chunks: 'all',
+                        priority: 10
+                    }
+                }
             },
             runtimeChunk: {
                 name: 'lib.min'
@@ -146,28 +177,29 @@ module.exports = [
             new webpack.DefinePlugin({
                 'process.env.NODE_ENV': '"' + process.env.NODE_ENV + '"',
                 'process.env.DEBUG': Boolean(process.env.DEBUG),
-                'process.env.GA_ID': '"' + (process.env.GA_ID || 'UA-000000-01') + '"'
+                'process.env.GA_ID': '"' + (process.env.GA_ID || 'UA-000000-01') + '"',
+                'process.env.COMPILE_API_URL': JSON.stringify(process.env.COMPILE_API_URL || '/api/compile')
             }),
             new HtmlWebpackPlugin({
-                chunks: ['lib.min', 'gui'],
+                chunks: ['lib.min', 'esptool', 'gui'],
                 template: 'src/playground/index.ejs',
                 title: 'OpenBlock',
                 sentryConfig: process.env.SENTRY_CONFIG ? '"' + process.env.SENTRY_CONFIG + '"' : null
             }),
             new HtmlWebpackPlugin({
-                chunks: ['lib.min', 'blocksonly'],
+                chunks: ['lib.min', 'esptool', 'blocksonly'],
                 template: 'src/playground/index.ejs',
                 filename: 'blocks-only.html',
                 title: 'OpenBlock GUI: Blocks Only Example'
             }),
             new HtmlWebpackPlugin({
-                chunks: ['lib.min', 'compatibilitytesting'],
+                chunks: ['lib.min', 'esptool', 'compatibilitytesting'],
                 template: 'src/playground/index.ejs',
                 filename: 'compatibility-testing.html',
                 title: 'OpenBlock GUI: Compatibility Testing'
             }),
             new HtmlWebpackPlugin({
-                chunks: ['lib.min', 'player'],
+                chunks: ['lib.min', 'esptool', 'player'],
                 template: 'src/playground/index.ejs',
                 filename: 'player.html',
                 title: 'OpenBlock GUI: Player Example'

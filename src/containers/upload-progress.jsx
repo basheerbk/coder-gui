@@ -10,6 +10,8 @@ import VM from 'openblock-vm';
 import analytics from '../lib/analytics';
 import {closeUploadProgress} from '../reducers/modals';
 import {showAlertWithTimeout} from '../reducers/alerts';
+import {webSerialUploadPhases, clearWebSerialUpload} from '../reducers/web-serial-upload';
+import {requestAbort, isUploadInProgress} from '../lib/web-serial/upload-state';
 
 import UploadProgressComponent, {PHASES} from '../components/upload-progress/upload-progress.jsx';
 
@@ -26,7 +28,8 @@ const messages = defineMessages({
     }
 });
 
-const UPLOAD_TIMEOUT_TIME = 60 * 1000; // 60s
+const UPLOAD_TIMEOUT_TIME = 60 * 1000; // 60s — OpenBlock Link path
+const WEB_SERIAL_UPLOAD_TIMEOUT_TIME = 5 * 60 * 1000; // compile + ESP32 flash
 const AUTO_CLOSE_TIME = 3 * 1000; // 3s
 
 class UploadProgress extends React.Component {
@@ -42,7 +45,8 @@ class UploadProgress extends React.Component {
             'handleUploadError',
             'handleUploadSuccess',
             'handleUploadTimeout',
-            'handleStopAutoClose'
+            'handleStopAutoClose',
+            'resetUploadTimeout'
         ]);
         this.state = {
             extension: this.props.deviceData.find(dev => dev.deviceId === props.deviceId),
@@ -54,7 +58,7 @@ class UploadProgress extends React.Component {
         };
         // if the upload progress stack some seconds with out any info.
         // set state to timeout let user could colse the modal.
-        this.uploadTimeout = setTimeout(() => this.handleUploadTimeout(), UPLOAD_TIMEOUT_TIME);
+        this.uploadTimeout = null;
         analytics.event({
             category: 'devices',
             action: 'uploading',
@@ -62,27 +66,51 @@ class UploadProgress extends React.Component {
         });
         this.scrollableRef = React.createRef();
     }
+    resetUploadTimeout () {
+        clearTimeout(this.uploadTimeout);
+        const ms = this.props.webSerialUploadActive ?
+            WEB_SERIAL_UPLOAD_TIMEOUT_TIME :
+            UPLOAD_TIMEOUT_TIME;
+        this.uploadTimeout = setTimeout(() => this.handleUploadTimeout(), ms);
+    }
     componentDidMount () {
-        this.props.vm.on('PERIPHERAL_UPLOAD_STDOUT', this.handleStdout);
-        this.props.vm.on('PERIPHERAL_UPLOAD_ERROR', this.handleUploadError);
-        this.props.vm.on('PERIPHERAL_CONNECTION_LOST_ERROR', this.handleConnectionLostError);
-        this.props.vm.on('PERIPHERAL_UPLOAD_SUCCESS', this.handleUploadSuccess);
-        this.props.vm.on('PERIPHERAL_SET_UPLOAD_ABORT_ENABLED', this.handleSetUploadAbortEnabled);
+        this.resetUploadTimeout();
+        if (!this.props.webSerialUploadActive) {
+            this.props.vm.on('PERIPHERAL_UPLOAD_STDOUT', this.handleStdout);
+            this.props.vm.on('PERIPHERAL_UPLOAD_ERROR', this.handleUploadError);
+            this.props.vm.on('PERIPHERAL_CONNECTION_LOST_ERROR', this.handleConnectionLostError);
+            this.props.vm.on('PERIPHERAL_UPLOAD_SUCCESS', this.handleUploadSuccess);
+            this.props.vm.on('PERIPHERAL_SET_UPLOAD_ABORT_ENABLED', this.handleSetUploadAbortEnabled);
+        }
     }
     componentWillUnmount () {
-        this.props.vm.removeListener('PERIPHERAL_UPLOAD_STDOUT', this.handleStdout);
-        this.props.vm.removeListener('PERIPHERAL_UPLOAD_ERROR', this.handleUploadError);
-        this.props.vm.removeListener('PERIPHERAL_CONNECTION_LOST_ERROR', this.handleConnectionLostError);
-        this.props.vm.removeListener('PERIPHERAL_UPLOAD_SUCCESS', this.handleUploadSuccess);
-        this.props.vm.removeListener('PERIPHERAL_SET_UPLOAD_ABORT_ENABLED', this.handleSetUploadAbortEnabled);
+        if (!this.props.webSerialUploadActive) {
+            this.props.vm.removeListener('PERIPHERAL_UPLOAD_STDOUT', this.handleStdout);
+            this.props.vm.removeListener('PERIPHERAL_UPLOAD_ERROR', this.handleUploadError);
+            this.props.vm.removeListener('PERIPHERAL_CONNECTION_LOST_ERROR', this.handleConnectionLostError);
+            this.props.vm.removeListener('PERIPHERAL_UPLOAD_SUCCESS', this.handleUploadSuccess);
+            this.props.vm.removeListener('PERIPHERAL_SET_UPLOAD_ABORT_ENABLED', this.handleSetUploadAbortEnabled);
+        }
         clearTimeout(this.uploadTimeout);
     }
     handleAbort () {
+        if (this.props.webSerialUploadActive) {
+            requestAbort();
+            this.setState({
+                text: `${this.state.text}\r\nUpload cancel requested…\r\n`,
+                phase: PHASES.aborted
+            });
+            clearTimeout(this.uploadTimeout);
+            return;
+        }
         this.props.vm.abortUploadToPeripheral(this.props.deviceId);
         clearTimeout(this.uploadTimeout);
         this.setState({abortEnabled: false});
     }
     handleCancel () {
+        if (this.props.webSerialUploadActive) {
+            this.props.onClearWebSerialUpload();
+        }
         this.props.oncloseUploadProgress();
     }
     handleHelp () {
@@ -97,9 +125,8 @@ class UploadProgress extends React.Component {
         this.setState({
             text: this.state.text + data.message
         });
-        this.scrollableRef.current.scrollToBottom();
-        clearTimeout(this.uploadTimeout);
-        this.uploadTimeout = setTimeout(() => this.handleUploadTimeout(), UPLOAD_TIMEOUT_TIME);
+        this.scrollableRef.current && this.scrollableRef.current.scrollToBottom();
+        this.resetUploadTimeout();
     }
     handleSetUploadAbortEnabled (enabled) {
         if (enabled) {
@@ -177,19 +204,50 @@ class UploadProgress extends React.Component {
         }
     }
 
+    componentDidUpdate (prevProps) {
+        if (this.props.webSerialUploadActive && this.props.webSerialPhase !== prevProps.webSerialPhase) {
+            if (this.props.webSerialPhase === webSerialUploadPhases.success) {
+                this.handleUploadSuccess(false);
+            } else if (this.props.webSerialPhase === webSerialUploadPhases.error) {
+                this.setState({
+                    text: this.props.webSerialText,
+                    phase: PHASES.error
+                });
+                this.props.onUploadError();
+                clearTimeout(this.uploadTimeout);
+            }
+        }
+        if (this.props.webSerialUploadActive && this.props.webSerialText !== prevProps.webSerialText) {
+            this.setState({
+                text: this.props.webSerialText,
+                phase: PHASES.uploading
+            });
+            this.scrollableRef.current && this.scrollableRef.current.scrollToBottom();
+            this.resetUploadTimeout();
+        }
+    }
+
     render () {
+        const phase = this.props.webSerialUploadActive ?
+            (this.props.webSerialPhase === webSerialUploadPhases.success ? PHASES.success :
+                this.props.webSerialPhase === webSerialUploadPhases.error ? PHASES.error :
+                    PHASES.uploading) :
+            this.state.phase;
+        const text = this.props.webSerialUploadActive ? this.props.webSerialText : this.state.text;
+
         return (
             <UploadProgressComponent
                 connectionSmallIconURL={this.state.extension && this.state.extension.connectionSmallIconURL}
                 name={this.state.extension && this.state.extension.name}
-                abortEnabled={this.state.abortEnabled}
+                abortEnabled={(this.state.abortEnabled && !this.props.webSerialUploadActive) ||
+                    (this.props.webSerialUploadActive && isUploadInProgress())}
                 autoCloseCount={this.state.autoCloseCount}
                 onAbort={this.handleAbort}
                 onCancel={this.handleCancel}
                 onHelp={this.handleHelp}
                 onStopAutoClose={this.handleStopAutoClose}
-                text={this.state.text}
-                phase={this.state.phase}
+                text={text}
+                phase={phase}
                 scrollableRef={this.scrollableRef}
             />
         );
@@ -201,6 +259,10 @@ UploadProgress.propTypes = {
     deviceId: PropTypes.string.isRequired,
     intl: intlShape.isRequired,
     vm: PropTypes.instanceOf(VM).isRequired,
+    webSerialPhase: PropTypes.string,
+    webSerialText: PropTypes.string,
+    webSerialUploadActive: PropTypes.bool,
+    onClearWebSerialUpload: PropTypes.func.isRequired,
     oncloseUploadProgress: PropTypes.func.isRequired,
     onUploadError: PropTypes.func.isRequired,
     onUploadSuccess: PropTypes.func.isRequired
@@ -208,10 +270,14 @@ UploadProgress.propTypes = {
 
 const mapStateToProps = state => ({
     deviceData: state.scratchGui.deviceData.deviceData,
-    deviceId: state.scratchGui.device.deviceId
+    deviceId: state.scratchGui.device.deviceId,
+    webSerialUploadActive: state.scratchGui.webSerialUpload.active,
+    webSerialPhase: state.scratchGui.webSerialUpload.phase,
+    webSerialText: state.scratchGui.webSerialUpload.text
 });
 
 const mapDispatchToProps = dispatch => ({
+    onClearWebSerialUpload: () => dispatch(clearWebSerialUpload()),
     oncloseUploadProgress: () => dispatch(closeUploadProgress()),
     onUploadError: () => showAlertWithTimeout(dispatch, 'uploadError'),
     onUploadSuccess: () => showAlertWithTimeout(dispatch, 'uploadSuccess')

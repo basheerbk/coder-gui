@@ -16,6 +16,16 @@ import {
 
 import {showAlertWithTimeout} from '../reducers/alerts';
 import {setBaudrate, setEol, switchHexForm, switchAutoScroll, switchPause} from '../reducers/hardware-console';
+import {isWebSerialUploadDevice, getDeviceMonitorBaud} from '../lib/web-serial/device-profiles';
+import {isConnected as isWebSerialConnected} from '../lib/web-serial/web-serial-port';
+import {
+    FLASH_COMPLETE,
+    setSerialDataHandler,
+    startSerialMonitor,
+    stopSerialMonitor,
+    webSerialMonitorEvents,
+    writeSerialMonitor
+} from '../lib/web-serial/serial-monitor';
 
 const messages = defineMessages({
     noLineTerminators: {
@@ -79,7 +89,9 @@ class HardwareConsole extends React.Component {
             'handleSelectBaudrate',
             'handleSelectEol',
             'onReciveData',
-            'writeToPeripheral'
+            'writeToPeripheral',
+            'handleFlashComplete',
+            'startWebSerialConsole'
         ]);
         this.state = {
             consoleArray: new Uint8Array(0),
@@ -88,15 +100,66 @@ class HardwareConsole extends React.Component {
         this._recivceBuffer = new Uint8Array(0);
     }
 
+    isWebSerialDevice () {
+        return isWebSerialUploadDevice(this.props.deviceId);
+    }
+
+    isWebSerialReady () {
+        return this.isWebSerialDevice() &&
+            (isWebSerialConnected() || Boolean(this.props.peripheralName));
+    }
+
+    async startWebSerialConsole () {
+        if (!this.isWebSerialReady()) {
+            return;
+        }
+        setSerialDataHandler(this.onReciveData);
+        try {
+            const deviceBaud = getDeviceMonitorBaud(this.props.deviceId);
+            const selectedBaud = parseInt(this.props.baudrate, 10);
+            const baudRate = (selectedBaud === 9600 && deviceBaud !== 9600) ?
+                deviceBaud : selectedBaud;
+            if (String(baudRate) !== this.props.baudrate) {
+                this.props.onSetBaudrate(String(baudRate));
+            }
+            await startSerialMonitor(baudRate);
+        } catch (e) {
+            // Port may be in use during flash; FLASH_COMPLETE will retry.
+        }
+    }
+
+    handleFlashComplete () {
+        this.startWebSerialConsole();
+    }
+
     componentDidMount () {
         this.props.vm.addListener('PERIPHERAL_RECIVE_DATA', this.onReciveData);
-        if (this.props.peripheralName) {
+        webSerialMonitorEvents.addEventListener(FLASH_COMPLETE, this.handleFlashComplete);
+        if (this.isWebSerialReady()) {
+            this.startWebSerialConsole();
+        } else if (this.props.peripheralName) {
             this.props.vm.setPeripheralBaudrate(this.props.deviceId, parseInt(this.props.baudrate, 10));
+        }
+    }
+
+    componentDidUpdate (prevProps) {
+        if (!this.isWebSerialDevice()) {
+            return;
+        }
+        if (!prevProps.peripheralName && this.props.peripheralName) {
+            this.startWebSerialConsole();
+        }
+        if (prevProps.peripheralName && !this.props.peripheralName) {
+            stopSerialMonitor();
         }
     }
 
     componentWillUnmount () {
         this.props.vm.removeListener('PERIPHERAL_RECIVE_DATA', this.onReciveData);
+        webSerialMonitorEvents.removeEventListener(FLASH_COMPLETE, this.handleFlashComplete);
+        if (this.isWebSerialDevice()) {
+            stopSerialMonitor();
+        }
     }
 
     appendBuffer (arr1, arr2) {
@@ -183,6 +246,12 @@ class HardwareConsole extends React.Component {
     }
 
     writeToPeripheral (data) {
+        if (this.isWebSerialReady()) {
+            writeSerialMonitor(data).catch(() => {
+                this.props.onNoPeripheralIsConnected();
+            });
+            return;
+        }
         if (this.props.peripheralName) {
             this.props.vm.writeToPeripheral(this.props.deviceId, data);
         } else {
@@ -205,10 +274,18 @@ class HardwareConsole extends React.Component {
     }
 
     handleSelectBaudrate (e) {
+        const index = e.target.selectedIndex;
+        const baudrate = baudrateList[index];
+        if (this.isWebSerialReady()) {
+            this.props.onSetBaudrate(baudrate.key);
+            startSerialMonitor(baudrate.value).catch(() => {
+                this.props.onNoPeripheralIsConnected();
+            });
+            return;
+        }
         if (this.props.peripheralName) {
-            const index = e.target.selectedIndex;
-            this.props.onSetBaudrate(baudrateList[index].key);
-            this.props.vm.setPeripheralBaudrate(this.props.deviceId, baudrateList[index].value);
+            this.props.onSetBaudrate(baudrate.key);
+            this.props.vm.setPeripheralBaudrate(this.props.deviceId, baudrate.value);
         } else {
             this.props.onNoPeripheralIsConnected();
         }
@@ -263,7 +340,7 @@ class HardwareConsole extends React.Component {
 
 HardwareConsole.propTypes = {
     baudrate: PropTypes.string.isRequired,
-    deviceId: PropTypes.string.isRequired,
+    deviceId: PropTypes.string,
     eol: PropTypes.string.isRequired,
     handleClickSerialportMenu: PropTypes.func.isRequired,
     handleRequestSerialportMenu: PropTypes.func.isRequired,

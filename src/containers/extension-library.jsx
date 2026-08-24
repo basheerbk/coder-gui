@@ -10,6 +10,7 @@ import {connect} from 'react-redux';
 import {defineMessages, injectIntl, intlShape} from 'react-intl';
 
 import extensionLibraryContent from '../lib/libraries/extensions/index.jsx';
+import {mergeLocalDeviceExtensions} from '../lib/device-extensions/local-extensions.js';
 
 import LibraryComponent from '../components/library/library.jsx';
 import extensionIcon from '../components/action-menu/icon--sprite.svg';
@@ -99,9 +100,9 @@ class ExtensionLibrary extends React.PureComponent {
     updateDeviceExtensions () {
         this.props.vm.extensionManager.getDeviceExtensionsList()
             .then(data => {
-                if (data) {
-                    this.setState({deviceExtensions: data});
-                }
+                const deviceExtensions = mergeLocalDeviceExtensions(data);
+                this.props.vm.extensionManager._deviceExtensionsList = deviceExtensions;
+                this.setState({deviceExtensions});
             });
     }
 

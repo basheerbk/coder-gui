@@ -1,4 +1,5 @@
 // Polyfills
+import 'regenerator-runtime/runtime';
 import 'es6-object-assign/auto';
 import 'core-js/fn/array/includes';
 import 'core-js/fn/promise/finally';
