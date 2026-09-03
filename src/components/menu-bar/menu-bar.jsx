@@ -875,6 +875,8 @@ class MenuBar extends React.Component {
                             id="gui.menuBar.uploadFirmware"
                         />}
                     </div>
+                    {/* Tingaroo: Program Mode toggle hidden — device-only IDE, always upload mode */}
+                    <div style={{display: 'none'}}>
                     <Divider className={classNames(styles.divider)} />
                     <div className={classNames(styles.menuBarItem, styles.programModeGroup)}>
                         <FormattedMessage
@@ -896,6 +898,7 @@ class MenuBar extends React.Component {
                             uncheckedIcon={false}
                             checkedIcon={false}
                         />
+                    </div>
                     </div>
                     {isScratchDesktop() ? (
                         <div
