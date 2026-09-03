@@ -857,7 +857,7 @@ class MenuBar extends React.Component {
                         />
                     </div>
                     <Divider className={classNames(styles.divider)} />
-                    <div
+                    <div style={{display: 'none'}}
                         className={classNames(styles.menuBarItem, this.props.isRealtimeMode &&
                             this.props.peripheralName ? styles.hoverable : styles.disabled)}
                         onMouseUp={this.props.isRealtimeMode && this.props.peripheralName ?
