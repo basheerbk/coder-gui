@@ -1,3 +1,4 @@
+/* Tingaroo brand palette */
 $ui-primary: hsla(168, 45%, 95%, 1); /* #E8F7F3 */
 $ui-secondary: hsla(168, 35%, 92%, 1); /* #E0F2ED */
 $ui-tertiary: hsla(168, 30%, 86%, 1); /* #CDE6DF */
@@ -5,19 +6,36 @@ $ui-tertiary: hsla(168, 30%, 86%, 1); /* #CDE6DF */
 $ui-modal-overlay: hsla(168, 70%, 38%, 0.9); /* 90% transparent version of motion-primary */
 
 $ui-white: hsla(0, 100%, 100%, 1); /* #FFFFFF */
-$ui-white-dim: hsla(0, 100%, 100%, 0.75); /* 25% transparent version of ui-white */
-$ui-white-transparent: hsla(0, 100%, 100%, 0.25); /* 25% transparent version of ui-white */
-$ui-transparent: hsla(0, 100%, 100%, 0); /* 25% transparent version of ui-white */
+$ui-white-dim: hsla(0, 100%, 100%, 0.75);
+$ui-white-transparent: hsla(0, 100%, 100%, 0.25);
+$ui-transparent: hsla(0, 100%, 100%, 0);
 
-$ui-black-transparent: hsla(0, 0%, 0%, 0.15); /* 15% transparent version of black */
+$ui-black-transparent: hsla(0, 0%, 0%, 0.15);
 
 $text-primary: hsla(180, 12%, 28%, 1); /* #3F4E4E */
 $text-primary-transparent: hsla(180, 12%, 28%, 0.75);
 
+/* Brand teal — used for UI chrome (menu bar, highlights, etc.) */
 $motion-primary: hsla(168, 70%, 38%, 1); /* #1FA87A */
 $motion-tertiary: hsla(168, 70%, 28%, 1); /* #177A5A */
-$motion-transparent: hsla(168, 70%, 38%, 0.35); /* 35% transparent version of motion-primary */
-$motion-light-transparent: hsla(168, 70%, 38%, 0.15); /* 15% transparent version of motion-primary */
+$motion-transparent: hsla(168, 70%, 38%, 0.35);
+$motion-light-transparent: hsla(168, 70%, 38%, 0.15);
+
+/* Category colors */
+$start-primary: #E8A817;
+$start-tertiary: #CC9200;
+
+$control-primary: #1E9E5E;
+$control-tertiary: #178A4F;
+
+$sense-primary: #17A2B8;
+$sense-tertiary: #128A9E;
+
+$math-primary: #0DAB76;
+$math-tertiary: #099663;
+
+$data-primary: #7B68EE;
+$data-tertiary: #6A5ACD;
 
 $red-primary: hsla(20, 100%, 55%, 1); /* #FF661A */
 $red-tertiary: hsla(20, 100%, 45%, 1); /* #E64D00 */
@@ -25,20 +43,16 @@ $red-tertiary: hsla(20, 100%, 45%, 1); /* #E64D00 */
 $sound-primary: hsla(300, 53%, 60%, 1); /* #CF63CF */
 $sound-tertiary: hsla(300, 48%, 50%, 1); /* #BD42BD */
 
-$control-primary: hsla(38, 100%, 55%, 1); /* #FFAB19 */
-
-$data-primary: hsla(30, 100%, 55%, 1); /* #FF8C1A */
-
 $pen-primary: hsla(163, 85%, 40%, 1); /* #0FBD8C */
-$pen-transparent: hsla(163, 85%, 40%, 0.25); /* #0FBD8C */
+$pen-transparent: hsla(163, 85%, 40%, 0.25);
 
 $error-primary: hsla(30, 100%, 55%, 1); /* #FF8C1A */
 $error-light: hsla(30, 100%, 70%, 1); /* #FFB366 */
-$error-transparent: hsla(30, 100%, 55%, 0.25); /* #FF8C1A */
+$error-transparent: hsla(30, 100%, 55%, 0.25);
 
 $extensions-primary: hsla(163, 85%, 40%, 1); /* #0FBD8C */
 $extensions-tertiary: hsla(163, 85%, 30%, 1); /* #0B8E69 */
-$extensions-transparent: hsla(163, 85%, 40%, 0.35); /* 35% transparent version of extensions-primary */
-$extensions-light: hsla(163, 57%, 85%, 1); /* opaque version of extensions-transparent, on white bg */
+$extensions-transparent: hsla(163, 85%, 40%, 0.35);
+$extensions-light: hsla(163, 57%, 85%, 1);
 
-$drop-highlight: hsla(168, 55%, 62%, 1); /* lighter than motion-primary */
+$drop-highlight: hsla(168, 55%, 62%, 1);

@@ -85,12 +85,14 @@
 }
 
 /*
-    Shrink category font to fit "My Blocks" for now.
-    Probably will need different solutions for language support later, so
-    make the change here instead of in openblock-blocks.
+    Tingaroo: slightly larger category labels for readability (5 short category names).
 */
 .blocks :global(.scratchCategoryMenuItemLabel) {
-    font-size: 0.75rem;
+    font-size: 0.85rem;
+}
+
+.blocks :global(.scratchCategoryMenuItem) {
+    padding: 4px 0;
 }
 
 .blocks :global(.blocklyMinimalBody) {

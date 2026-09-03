@@ -922,16 +922,18 @@ Blocks.defaultOptions = {
         colour: '#ddd'
     },
     colours: {
-        workspace: '#F9F9F9',
-        flyout: '#F9F9F9',
+        workspace: '#F5F7FA',
+        flyout: '#F0F2F5',
         toolbox: '#FFFFFF',
-        toolboxSelected: '#E9EEF2',
-        scrollbar: '#CECDCE',
-        scrollbarHover: '#CECDCE',
-        insertionMarker: '#000000',
-        insertionMarkerOpacity: 0.2,
-        fieldShadow: 'rgba(255, 255, 255, 0.3)',
-        dragShadowOpacity: 0.6
+        toolboxSelected: '#E0F2ED',
+        toolboxText: '#3F4E4E',
+        toolboxHover: '#1FA87A',
+        scrollbar: '#C8CDD3',
+        scrollbarHover: '#A0A8B0',
+        insertionMarker: '#1FA87A',
+        insertionMarkerOpacity: 0.3,
+        fieldShadow: 'rgba(255, 255, 255, 0.35)',
+        dragShadowOpacity: 0.5
     },
     comments: true,
     collapse: false,
