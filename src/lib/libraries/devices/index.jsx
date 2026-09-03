@@ -43,6 +43,14 @@ import esp32IconURL from './esp32/esp32.png';
 import esp32ConnectionIconURLL from './esp32/esp32-illustration.svg';
 import esp32ConnectionSmallIconURL from './esp32/esp32-small.svg';
 
+import makerEsp32IconURL from './makerEsp32/makerEsp32.png';
+import makerEsp32ConnectionIconURLL from './makerEsp32/makerEsp32-illustration.png';
+import makerEsp32ConnectionSmallIconURL from './makerEsp32/makerEsp32-small.png';
+
+import makerUnoIconURL from './makerUno/makerUno.png';
+import makerUnoConnectionIconURLL from './makerUno/makerUno-illustration.png';
+import makerUnoConnectionSmallIconURL from './makerUno/makerUno-small.png';
+
 import esp32S3IconURL from './esp32S3/esp32S3.png';
 import esp32S3ConnectionIconURLL from './esp32S3/esp32S3-illustration.svg';
 import esp32S3ConnectionSmallIconURL from './esp32S3/esp32S3-small.svg';
@@ -101,6 +109,7 @@ const deviceData = [
             />
         ),
         featured: true,
+        hide: true,
         programMode: ['realtime'],
         programLanguage: ['block'],
         tags: ['realtime']
@@ -143,6 +152,42 @@ const deviceData = [
         helpLink: 'https://wiki.openblock.cc/general-hardware-guidelines/boards/arduino-uno'
     },
     {
+        name: 'Maker Uno',
+        deviceId: 'makerUno_arduinoUno',
+        manufactor: 'Maker',
+        type: DeviceType.arduino,
+        iconURL: makerUnoIconURL,
+        description: (
+            <FormattedMessage
+                defaultMessage="ATmega328P Maker board with RJ45 connectors for classroom kits."
+                description="Description for the Maker Uno custom board"
+                id="gui.device.makerUno.description"
+            />
+        ),
+        featured: true,
+        disabled: false,
+        bluetoothRequired: false,
+        serialportRequired: true,
+        defaultBaudRate: '9600',
+        internetConnectionRequired: false,
+        launchPeripheralConnectionFlow: true,
+        useAutoScan: false,
+        connectionIconURL: makerUnoConnectionIconURLL,
+        connectionSmallIconURL: makerUnoConnectionSmallIconURL,
+        connectingMessage: (
+            <FormattedMessage
+                defaultMessage="Connecting"
+                description="Message to help people connect to their device."
+                id="gui.device.connectingMessage"
+            />
+        ),
+        programMode: ['realtime', 'upload'],
+        defaultProgramMode: 'upload',
+        programLanguage: ['block', 'c', 'cpp'],
+        tags: ['arduino', 'kit'],
+        helpLink: 'https://wiki.openblock.cc/general-hardware-guidelines/boards/arduino-uno'
+    },
+    {
         name: 'Arduino Nano',
         deviceId: 'arduinoNano',
         manufactor: 'arduino.cc',
@@ -157,6 +202,7 @@ const deviceData = [
             />
         ),
         featured: true,
+        hide: true,
         disabled: false,
         bluetoothRequired: false,
         serialportRequired: true,
@@ -193,6 +239,7 @@ const deviceData = [
             />
         ),
         featured: true,
+        hide: true,
         disabled: false,
         bluetoothRequired: false,
         serialportRequired: true,
@@ -229,6 +276,7 @@ const deviceData = [
             />
         ),
         featured: true,
+        hide: true,
         disabled: false,
         bluetoothRequired: false,
         serialportRequired: true,
@@ -265,6 +313,7 @@ const deviceData = [
             />
         ),
         featured: true,
+        hide: true,
         disabled: false,
         bluetoothRequired: false,
         serialportRequired: true,
@@ -301,6 +350,7 @@ const deviceData = [
             />
         ),
         featured: true,
+        hide: true,
         disabled: false,
         bluetoothRequired: false,
         serialportRequired: true,
@@ -359,6 +409,43 @@ const deviceData = [
         helpLink: 'https://wiki.openblock.cc/general-hardware-guidelines/boards/esp32'
     },
     {
+        name: 'Maker ESP32',
+        deviceId: 'makerEsp32_arduinoEsp32',
+        manufactor: 'Maker',
+        type: DeviceType.arduino,
+        iconURL: makerEsp32IconURL,
+        description: (
+            <FormattedMessage
+                defaultMessage="ESP32 Maker board with RJ45 connectors for classroom kits and Wi-Fi projects."
+                description="Description for the Maker ESP32 custom board"
+                id="gui.device.makerEsp32.description"
+            />
+        ),
+        featured: true,
+        disabled: false,
+        bluetoothRequired: false,
+        serialportRequired: true,
+        defaultBaudRate: '115200',
+        internetConnectionRequired: false,
+        launchPeripheralConnectionFlow: true,
+        useAutoScan: false,
+        connectionIconURL: makerEsp32ConnectionIconURLL,
+        connectionSmallIconURL: makerEsp32ConnectionSmallIconURL,
+        connectingMessage: (
+            <FormattedMessage
+                defaultMessage="Connecting"
+                description="Message to help people connect to their device."
+                id="gui.device.connectingMessage"
+            />
+        ),
+        deviceExtensions: ['makerEsp32', 'blynkIoT'],
+        deviceExtensionsCompatible: 'arduinoEsp32',
+        programMode: ['upload'],
+        programLanguage: ['block', 'c', 'cpp'],
+        tags: ['arduino', 'kit'],
+        helpLink: 'https://wiki.openblock.cc/general-hardware-guidelines/boards/esp32'
+    },
+    {
         name: 'ESP32-S3',
         deviceId: 'arduinoEsp32S3',
         manufactor: 'espressif',
@@ -373,6 +460,7 @@ const deviceData = [
             />
         ),
         featured: true,
+        hide: true,
         disabled: false,
         bluetoothRequired: false,
         serialportRequired: true,
@@ -409,6 +497,7 @@ const deviceData = [
             />
         ),
         featured: true,
+        hide: true,
         disabled: false,
         bluetoothRequired: false,
         serialportRequired: true,
@@ -446,6 +535,7 @@ const deviceData = [
             />
         ),
         featured: true,
+        hide: true,
         disabled: false,
         bluetoothRequired: false,
         serialportRequired: true,
@@ -482,6 +572,7 @@ const deviceData = [
             />
         ),
         featured: true,
+        hide: true,
         disabled: false,
         bluetoothRequired: false,
         serialportRequired: true,
@@ -518,6 +609,7 @@ const deviceData = [
             />
         ),
         featured: true,
+        hide: true,
         disabled: false,
         bluetoothRequired: false,
         serialportRequired: true,
@@ -554,6 +646,7 @@ const deviceData = [
             />
         ),
         featured: true,
+        hide: true,
         disabled: false,
         bluetoothRequired: false,
         serialportRequired: true,
@@ -590,6 +683,7 @@ const deviceData = [
             />
         ),
         featured: true,
+        hide: true,
         disabled: false,
         bluetoothRequired: false,
         serialportRequired: true,
@@ -626,6 +720,7 @@ const deviceData = [
             />
         ),
         featured: true,
+        hide: true,
         disabled: false,
         bluetoothRequired: false,
         serialportRequired: true,
@@ -662,6 +757,7 @@ const deviceData = [
             />
         ),
         featured: true,
+        hide: true,
         disabled: false,
         bluetoothRequired: false,
         serialportRequired: true,
@@ -698,6 +794,7 @@ const deviceData = [
             />
         ),
         featured: true,
+        hide: true,
         disabled: false,
         bluetoothRequired: false,
         serialportRequired: true,
@@ -734,6 +831,7 @@ const deviceData = [
             />
         ),
         featured: true,
+        hide: true,
         disabled: false,
         bluetoothRequired: false,
         serialportRequired: true,

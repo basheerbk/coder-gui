@@ -50,6 +50,12 @@
     align-items: center;
 }
 
+.peripheral-tile-image {
+    height: 2.5rem;
+    width: auto;
+    object-fit: contain;
+}
+
 [dir="ltr"] .peripheral-tile-image {
     margin-right: 0.5rem;
 }

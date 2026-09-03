@@ -8,6 +8,7 @@ import {defineMessages, injectIntl, intlShape} from 'react-intl';
 
 import analytics from '../lib/analytics';
 import {setDeviceData} from '../reducers/device-data';
+import {installDeviceExtensions} from '../lib/device-extensions/install-device-extensions';
 
 import {makeDeviceLibrary} from '../lib/libraries/devices/index.jsx';
 
@@ -74,12 +75,10 @@ class DeviceLibrary extends React.PureComponent {
                 this.props.onDeviceSelected(id);
             } else {
                 this.props.vm.extensionManager.loadDeviceURL(device).then(() => {
-                    this.props.vm.extensionManager.getDeviceExtensionsList().then(() => {
-                        // TODO: Add a event for install device extension
-                        // the large extensions will take many times to load
-                        // A loading interface should be launched.
-                        this.props.vm.installDeviceExtensions(Object.assign([], deviceExtensions));
-                    });
+                    installDeviceExtensions(this.props.vm, deviceExtensions)
+                        .catch(err =>
+                            console.error(err) // eslint-disable-line no-console
+                        );
                     this.props.onDeviceSelected(id);
                     analytics.event({
                         category: 'devices',

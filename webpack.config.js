@@ -32,6 +32,10 @@ const base = {
         ],
         host: '0.0.0.0',
         port: process.env.PORT || 8601,
+        // Embedded browsers (e.g. Cursor Simple Browser) often hang on the HMR client.
+        hot: false,
+        injectClient: false,
+        injectHot: false,
         proxy: {
             '/api/compile': Object.assign({}, linkProxy, {
                 timeout: 180000,
@@ -151,8 +155,12 @@ module.exports = [
             ])
         },
         optimization: {
+            // Keep shared app code in lib.min so HtmlWebpackPlugin script tags stay complete.
+            // A separate auto-named shared chunk was missing from index.html and left the
+            // page stuck on the HTML "Loading..." splash (React never mounted).
             splitChunks: {
                 chunks: 'all',
+                name: 'lib.min',
                 cacheGroups: {
                     esptool: {
                         test: /[\\/]node_modules[\\/](esptool-js|pako|atob-lite|tslib)[\\/]/,
@@ -160,12 +168,6 @@ module.exports = [
                         chunks: 'all',
                         enforce: true,
                         priority: 30
-                    },
-                    vendors: {
-                        test: /[\\/]node_modules[\\/]/,
-                        name: 'lib.min',
-                        chunks: 'all',
-                        priority: 10
                     }
                 }
             },

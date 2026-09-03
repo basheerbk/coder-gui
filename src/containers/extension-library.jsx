@@ -10,7 +10,11 @@ import {connect} from 'react-redux';
 import {defineMessages, injectIntl, intlShape} from 'react-intl';
 
 import extensionLibraryContent from '../lib/libraries/extensions/index.jsx';
-import {mergeLocalDeviceExtensions} from '../lib/device-extensions/local-extensions.js';
+import {
+    mergeLocalDeviceExtensions,
+    withDeviceExtensionLoadState
+} from '../lib/device-extensions/local-extensions.js';
+import {installDeviceExtensions} from '../lib/device-extensions/install-device-extensions.js';
 
 import LibraryComponent from '../components/library/library.jsx';
 import extensionIcon from '../components/action-menu/icon--sprite.svg';
@@ -99,8 +103,12 @@ class ExtensionLibrary extends React.PureComponent {
 
     updateDeviceExtensions () {
         this.props.vm.extensionManager.getDeviceExtensionsList()
+            .catch(() => null)
             .then(data => {
-                const deviceExtensions = mergeLocalDeviceExtensions(data);
+                const deviceExtensions = withDeviceExtensionLoadState(
+                    mergeLocalDeviceExtensions(data),
+                    this.props.vm
+                );
                 this.props.vm.extensionManager._deviceExtensionsList = deviceExtensions;
                 this.setState({deviceExtensions});
             });
@@ -135,7 +143,7 @@ class ExtensionLibrary extends React.PureComponent {
                 this.props.vm.extensionManager.unloadDeviceExtension(id);
                 this.updateDeviceExtensions();
             } else {
-                this.props.vm.extensionManager.loadDeviceExtension(id).then(() => {
+                installDeviceExtensions(this.props.vm, [id]).then(() => {
                     this.updateDeviceExtensions();
                     analytics.event({
                         category: 'extensions',
@@ -144,7 +152,7 @@ class ExtensionLibrary extends React.PureComponent {
                     });
                 })
                     .catch(err => {
-                        // TODO add a alet device extension load failed. and change the state to bar to failed state
+                        this.updateDeviceExtensions();
                         console.error(err); // eslint-disable-line no-console
                     });
             }

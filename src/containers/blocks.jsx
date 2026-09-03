@@ -39,8 +39,9 @@ import {
 } from '../reducers/editor-tab';
 import {getIsLoadingWithId} from '../reducers/project-state';
 import {isWebSerialUploadDevice} from '../lib/web-serial/device-profiles';
+import {installDeviceExtensions} from '../lib/device-extensions/install-device-extensions';
 
-const DEFAULT_DEVICE_ID = 'arduinoUno';
+const DEFAULT_DEVICE_ID = 'makerUno_arduinoUno';
 
 const addFunctionListener = (object, property, callback) => {
     const oldFn = object[property];
@@ -650,7 +651,12 @@ class Blocks extends React.Component {
         if (!device || device.disabled) return;
         if (this.props.vm.extensionManager.isDeviceLoaded(DEFAULT_DEVICE_ID)) return;
 
-        this.props.vm.extensionManager.loadDeviceURL(device).catch(err => {
+        this.props.vm.extensionManager.loadDeviceURL(device).then(() => {
+            if (device.deviceExtensions && device.deviceExtensions.length) {
+                return installDeviceExtensions(this.props.vm, device.deviceExtensions);
+            }
+            return null;
+        }).catch(err => {
             log.error(`Failed to load default device ${DEFAULT_DEVICE_ID}`, err);
         });
     }
@@ -872,6 +878,7 @@ Blocks.propTypes = {
             wheel: PropTypes.bool,
             startScale: PropTypes.number
         }),
+        trashcan: PropTypes.bool,
         colours: PropTypes.shape({
             workspace: PropTypes.string,
             flyout: PropTypes.string,
@@ -907,6 +914,8 @@ Blocks.defaultOptions = {
         wheel: true,
         startScale: BLOCKS_DEFAULT_SCALE
     },
+    // Scratch-style trash target next to zoom controls
+    trashcan: true,
     grid: {
         spacing: 40,
         length: 2,

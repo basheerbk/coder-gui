@@ -110,8 +110,8 @@
 }
 
 .featured-item {
-    flex-basis: 300px;
-    max-width: 300px;
+    flex-basis: 360px;
+    max-width: 360px;
     height: auto;
     overflow: hidden;
     padding: 0;
@@ -119,6 +119,17 @@
 
 .featured-image-container {
     position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem 0 0.5rem;
+}
+
+.featured-item.library-item-extension .featured-image {
+    width: 115px;
+    height: 115px;
+    object-fit: contain;
+    border-radius: 12px;
 }
 
 .featured-image {
@@ -129,7 +140,7 @@
     font-weight: bold;
     padding: 10px;
     /* height: 140px; */
-    width: 300px;
+    width: 360px;
 }
 
 [dir="ltr"] .featured-extension-text {

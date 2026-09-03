@@ -14,6 +14,47 @@
         </script>
         <!-- /Sentry -->
     <% } %>
+    <script>
+        (function () {
+            var hide = function () {
+                var el = document.getElementById('pre-loading');
+                if (el) el.style.display = 'none';
+            };
+            var setMessage = function (message) {
+                var text = document.getElementById('pre-loading-text');
+                if (text) text.textContent = message;
+            };
+            var showError = function (message) {
+                setMessage(message);
+                var spinner = document.getElementById('pre-loading-spinner');
+                if (spinner) spinner.style.display = 'none';
+                var hint = document.getElementById('pre-loading-hint');
+                if (hint) {
+                    hint.textContent = 'Open http://127.0.0.1:8601 in Chrome or Edge. Cursor\'s built-in browser often cannot load the full dev bundle (~27 MB).';
+                }
+            };
+            window.__openblockHidePreloader = hide;
+            window.__openblockSetBootMessage = setMessage;
+            window.__openblockShowBootError = showError;
+            window.addEventListener('error', function (event) {
+                if (window.__openblockAppStarted) return;
+                showError('Load error: ' + (event.message || 'Unknown error'));
+            });
+            window.addEventListener('unhandledrejection', function (event) {
+                if (window.__openblockAppStarted) return;
+                var reason = event.reason;
+                var message = reason && reason.message ? reason.message : String(reason || 'Unknown error');
+                showError('Load error: ' + message);
+            });
+            setTimeout(function () {
+                if (window.__openblockAppReady) return;
+                var hint = document.getElementById('pre-loading-hint');
+                if (hint) {
+                    hint.textContent = 'Still loading… the dev bundle is large. If this does not finish in a minute, open http://127.0.0.1:8601 in Chrome or Edge.';
+                }
+            }, 45000);
+        })();
+    </script>
     <style>
         #pre-loading {
             position: fixed;
@@ -26,7 +67,7 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            z-index: -9999;
+            z-index: 9999;
         }
         #pre-loading-text {
             font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
@@ -34,6 +75,17 @@
             font-weight: bold;
             margin: 0.75rem 0;
             color: #fff;
+            text-align: center;
+            padding: 0 1rem;
+        }
+        #pre-loading-hint {
+            font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            font-size: 0.95rem;
+            max-width: 28rem;
+            margin: 0.5rem 1rem 0;
+            color: #E5F0FF;
+            text-align: center;
+            line-height: 1.4;
         }
         #pre-loading-spinner {
             border: 0.4rem solid #E5F0FF;
@@ -52,7 +104,8 @@
   <body>
     <div id="pre-loading">
         <div id="pre-loading-text">Loading...</div>
-      <div id="pre-loading-spinner"></div>
+        <div id="pre-loading-spinner"></div>
+        <div id="pre-loading-hint"></div>
     </div>
   </body>
 </html>

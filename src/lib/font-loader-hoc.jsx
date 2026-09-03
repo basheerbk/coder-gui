@@ -43,19 +43,30 @@ const FontLoaderHOC = function (WrappedComponent) {
                 }
                 return fontPromises;
             };
+            const markFontsLoaded = () => {
+                if (!this.props.fontsLoaded) {
+                    this.props.onSetFontsLoaded();
+                }
+            };
+            const waitForFonts = () => {
+                const fontPromises = getFontPromises();
+                const timeout = new Promise(resolve => {
+                    setTimeout(resolve, 5000);
+                });
+                return Promise.race([
+                    fontPromises.length ? Promise.all(fontPromises) : Promise.resolve(),
+                    timeout
+                ]).then(markFontsLoaded);
+            };
             // Font promises must be gathered after the document is loaded, because on Mac Chrome, the promise
             // objects get replaced and the old ones never resolve.
             if (document.readyState === 'complete') {
-                Promise.all(getFontPromises()).then(() => {
-                    this.props.onSetFontsLoaded();
-                });
+                waitForFonts();
             } else {
                 document.onreadystatechange = () => {
                     if (document.readyState !== 'complete') return;
                     document.onreadystatechange = null;
-                    Promise.all(getFontPromises()).then(() => {
-                        this.props.onSetFontsLoaded();
-                    });
+                    waitForFonts();
                 };
             }
         }

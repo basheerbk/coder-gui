@@ -83,6 +83,12 @@ $sides: 20rem;
     user-select: none;
 }
 
+.header-image {
+    height: 2.5rem;
+    width: auto;
+    object-fit: contain;
+}
+
 [dir="ltr"] .header-image {
     margin-right: 0.5rem;
 }

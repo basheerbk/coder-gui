@@ -1,10 +1,10 @@
 /**
  * Boards that use browser Web Serial for Connect/Upload instead of OpenBlock Link.
+ * Inherited boards use id like makerUno_arduinoUno — resolve to the base id after '_'.
  */
 const WEB_SERIAL_UPLOAD_DEVICES = new Set([
     'arduinoUno',
-    'arduinoEsp32',
-    'arduinoEsp32S3'
+    'arduinoEsp32'
 ]);
 
 const DEVICE_PROFILES = {
@@ -28,11 +28,21 @@ const DEVICE_PROFILES = {
     }
 };
 
+const resolveBaseDeviceId = deviceId => {
+    if (!deviceId || typeof deviceId !== 'string') {
+        return deviceId;
+    }
+    if (deviceId.indexOf('_') !== -1) {
+        return deviceId.split('_')[1];
+    }
+    return deviceId;
+};
+
 const isWebSerialUploadDevice = deviceId =>
-    WEB_SERIAL_UPLOAD_DEVICES.has(deviceId);
+    WEB_SERIAL_UPLOAD_DEVICES.has(resolveBaseDeviceId(deviceId));
 
 const getDeviceProfile = deviceId =>
-    DEVICE_PROFILES[deviceId] || DEVICE_PROFILES.arduinoUno;
+    DEVICE_PROFILES[resolveBaseDeviceId(deviceId)] || DEVICE_PROFILES.arduinoUno;
 
 const getDeviceFqbn = deviceId => getDeviceProfile(deviceId).fqbn;
 
@@ -45,6 +55,7 @@ const getDeviceConnectBaud = deviceId => getDeviceProfile(deviceId).connectBaud;
 export {
     WEB_SERIAL_UPLOAD_DEVICES,
     DEVICE_PROFILES,
+    resolveBaseDeviceId,
     isWebSerialUploadDevice,
     getDeviceProfile,
     getDeviceFqbn,
