@@ -933,7 +933,38 @@ Blocks.defaultOptions = {
         insertionMarker: '#1FA87A',
         insertionMarkerOpacity: 0.3,
         fieldShadow: 'rgba(255, 255, 255, 0.35)',
-        dragShadowOpacity: 0.5
+        dragShadowOpacity: 0.5,
+        // Category block colours (Start / Control / Sense / Math / Variables)
+        event: {
+            primary: '#E8A817',
+            secondary: '#CC9200',
+            tertiary: '#B37F00'
+        },
+        control: {
+            primary: '#1E9E5E',
+            secondary: '#178A4F',
+            tertiary: '#117A3E'
+        },
+        sensing: {
+            primary: '#17A2B8',
+            secondary: '#128A9E',
+            tertiary: '#0D7285'
+        },
+        operators: {
+            primary: '#0DAB76',
+            secondary: '#099663',
+            tertiary: '#077A50'
+        },
+        data: {
+            primary: '#7B68EE',
+            secondary: '#6A5ACD',
+            tertiary: '#5A4ABD'
+        },
+        data_lists: {
+            primary: '#7B68EE',
+            secondary: '#6A5ACD',
+            tertiary: '#5A4ABD'
+        }
     },
     comments: true,
     collapse: false,

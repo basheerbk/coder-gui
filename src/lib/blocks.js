@@ -1,11 +1,51 @@
 import ScratchBlocks from 'openblock-blocks';
 
 /**
+ * Tingaroo category palette — applied before menu/hat block colours are read.
+ * Maps to Start, Control, Sense, Math, Variables.
+ */
+const TINGAROO_COLOURS = {
+    event: {
+        primary: '#E8A817',
+        secondary: '#CC9200',
+        tertiary: '#B37F00'
+    },
+    control: {
+        primary: '#1E9E5E',
+        secondary: '#178A4F',
+        tertiary: '#117A3E'
+    },
+    sensing: {
+        primary: '#17A2B8',
+        secondary: '#128A9E',
+        tertiary: '#0D7285'
+    },
+    operators: {
+        primary: '#0DAB76',
+        secondary: '#099663',
+        tertiary: '#077A50'
+    },
+    data: {
+        primary: '#7B68EE',
+        secondary: '#6A5ACD',
+        tertiary: '#5A4ABD'
+    },
+    data_lists: {
+        primary: '#7B68EE',
+        secondary: '#6A5ACD',
+        tertiary: '#5A4ABD'
+    }
+};
+
+/**
  * Connect scratch blocks with the vm
  * @param {VirtualMachine} vm - The scratch vm
  * @return {ScratchBlocks} ScratchBlocks connected with the vm
  */
 export default function (vm) {
+
+    // Apply Tingaroo palette so block rendering matches the simplified toolbox.
+    ScratchBlocks.Colours.overrideColours(TINGAROO_COLOURS);
 
     const jsonForMenuBlock = function (name, menuOptionsFn, colors, start) {
         return {
@@ -152,6 +192,31 @@ export default function (vm) {
     const controlColors = ScratchBlocks.Colours.control;
 
     const eventColors = ScratchBlocks.Colours.event;
+
+    // Sense-category boolean/comparison blocks: keep Math operators teal,
+    // but paint comparisons & logic cyan so they match the Sense toolbox.
+    const senseBlockTypes = [
+        'operator_gt',
+        'operator_lt',
+        'operator_equals',
+        'operator_and',
+        'operator_or',
+        'operator_not'
+    ];
+    senseBlockTypes.forEach(type => {
+        if (!ScratchBlocks.Blocks[type] || !ScratchBlocks.Blocks[type].init) {
+            return;
+        }
+        const originalInit = ScratchBlocks.Blocks[type].init;
+        ScratchBlocks.Blocks[type].init = function () {
+            originalInit.call(this);
+            this.setColour(
+                sensingColors.primary,
+                sensingColors.secondary,
+                sensingColors.tertiary
+            );
+        };
+    });
 
     ScratchBlocks.Blocks.sound_sounds_menu.init = function () {
         const json = jsonForMenuBlock('SOUND_MENU', soundsMenu, soundColors, []);
