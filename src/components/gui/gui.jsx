@@ -499,7 +499,7 @@ GUIComponent.defaultProps = {
     backpackHost: null,
     backpackVisible: false,
     basePath: './',
-    canChangeLanguage: true,
+    canChangeLanguage: false,
     canCreateNew: false,
     canEditTitle: false,
     canManageFiles: true,
