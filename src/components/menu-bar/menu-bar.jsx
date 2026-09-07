@@ -352,7 +352,7 @@ class MenuBar extends React.Component {
         window.open('https://community.openblock.cc');
     }
     handleClickOpenWiki () {
-        window.open('https://basheer.diy/about/');
+        window.open('https://tinkerbit.io/#about');
     }
     restoreOptionMessage (deletedItem) {
         switch (deletedItem) {

@@ -21,6 +21,8 @@ const MAX_SOURCE_BYTES = parseInt(process.env.MAX_SOURCE_BYTES || '131072', 10);
 const COMPILE_TIMEOUT_MS = parseInt(process.env.COMPILE_TIMEOUT_MS || '180000', 10);
 
 const ALLOWED_ORIGINS = new Set([
+    'https://tinkerbit.io',
+    'https://www.tinkerbit.io',
     'https://basheer.diy',
     'https://www.basheer.diy',
     'https://ide.basheer.diy',
