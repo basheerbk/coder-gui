@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TinkerBit — Block Coding Meets Real Circuits | Fun STEM Kits</title>
+  <meta name="description" content="Drag-and-drop coding meets snap-in RJ11 boards. No wires, no soldering — just click, code, and watch it come alive. Perfect for kids and classrooms.">
+  <meta name="theme-color" content="#FF6B35">
+  <link rel="canonical" href="https://basheer.diy/">
+
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="TinkerBit">
+  <meta property="og:title" content="TinkerBit — Block Coding Meets Real Circuits">
+  <meta property="og:description" content="Drag-and-drop coding meets snap-in RJ11 boards. No wires, no soldering — just click, code, and watch it come alive.">
+  <meta property="og:url" content="https://basheer.diy/">
+  <meta property="og:image" content="https://basheer.diy/static/landing/og-image.svg">
+  <meta property="og:image:alt" content="TinkerBit board with snap-in modules and colorful coding blocks on a laptop screen">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="TinkerBit — Block Coding Meets Real Circuits">
+  <meta name="twitter:description" content="Drag-and-drop coding meets snap-in RJ11 boards. No wires, no soldering — just click, code, and watch it come alive.">
+  <meta name="twitter:image" content="https://basheer.diy/static/landing/og-image.svg">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&family=Quicksand:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/landing/landing.css">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    "name": "TinkerBit",
+    "description": "Block-based coding platform paired with RJ11 snap-in circuit boards and modules for kids. Build lights, sounds, sensors, and simple robots without wires or soldering.",
+    "brand": {
+      "@type": "Brand",
+      "name": "TinkerBit"
+    },
+    "category": "STEM Education Kit",
+    "audience": {
+      "@type": "PeopleAudience",
+      "suggestedMinAge": 8
+    },
+    "url": "https://basheer.diy/",
+    "image": "https://basheer.diy/static/landing/og-image.svg"
+  }
+  </script>
+</head>
+<body>
+  <a class="sr-only" href="#main">Skip to content</a>
+
+  <header class="site-header" id="siteHeader">
+    <div class="container nav-inner">
+      <a class="brand" href="/">
+        <span class="brand-mark" aria-hidden="true">TB</span>
+        <span>TinkerBit</span>
+      </a>
+      <button class="nav-toggle" id="navToggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="navMenu">
+        <span></span><span></span><span></span>
+      </button>
+      <nav class="nav-links" id="navMenu" aria-label="Primary">
+        <a href="#how-it-works">How it works</a>
+        <a href="#gallery">Gallery</a>
+        <a href="#schools">Schools</a>
+        <a href="#about">About</a>
+        <a class="btn btn-primary btn-pill-nav hero-cta-desktop" href="/ide" data-ide-link>Open IDE</a>
+        <a class="btn btn-primary btn-pill-nav hero-cta-mobile" href="#how-it-works">Learn more</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-bg">
+        <img
+          src="/static/landing/hero-placeholder.svg"
+          width="960"
+          height="720"
+          alt="Child clicking an RJ11 module into a TinkerBit board while a laptop nearby shows colorful coding blocks"
+        >
+        <span class="placeholder-tag">Placeholder photo</span>
+      </div>
+      <div class="container hero-inner">
+        <div class="hero-copy">
+          <p class="hero-brand">TinkerBit</p>
+          <h1 id="hero-title">Block Coding Meets Real Circuits — TinkerBit</h1>
+          <p class="hero-sub">
+            Snap RJ11 modules onto a board, drag colorful blocks on screen, and make lights flash, buzzers beep, and sensors react — no wires, no soldering, no breadboard mess.
+          </p>
+          <div class="hero-cta-wrap">
+            <a class="btn btn-primary hero-cta-desktop" href="/ide" data-ide-link id="ctaStartCoding">Start Coding</a>
+            <a class="btn btn-primary hero-cta-mobile" href="#how-it-works">See how it works</a>
+            <p class="hero-note" id="browserNote" hidden>
+              Best on a desktop computer with Chrome or Edge — that’s where the board connects through the browser.
+            </p>
+            <p class="hero-note" id="serialNote" hidden>
+              This browser can’t talk to USB boards yet. Try Chrome or Edge on a desktop to upload your builds.
+            </p>
+            <form class="waitlist is-mobile-default" id="waitlistForm" action="#" method="post">
+              <label for="waitlistEmail">Get a note when you’re ready to code on desktop</label>
+              <div class="waitlist-row">
+                <input id="waitlistEmail" name="email" type="email" autocomplete="email" placeholder="you@email.com" required>
+                <button type="submit">Notify me</button>
+              </div>
+              <p class="waitlist-msg" id="waitlistMsg" role="status" aria-live="polite"></p>
+            </form>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="what-it-is section" aria-label="What TinkerBit is">
+      <div class="container">
+        <p>
+          It’s click-in circuits and drag-and-drop code — plug a module in, stack a few blocks, and watch something real light up or move.
+        </p>
+      </div>
+    </section>
+
+    <section class="section section--tint" id="how-it-works" aria-labelledby="how-title">
+      <div class="container">
+        <p class="section-kicker">How it works</p>
+        <h2 id="how-title">Three moves. Something happens.</h2>
+        <p class="section-lead">No breadboard maze. No soldering iron. Just click, code, and look.</p>
+
+        <div class="steps">
+          <article class="step">
+            <span class="step-num" aria-hidden="true">1</span>
+            <h3>Plug a module into the board</h3>
+            <p>RJ11 connectors click in like a phone handset jack — firm, obvious, and kid-friendly.</p>
+          </article>
+          <article class="step">
+            <span class="step-num" aria-hidden="true">2</span>
+            <h3>Drag blocks to program it</h3>
+            <p>Snap colorful blocks together on screen to say what should blink, beep, or sense.</p>
+          </article>
+          <article class="step">
+            <span class="step-num" aria-hidden="true">3</span>
+            <h3>Watch it react instantly</h3>
+            <p>Upload from the browser and the board answers — light, sound, motion, right on the table.</p>
+          </article>
+        </div>
+
+        <div class="rj11-demo">
+          <div class="rj11-demo-copy">
+            <h3>That click-in jack, explained</h3>
+            <p>
+              RJ11 is the same style of connector you might remember from a landline phone — a small rectangular plug with a clip.
+              On TinkerBit, each module (light, buzzer, sensor, motor) ends in that plug. Line it up with a port on the board,
+              push until it clicks, and the circuit is ready. Pull the clip to unplug. No jumper wires to mix up.
+            </p>
+          </div>
+          <div class="rj11-frame" aria-hidden="false">
+            <svg viewBox="0 0 420 260" role="img" aria-labelledby="rj11Title rj11Desc">
+              <title id="rj11Title">RJ11 module clicking into a board port</title>
+              <desc id="rj11Desc">Animation of a module plug sliding down into a board socket until it seats with a click.</desc>
+              <rect x="20" y="150" width="380" height="90" rx="18" fill="#00A896"/>
+              <rect x="160" y="168" width="100" height="54" rx="8" fill="#FFFBF5"/>
+              <text x="210" y="230" text-anchor="middle" fill="#FFFBF5" font-family="Quicksand, sans-serif" font-size="14" font-weight="700">Board port</text>
+              <g class="click-pulse">
+                <rect x="175" y="40" width="70" height="90" rx="10" fill="#FF6B35"/>
+                <rect x="188" y="110" width="44" height="36" rx="4" fill="#FFD23F"/>
+                <text x="210" y="78" text-anchor="middle" fill="#FFFBF5" font-family="Quicksand, sans-serif" font-size="12" font-weight="700">Module</text>
+              </g>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="gallery" aria-labelledby="gallery-title">
+      <div class="container">
+        <p class="section-kicker">Build gallery</p>
+        <h2 id="gallery-title">Things kids actually make</h2>
+        <p class="section-lead">A few starter builds — more photos coming as we shoot the kit in the wild.</p>
+
+        <div class="gallery-grid">
+          <article class="gallery-item">
+            <div class="gallery-frame">
+              <img src="/static/landing/gallery-nightlight.svg" width="640" height="480" loading="lazy" alt="Placeholder for Night Owl Nightlight: glowing LED module on a TinkerBit board">
+              <span class="placeholder-tag">Placeholder</span>
+            </div>
+            <h3>Night Owl Nightlight</h3>
+            <p>A soft LED that fades when the room goes dark.</p>
+          </article>
+          <article class="gallery-item">
+            <div class="gallery-frame">
+              <img src="/static/landing/gallery-doorbell.svg" width="640" height="480" loading="lazy" alt="Placeholder for Door Beep Doorbell: button and buzzer modules snapped into a board">
+              <span class="placeholder-tag">Placeholder</span>
+            </div>
+            <h3>Door Beep Doorbell</h3>
+            <p>Press the button, hear a cheerful buzz — classic first win.</p>
+          </article>
+          <article class="gallery-item">
+            <div class="gallery-frame">
+              <img src="/static/landing/gallery-bot.svg" width="640" height="480" loading="lazy" alt="Placeholder for Desk Rover: small wheeled robot base with motor modules">
+              <span class="placeholder-tag">Placeholder</span>
+            </div>
+            <h3>Desk Rover</h3>
+            <p>Two motors, a little chassis, and a path it can follow across the table.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section--warm" id="why-rj11" aria-labelledby="why-title">
+      <div class="container">
+        <p class="section-kicker">Why RJ11 modules</p>
+        <h2 id="why-title">No wires. No breadboard. Just click.</h2>
+        <div class="split">
+          <p class="section-lead" style="margin:0">
+            Tiny jumper wires look clever until they fall out mid-demo. TinkerBit modules lock into the board with an RJ11 click —
+            the same solid feel as plugging in a phone handset — so builds stay put while kids experiment.
+          </p>
+          <ul class="point-list">
+            <li>No soldering, no wire-strippers, no mysterious short circuits from a loose jumper.</li>
+            <li>Modules are labeled and color-friendly — grab a light, a sensor, a motor, and go.</li>
+            <li>Swap parts in seconds when the idea changes mid-afternoon.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="trust" aria-labelledby="trust-title">
+      <div class="container">
+        <p class="section-kicker">Trust &amp; safety</p>
+        <h2 id="trust-title">Built for curious hands</h2>
+        <div class="trust-grid">
+          <article class="trust-item">
+            <h3>Ages 8+ · low voltage</h3>
+            <p>Designed for kids with adult nearby as needed. The kit runs at kid-friendly low voltage — no mains wiring on the modules.</p>
+          </article>
+          <article class="trust-item">
+            <h3>What’s in the box</h3>
+            <p>A main board, a starter set of RJ11 modules (lights, sound, sensors), USB cable, and a quick-start card that points to the online IDE.</p>
+          </article>
+          <article class="trust-item">
+            <h3>Room to grow</h3>
+            <p>Start with blink-and-beep builds, then layer sensors and motion as confidence grows — same board, more ambitious ideas.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section--tint" id="schools" aria-labelledby="schools-title">
+      <div class="container">
+        <div class="schools-panel">
+          <p class="section-kicker">For schools &amp; classrooms</p>
+          <h2 id="schools-title">Classroom-friendly kits without the cable chaos</h2>
+          <p>
+            Stations stay tidy when every module clicks into a known port. Teachers get a shared browser IDE,
+            so students can build on Chromebooks and classroom PCs without installing desktop software.
+          </p>
+          <a class="btn btn-outline" href="mailto:hello@tinkerbit.app?subject=School%20programs">Talk to us about school programs</a>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="about" aria-labelledby="about-title">
+      <div class="container">
+        <p class="section-kicker">About</p>
+        <h2 id="about-title">Made by people who still get excited when an LED turns on</h2>
+        <div class="about-panel">
+          <p>
+            We’ve spent years running hands-on STEM spaces — the kind where kids spill parts on tables and leave grinning
+            because something they built actually worked. TinkerBit grew out of that mess and magic: fewer loose wires,
+            clearer first wins, and a coding screen that feels as tactile as the board on the desk.
+          </p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <div>
+        <div class="footer-brand">TinkerBit</div>
+        <p class="footer-tagline">Click it in. Code it. Watch it come alive.</p>
+      </div>
+      <div class="footer-col">
+        <h2>Explore</h2>
+        <ul>
+          <li><a href="#how-it-works">How it works</a></li>
+          <li><a href="#gallery">Gallery</a></li>
+          <li><a href="#schools">Schools</a></li>
+          <li><a href="#about">About</a></li>
+          <li><a href="/ide" data-ide-link class="hero-cta-desktop">Open IDE</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h2>Connect</h2>
+        <ul>
+          <li><a href="mailto:hello@tinkerbit.app">hello@tinkerbit.app</a></li>
+          <li><a href="https://basheer.diy/" rel="noopener">basheer.diy</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="container footer-bottom">
+      <p>© <span id="year"></span> TinkerBit. Built for makers at every age.</p>
+    </div>
+  </footer>
+
+  <script src="/static/landing/landing.js" defer></script>
+</body>
+</html>

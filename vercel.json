@@ -5,6 +5,14 @@
   "installCommand": "rm -rf node_modules && npm install",
   "rewrites": [
     {
+      "source": "/ide",
+      "destination": "/ide.html"
+    },
+    {
+      "source": "/ide/",
+      "destination": "/ide.html"
+    },
+    {
       "source": "/api/compile",
       "destination": "http://13.217.19.72/api/compile"
     },

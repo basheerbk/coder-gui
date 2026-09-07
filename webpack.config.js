@@ -36,6 +36,11 @@ const base = {
         hot: false,
         injectClient: false,
         injectHot: false,
+        historyApiFallback: {
+            rewrites: [
+                {from: /^\/ide\/?$/, to: '/ide.html'}
+            ]
+        },
         proxy: {
             '/api/compile': Object.assign({}, linkProxy, {
                 timeout: 180000,
@@ -182,10 +187,29 @@ module.exports = [
                 'process.env.GA_ID': '"' + (process.env.GA_ID || 'UA-000000-01') + '"',
                 'process.env.COMPILE_API_URL': JSON.stringify(process.env.COMPILE_API_URL || '/api/compile')
             }),
+            // Marketing landing at site root (/)
+            new CopyWebpackPlugin([{
+                from: 'src/landing/index.html',
+                to: 'index.html'
+            }]),
+            new CopyWebpackPlugin([{
+                from: 'src/landing/css/landing.css',
+                to: 'static/landing/landing.css'
+            }]),
+            new CopyWebpackPlugin([{
+                from: 'src/landing/js/landing.js',
+                to: 'static/landing/landing.js'
+            }]),
+            new CopyWebpackPlugin([{
+                from: 'src/landing/media',
+                to: 'static/landing'
+            }]),
+            // Block IDE at /ide → ide.html
             new HtmlWebpackPlugin({
                 chunks: ['lib.min', 'esptool', 'gui'],
                 template: 'src/playground/index.ejs',
-                title: 'OpenBlock',
+                filename: 'ide.html',
+                title: 'TinkerBit IDE',
                 sentryConfig: process.env.SENTRY_CONFIG ? '"' + process.env.SENTRY_CONFIG + '"' : null
             }),
             new HtmlWebpackPlugin({
