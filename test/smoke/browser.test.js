@@ -8,8 +8,8 @@ const {
 // Make the default timeout longer, Sauce tests take ~30s
 jasmine.DEFAULT_TIMEOUT_INTERVAL = 60 * 1000; // eslint-disable-line
 
-const SUPPORTED_MESSAGE = 'Welcome to the OpenBlock Beta';
-const UNSUPPORTED_MESSAGE = 'OpenBlock does not support Internet Explorer';
+const SUPPORTED_MESSAGE = 'Welcome to the TinkerBit Beta';
+const UNSUPPORTED_MESSAGE = 'TinkerBit does not support Internet Explorer';
 
 // Driver configs can be generated with the Sauce Platform Configurator
 // https://wiki.saucelabs.com/display/DOCS/Platform+Configurator

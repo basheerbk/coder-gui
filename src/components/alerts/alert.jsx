@@ -59,7 +59,7 @@ const AlertComponent = ({
                     extensionMessage
                 ) : (
                     <FormattedMessage
-                        defaultMessage="OpenBlock lost connection to {extensionName}."
+                        defaultMessage="TinkerBit lost connection to {extensionName}."
                         description="Message indicating that an extension peripheral has been disconnected"
                         id="gui.alerts.lostPeripheralConnection"
                         values={{

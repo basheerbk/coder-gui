@@ -216,19 +216,19 @@ module.exports = [
                 chunks: ['lib.min', 'esptool', 'blocksonly'],
                 template: 'src/playground/index.ejs',
                 filename: 'blocks-only.html',
-                title: 'OpenBlock GUI: Blocks Only Example'
+                title: 'TinkerBit IDE: Blocks Only Example'
             }),
             new HtmlWebpackPlugin({
                 chunks: ['lib.min', 'esptool', 'compatibilitytesting'],
                 template: 'src/playground/index.ejs',
                 filename: 'compatibility-testing.html',
-                title: 'OpenBlock GUI: Compatibility Testing'
+                title: 'TinkerBit IDE: Compatibility Testing'
             }),
             new HtmlWebpackPlugin({
                 chunks: ['lib.min', 'esptool', 'player'],
                 template: 'src/playground/index.ejs',
                 filename: 'player.html',
-                title: 'OpenBlock GUI: Player Example'
+                title: 'TinkerBit IDE: Player Example'
             }),
             new CopyWebpackPlugin([{
                 from: 'static',

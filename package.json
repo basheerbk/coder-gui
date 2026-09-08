@@ -1,7 +1,7 @@
 {
   "name": "openblock-gui",
   "version": "0.1.0",
-  "description": "GraphicaL User Interface for creating and running OpenBlock projects",
+  "description": "Graphical user interface for creating and running TinkerBit projects",
   "main": "./main/scratch-gui.js",
   "scripts": {
     "build": "npm run clean && cross-env NODE_ENV=production NODE_OPTIONS=--openssl-legacy-provider webpack --colors --bail",

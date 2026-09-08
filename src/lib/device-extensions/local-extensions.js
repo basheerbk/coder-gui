@@ -81,7 +81,7 @@ const mergeLocalDeviceExtensions = list => {
 /**
  * Stamp isLoaded from the VM so library cards show Loaded / Not loaded correctly.
  * @param {Array} list - device extension descriptors
- * @param {object} vm - OpenBlock VM
+ * @param {object} vm - TinkerBit VM
  * @returns {Array} list with isLoaded flags
  */
 const withDeviceExtensionLoadState = (list, vm) => {

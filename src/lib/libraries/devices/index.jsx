@@ -913,7 +913,7 @@ const analysisRealDeviceId = deviceId => {
  */
 const makeDeviceLibrary = (deviceList = null) => {
     // Always start from built-in GUI devices so boards still show when
-    // OpenBlock Link is offline or returns an incomplete list.
+    // Desktop link is offline or returns an incomplete list.
     const regeneratedDeviceData = [];
     const seenDeviceIds = new Set();
 

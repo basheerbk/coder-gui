@@ -28,7 +28,7 @@ const messages = defineMessages({
     }
 });
 
-const UPLOAD_TIMEOUT_TIME = 60 * 1000; // 60s — OpenBlock Link path
+const UPLOAD_TIMEOUT_TIME = 60 * 1000; // 60s — desktop link path
 const WEB_SERIAL_UPLOAD_TIMEOUT_TIME = 5 * 60 * 1000; // compile + ESP32 flash
 const AUTO_CLOSE_TIME = 3 * 1000; // 3s
 

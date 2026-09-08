@@ -24,7 +24,7 @@ describe('Project state', () => {
     });
 
     test('File->New resets project title', async () => {
-        const defaultProjectTitle = 'OpenBlock Project';
+        const defaultProjectTitle = 'TinkerBit Project';
         await loadUri(uri);
         const inputEl = await findByXpath(`//input[@value="${defaultProjectTitle}"]`);
         for (let i = 0; i < defaultProjectTitle.length; i++) {

@@ -1,5 +1,5 @@
 /**
- * Boards that use browser Web Serial for Connect/Upload instead of OpenBlock Link.
+ * Boards that use browser Web Serial for Connect/Upload instead of the desktop link.
  * Inherited boards use id like makerUno_arduinoUno — resolve to the base id after '_'.
  */
 const WEB_SERIAL_UPLOAD_DEVICES = new Set([

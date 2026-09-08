@@ -349,7 +349,7 @@ class MenuBar extends React.Component {
         }
     }
     handleClickOpenCommunity () {
-        window.open('https://community.openblock.cc');
+        window.open('https://tinkerbit.io/');
     }
     handleClickOpenWiki () {
         window.open('https://tinkerbit.io/#about');
@@ -566,7 +566,7 @@ class MenuBar extends React.Component {
                 <div className={styles.mainMenu}>
                     <div className={classNames(styles.menuBarItem)}>
                         <img
-                            alt="OpenBlock"
+                            alt="TinkerBit"
                             className={classNames(styles.openblockLogo, {
                                 [styles.clickable]: typeof this.props.onClickLogo !== 'undefined'
                             })}

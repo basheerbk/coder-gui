@@ -4,7 +4,7 @@ import {mergeLocalDeviceExtensions, withDeviceExtensionLoadState} from './local-
 
 /**
  * Merge remote/local device extension catalogs onto the VM extension manager.
- * @param {object} vm - OpenBlock VM instance
+ * @param {object} vm - TinkerBit VM instance
  * @returns {Array} merged extension list
  */
 const ensureDeviceExtensionsList = vm => {
@@ -16,7 +16,7 @@ const ensureDeviceExtensionsList = vm => {
 
 /**
  * Load optional preload scripts (e.g. pin-map) then a device extension.
- * @param {object} vm - OpenBlock VM instance
+ * @param {object} vm - TinkerBit VM instance
  * @param {string} extensionId - extension id to load
  * @returns {Promise}
  */
@@ -56,7 +56,7 @@ const loadOneDeviceExtension = (vm, extensionId) => {
 
 /**
  * Install device extensions in order (auto-load on board select).
- * @param {object} vm - OpenBlock VM instance
+ * @param {object} vm - TinkerBit VM instance
  * @param {Array<string>|null} extensionIds - ids to install
  * @returns {Promise}
  */
