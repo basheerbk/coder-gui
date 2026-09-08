@@ -85,14 +85,96 @@
 }
 
 /*
-    Tingaroo: slightly larger category labels for readability (5 short category names).
+    TinkerBit: larger category labels + Lucide-style icons on colored circles.
 */
 .blocks :global(.scratchCategoryMenuItemLabel) {
     font-size: 0.85rem;
 }
 
 .blocks :global(.scratchCategoryMenuItem) {
-    padding: 4px 0;
+    padding: 0.45rem 0;
+}
+
+.blocks :global(.scratchCategoryItemIcon) {
+    width: 1.4rem;
+    height: 1.4rem;
+    margin: 0 auto 0.2rem;
+    border-radius: 100%;
+    background-color: #6B7280; /* fallback for unknown extensions */
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 62%;
+}
+
+.blocks :global(.scratchCategoryId-events .scratchCategoryItemIcon) {
+    background-color: #E8A817;
+}
+
+.blocks :global(.scratchCategoryId-control .scratchCategoryItemIcon) {
+    background-color: #1E9E5E;
+}
+
+.blocks :global(.scratchCategoryId-sensing .scratchCategoryItemIcon) {
+    background-color: #17A2B8;
+}
+
+.blocks :global(.scratchCategoryId-operators .scratchCategoryItemIcon) {
+    background-color: #0DAB76;
+}
+
+.blocks :global(.scratchCategoryId-variables .scratchCategoryItemIcon) {
+    background-color: #7B68EE;
+}
+
+/* Device: Pins / Serial / Data (arduino_*, microbit_*, …) */
+.blocks :global([class*="_pin"] .scratchCategoryItemIcon) {
+    background-color: #4C97FF;
+}
+
+.blocks :global([class*="_serial"] .scratchCategoryItemIcon) {
+    background-color: #9966FF;
+}
+
+.blocks :global([class*="_data"] .scratchCategoryItemIcon) {
+    background-color: #CF63CF;
+}
+
+.blocks :global(.scratchCategoryId-arduino_display .scratchCategoryItemIcon) {
+    background-color: #4CBFE6;
+}
+
+.blocks :global(.scratchCategoryId-microbit_display .scratchCategoryItemIcon) {
+    background-color: #9966FF;
+}
+
+.blocks :global(.scratchCategoryId-microbit_sensor .scratchCategoryItemIcon) {
+    background-color: #4CBFE6;
+}
+
+.blocks :global(.scratchCategoryId-microbit_wireless .scratchCategoryItemIcon) {
+    background-color: #D65CD6;
+}
+
+.blocks :global(.scratchCategoryId-microbit_console .scratchCategoryItemIcon) {
+    background-color: #FF3399;
+}
+
+/* Maker ESP32 + Blynk + Classroom Kit */
+.blocks :global(.scratchCategoryId-MAKERESP32_CAT_DIGITAL .scratchCategoryItemIcon),
+.blocks :global(.scratchCategoryId-MAKERESP32_CAT_ANALOG .scratchCategoryItemIcon),
+.blocks :global(.scratchCategoryId-MAKERESP32_CAT_MOTORS .scratchCategoryItemIcon),
+.blocks :global(.scratchCategoryId-MAKERESP32_CAT_STEPPER .scratchCategoryItemIcon),
+.blocks :global(.scratchCategoryId-MAKERESP32_CAT_I2C .scratchCategoryItemIcon) {
+    background-color: #2A9D8F;
+}
+
+.blocks :global(.scratchCategoryId-MAKERESP32_CAT_BLYNK .scratchCategoryItemIcon),
+.blocks :global(.scratchCategoryId-BLYNKIOT_CATEGORY .scratchCategoryItemIcon) {
+    background-color: #23C1E8;
+}
+
+.blocks :global(.scratchCategoryId-CLASSROOMKIT_CATEGORY .scratchCategoryItemIcon) {
+    background-color: #FF6B35;
 }
 
 .blocks :global(.blocklyMinimalBody) {

@@ -18,11 +18,70 @@ const xmlEscape = function (unsafe) {
     });
 };
 
+/** Map exact category ids → Lucide-style icon filenames under /static/category-icons/ */
+const CATEGORY_ICON_BY_ID = {
+    MAKERESP32_CAT_DIGITAL: 'digital',
+    MAKERESP32_CAT_ANALOG: 'analog',
+    MAKERESP32_CAT_MOTORS: 'motors',
+    MAKERESP32_CAT_STEPPER: 'stepper',
+    MAKERESP32_CAT_I2C: 'i2c',
+    MAKERESP32_CAT_BLYNK: 'cloud',
+    BLYNKIOT_CATEGORY: 'cloud',
+    CLASSROOMKIT_CATEGORY: 'kit'
+};
+
+/** Device categories are prefixed (arduino_pin, microbit_sensor, …). */
+const CATEGORY_ICON_BY_SUFFIX = [
+    ['_pin', 'pins'],
+    ['_serial', 'serial'],
+    ['_data', 'data'],
+    ['_display', 'display'],
+    ['_sensor', 'sensor'],
+    ['_wireless', 'wireless'],
+    ['_console', 'console']
+];
+
+const resolveCategoryIcon = function (categoryId) {
+    if (!categoryId) return null;
+    if (CATEGORY_ICON_BY_ID[categoryId]) {
+        return CATEGORY_ICON_BY_ID[categoryId];
+    }
+    for (let i = 0; i < CATEGORY_ICON_BY_SUFFIX.length; i++) {
+        const suffix = CATEGORY_ICON_BY_SUFFIX[i][0];
+        const icon = CATEGORY_ICON_BY_SUFFIX[i][1];
+        if (categoryId.endsWith(suffix)) {
+            return icon;
+        }
+    }
+    return 'extension';
+};
+
+/**
+ * Ensure every <category> in extension/device XML has an iconURI.
+ * Skips categories that already declare one.
+ * @param {string} xml - Toolbox category XML fragment(s).
+ * @returns {string} XML with iconURI attributes injected.
+ */
+const injectCategoryIcons = function (xml) {
+    if (!xml || typeof xml !== 'string') return xml;
+    return xml.replace(/<category\b([^>]*?)>/g, (full, attrs) => {
+        if (/\biconURI\s*=/.test(attrs)) {
+            return full;
+        }
+        const idMatch = /\bid\s*=\s*"([^"]+)"/.exec(attrs);
+        const icon = resolveCategoryIcon(idMatch && idMatch[1]);
+        if (!icon) {
+            return full;
+        }
+        return `<category${attrs} iconURI="/static/category-icons/${icon}.svg">`;
+    });
+};
+
 /* ----------  Tingaroo simplified categories  ---------- */
 
 const start = function (isInitialSetup, device) {
     return `
-    <category name="Start" id="events" colour="#E8A817" secondaryColour="#CC9200">
+    <category name="Start" id="events" colour="#E8A817" secondaryColour="#CC9200" iconURI="/static/category-icons/start.svg">
         <block type="event_whenflagclicked"/>
         <block type="event_whenkeypressed"/>
         ${blockSeparator}
@@ -44,7 +103,7 @@ const start = function (isInitialSetup, device) {
 
 const control = function (isInitialSetup) {
     return `
-    <category name="Control" id="control" colour="#1E9E5E" secondaryColour="#178A4F">
+    <category name="Control" id="control" colour="#1E9E5E" secondaryColour="#178A4F" iconURI="/static/category-icons/control.svg">
         <block type="control_wait">
             <value name="DURATION">
                 <shadow type="math_positive_number">
@@ -75,7 +134,7 @@ const control = function (isInitialSetup) {
 
 const sense = function (isInitialSetup) {
     return `
-    <category name="Sense" id="sensing" colour="#17A2B8" secondaryColour="#128A9E">
+    <category name="Sense" id="sensing" colour="#17A2B8" secondaryColour="#128A9E" iconURI="/static/category-icons/sense.svg">
         <block type="operator_gt">
             <value name="OPERAND1">
                 <shadow type="text">
@@ -133,7 +192,7 @@ const sense = function (isInitialSetup) {
 
 const math = function (isInitialSetup) {
     return `
-    <category name="Math" id="operators" colour="#0DAB76" secondaryColour="#099663">
+    <category name="Math" id="operators" colour="#0DAB76" secondaryColour="#099663" iconURI="/static/category-icons/math.svg">
         <block type="operator_add">
             <value name="NUM1">
                 <shadow type="math_number">
@@ -227,6 +286,7 @@ const variables = function () {
         id="variables"
         colour="#7B68EE"
         secondaryColour="#6A5ACD"
+        iconURI="/static/category-icons/variables.svg"
         custom="VARIABLE">
     </category>
     `;
@@ -270,7 +330,7 @@ const makeToolboxXML = function (isInitialSetup, device = null, isStage = true, 
     // In upload mode with a device, inject the device-specific event block
     if (device && !isRealtimeMode && eventBlock[device.type]) {
         startXML = `
-        <category name="Start" id="events" colour="#E8A817" secondaryColour="#CC9200">
+        <category name="Start" id="events" colour="#E8A817" secondaryColour="#CC9200" iconURI="/static/category-icons/start.svg">
             ${eventBlock[device.type]}
             ${categorySeparator}
         </category>
@@ -298,7 +358,7 @@ const makeToolboxXML = function (isInitialSetup, device = null, isStage = true, 
     );
 
     for (const extensionCategory of categoriesXML) {
-        everything.push(gap, extensionCategory.xml);
+        everything.push(gap, injectCategoryIcons(extensionCategory.xml));
     }
 
     everything.push(xmlClose);
