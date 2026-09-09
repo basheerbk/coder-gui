@@ -22,6 +22,16 @@ const linkProxy = {
     secure: false
 };
 
+const SITE_DIR = path.resolve(__dirname, 'src/site');
+
+const postCssPlugins = function () {
+    return [
+        postcssImport,
+        postcssVars,
+        autoprefixer
+    ];
+};
+
 const base = {
     mode: process.env.NODE_ENV === 'production' ? 'production' : 'development',
     devtool: 'cheap-module-source-map',
@@ -90,7 +100,7 @@ const base = {
         },
         {
             test: /\.css$/,
-            exclude: MONACO_DIR,
+            exclude: [MONACO_DIR, SITE_DIR],
             use: [{
                 loader: 'style-loader'
             }, {
@@ -105,13 +115,27 @@ const base = {
                 loader: 'postcss-loader',
                 options: {
                     ident: 'postcss',
-                    plugins: function () {
-                        return [
-                            postcssImport,
-                            postcssVars,
-                            autoprefixer
-                        ];
-                    }
+                    plugins: postCssPlugins
+                }
+            }]
+        },
+        {
+            // Marketing / login pages use global class names (not CSS modules).
+            test: /\.css$/,
+            include: SITE_DIR,
+            use: [{
+                loader: 'style-loader'
+            }, {
+                loader: 'css-loader',
+                options: {
+                    modules: false,
+                    importLoaders: 1
+                }
+            }, {
+                loader: 'postcss-loader',
+                options: {
+                    ident: 'postcss-site',
+                    plugins: postCssPlugins
                 }
             }]
         },
@@ -191,37 +215,13 @@ module.exports = [
                 'process.env.NODE_ENV': '"' + process.env.NODE_ENV + '"',
                 'process.env.DEBUG': Boolean(process.env.DEBUG),
                 'process.env.GA_ID': '"' + (process.env.GA_ID || 'UA-000000-01') + '"',
+                'process.env.CLARITY_ID': JSON.stringify(process.env.CLARITY_ID || ''),
                 'process.env.COMPILE_API_URL': JSON.stringify(process.env.COMPILE_API_URL || '/api/compile')
             }),
-            // Marketing landing at site root (/)
-            new CopyWebpackPlugin([{
-                from: 'src/landing/index.html',
-                to: 'index.html'
-            }]),
-            new CopyWebpackPlugin([{
-                from: 'src/landing/css/landing.css',
-                to: 'static/landing/landing.css'
-            }]),
-            new CopyWebpackPlugin([{
-                from: 'src/landing/js/landing.js',
-                to: 'static/landing/landing.js'
-            }]),
+            // Landing media assets (React landing bundles CSS via webpack)
             new CopyWebpackPlugin([{
                 from: 'src/landing/media',
                 to: 'static/landing'
-            }]),
-            // Google Sign-In gate at /login → login.html
-            new CopyWebpackPlugin([{
-                from: 'src/login/index.html',
-                to: 'login.html'
-            }]),
-            new CopyWebpackPlugin([{
-                from: 'src/login/css/login.css',
-                to: 'static/login/login.css'
-            }]),
-            new CopyWebpackPlugin([{
-                from: 'src/login/js/login.js',
-                to: 'static/login/login.js'
             }]),
             // Block IDE at /ide → ide.html
             new HtmlWebpackPlugin({
@@ -267,7 +267,75 @@ module.exports = [
                 context: 'node_modules/openblock-vm/dist/web'
             }])
         ])
-    })
+    }),
+    // Marketing site + login as lightweight React bundles (not IDE lib.min/esptool)
+    (() => {
+        const site = defaultsDeep({}, base, {
+            name: 'tinkerbit-site',
+            entry: {
+                'site-vendor': ['react', 'react-dom'],
+                landing: './src/site/landing/index.jsx',
+                login: './src/site/login/index.jsx'
+            },
+            output: {
+                path: path.resolve(__dirname, 'build'),
+                filename: '[name].js',
+                chunkFilename: 'chunks/[name].js'
+            },
+            optimization: {
+                splitChunks: {
+                    chunks: 'all',
+                    name: 'site-vendor'
+                },
+                runtimeChunk: {
+                    name: 'site-vendor'
+                }
+            }
+        });
+        delete site.output.library;
+        site.plugins = [
+            new webpack.DefinePlugin({
+                'process.env.NODE_ENV': '"' + process.env.NODE_ENV + '"',
+                'process.env.CLARITY_ID': JSON.stringify(process.env.CLARITY_ID || '')
+            }),
+            new HtmlWebpackPlugin({
+                chunks: ['site-vendor', 'landing'],
+                template: 'src/site/site.ejs',
+                filename: 'index.html',
+                title: 'TinkerBit — Block Coding Meets Real Circuits | Fun STEM Kits',
+                description: 'Drag-and-drop coding meets snap-in RJ11 boards. No wires, no soldering — just click, code, and watch it come alive. Perfect for kids and classrooms.',
+                canonical: 'https://tinkerbit.io/',
+                extraHead: [
+                    '<meta property="og:type" content="website">',
+                    '<meta property="og:site_name" content="TinkerBit">',
+                    '<meta property="og:title" content="TinkerBit — Block Coding Meets Real Circuits">',
+                    '<meta property="og:description" content="Drag-and-drop coding meets snap-in RJ11 boards. No wires, no soldering — just click, code, and watch it come alive.">',
+                    '<meta property="og:url" content="https://tinkerbit.io/">',
+                    '<meta property="og:image" content="https://tinkerbit.io/static/landing/og-image.svg">',
+                    '<meta name="twitter:card" content="summary_large_image">',
+                    '<meta name="twitter:title" content="TinkerBit — Block Coding Meets Real Circuits">',
+                    '<meta name="twitter:description" content="Drag-and-drop coding meets snap-in RJ11 boards. No wires, no soldering — just click, code, and watch it come alive.">',
+                    '<meta name="twitter:image" content="https://tinkerbit.io/static/landing/og-image.svg">',
+                    '<script type="application/ld+json">{"@context":"https://schema.org","@type":"Product","name":"TinkerBit","description":"Block-based coding platform paired with RJ11 snap-in circuit boards and modules for kids.","brand":{"@type":"Brand","name":"TinkerBit"},"url":"https://tinkerbit.io/","image":"https://tinkerbit.io/static/landing/og-image.svg"}</script>'
+                ].join('\n    ')
+            }),
+            new HtmlWebpackPlugin({
+                chunks: ['site-vendor', 'login'],
+                template: 'src/site/site.ejs',
+                filename: 'login.html',
+                title: 'Sign in — TinkerBit',
+                description: 'Sign in with Google to open the TinkerBit IDE.',
+                robots: 'noindex',
+                canonical: 'https://tinkerbit.io/login',
+                extraHead: [
+                    // Allow Clarity CDN + Google fonts; keep frame-ancestors locked down.
+                    '<meta http-equiv="Content-Security-Policy" content="default-src \'self\'; style-src \'self\' \'unsafe-inline\' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src \'self\' data: https:; script-src \'self\' https://*.clarity.ms https://c.bing.com; connect-src \'self\' https://*.clarity.ms https://c.bing.com; frame-ancestors \'none\'; base-uri \'self\'; form-action \'self\'">',
+                    '<meta http-equiv="X-Frame-Options" content="DENY">'
+                ].join('\n    ')
+            })
+        ];
+        return site;
+    })()
 ].concat(
     process.env.NODE_ENV === 'production' || process.env.BUILD_MODE === 'dist' ? (
         // export as library

@@ -27,6 +27,7 @@
     "url": "git+ssh://git@github.com/openblockcc/openblock-gui.git"
   },
   "dependencies": {
+    "@microsoft/clarity": "^1.0.2",
     "@ramonak/react-progress-bar": "^3.1.0",
     "ansi-to-react": "^6.0.8",
     "arraybuffer-loader": "^1.0.6",

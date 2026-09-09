@@ -7,6 +7,7 @@ import {compose} from 'redux';
 import {defineMessages, injectIntl, intlShape} from 'react-intl';
 
 import analytics from '../lib/analytics';
+import {clarityEvent, setClarityTag, upgradeClaritySession} from '../lib/clarity';
 import {setDeviceData} from '../reducers/device-data';
 import {installDeviceExtensions} from '../lib/device-extensions/install-device-extensions';
 
@@ -73,6 +74,8 @@ class DeviceLibrary extends React.PureComponent {
         if (id && !device.disabled) {
             if (this.props.vm.extensionManager.isDeviceLoaded(id)) {
                 this.props.onDeviceSelected(id);
+                setClarityTag('device', id);
+                clarityEvent('board_selected');
             } else {
                 this.props.vm.extensionManager.loadDeviceURL(device).then(() => {
                     installDeviceExtensions(this.props.vm, deviceExtensions)
@@ -80,6 +83,9 @@ class DeviceLibrary extends React.PureComponent {
                             console.error(err) // eslint-disable-line no-console
                         );
                     this.props.onDeviceSelected(id);
+                    setClarityTag('device', id);
+                    clarityEvent('board_selected');
+                    upgradeClaritySession('board_selected');
                     analytics.event({
                         category: 'devices',
                         action: 'select device',

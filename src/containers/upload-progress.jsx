@@ -8,6 +8,7 @@ import {injectIntl, intlShape, defineMessages} from 'react-intl';
 
 import VM from 'openblock-vm';
 import analytics from '../lib/analytics';
+import {clarityEvent, upgradeClaritySession} from '../lib/clarity';
 import {closeUploadProgress} from '../reducers/modals';
 import {showAlertWithTimeout} from '../reducers/alerts';
 import {webSerialUploadPhases, clearWebSerialUpload} from '../reducers/web-serial-upload';
@@ -64,6 +65,8 @@ class UploadProgress extends React.Component {
             action: 'uploading',
             label: this.props.deviceId
         });
+        clarityEvent('upload_started');
+        upgradeClaritySession('upload_started');
         this.scrollableRef = React.createRef();
     }
     resetUploadTimeout () {
@@ -155,6 +158,7 @@ class UploadProgress extends React.Component {
                 action: 'upload error',
                 label: this.props.deviceId
             });
+            clarityEvent('upload_error');
             clearTimeout(this.uploadTimeout);
         }
     }
@@ -164,11 +168,13 @@ class UploadProgress extends React.Component {
             this.setState({
                 phase: PHASES.aborted
             });
+            clarityEvent('upload_aborted');
         } else {
             this.setState({
                 phase: PHASES.success
             });
             this.props.onUploadSuccess();
+            clarityEvent('upload_success');
         }
         this.autoCloseInterval = setInterval(() => {
             this.setState({
@@ -193,6 +199,7 @@ class UploadProgress extends React.Component {
             action: 'upload timeout',
             label: this.props.deviceId
         });
+        clarityEvent('upload_timeout');
         clearTimeout(this.uploadTimeout);
     }
     handleStopAutoClose () {
@@ -214,6 +221,7 @@ class UploadProgress extends React.Component {
                     phase: PHASES.error
                 });
                 this.props.onUploadError();
+                clarityEvent('upload_error');
                 clearTimeout(this.uploadTimeout);
             }
         }

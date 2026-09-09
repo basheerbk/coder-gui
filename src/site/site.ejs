@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= htmlWebpackPlugin.options.title %></title>
+    <% if (htmlWebpackPlugin.options.description) { %>
+    <meta name="description" content="<%= htmlWebpackPlugin.options.description %>">
+    <% } %>
+    <% if (htmlWebpackPlugin.options.robots) { %>
+    <meta name="robots" content="<%= htmlWebpackPlugin.options.robots %>">
+    <% } %>
+    <meta name="theme-color" content="#FF6B35">
+    <% if (htmlWebpackPlugin.options.canonical) { %>
+    <link rel="canonical" href="<%= htmlWebpackPlugin.options.canonical %>">
+    <% } %>
+    <% if (htmlWebpackPlugin.options.extraHead) { %>
+    <%= htmlWebpackPlugin.options.extraHead %>
+    <% } %>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&family=Quicksand:wght@600;700&display=swap" rel="stylesheet">
+    <link rel="shortcut icon" href="static/favicon.ico">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>

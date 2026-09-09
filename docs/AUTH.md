@@ -14,6 +14,7 @@ The IDE is gated behind Google OAuth. Guests who open `/ide` are redirected to `
    - `GOOGLE_CLIENT_SECRET`
    - `AUTH_SECRET` (32+ random characters)
    - `AUTH_BASE_URL=https://www.tinkerbit.io`
+   - `CLARITY_ID` (Microsoft Clarity project ID; optional)
 
 ## Local
 
@@ -39,3 +40,7 @@ Optional non-production bypass: `AUTH_DISABLED=1` (ignored when `VERCEL_ENV=prod
 | `/api/auth/logout` | Clear session |
 
 Session cookie: `tb_session` (httpOnly, SameSite=Lax, Secure in production).
+
+## Clarity
+
+When `CLARITY_ID` is set, sessions are tagged with `page` (`landing` / `login` / `ide`), signed-in users are identified (hashed), and custom events fire for sign-in, board select/connect, and upload outcomes.

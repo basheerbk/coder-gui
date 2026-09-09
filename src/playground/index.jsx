@@ -9,6 +9,7 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 
 import analytics, {initialAnalytics} from '../lib/analytics';
+import {initialClarity, identifyClarityUser} from '../lib/clarity';
 import AppStateHOC from '../lib/app-state-hoc.jsx';
 import BrowserModalComponent from '../components/browser-modal/browser-modal.jsx';
 import supportedBrowser from '../lib/supported-browser';
@@ -57,6 +58,7 @@ try {
 
     try {
         initialAnalytics();
+        initialClarity('ide');
         analytics.send({hitType: 'pageview', page: '/community/web'});
     } catch (analyticsError) {
         // Analytics must never block the editor from loading.
@@ -72,6 +74,11 @@ try {
         if (session === null) {
             // Redirecting to /login
             return;
+        }
+        try {
+            identifyClarityUser(session);
+        } catch (clarityError) {
+            console.warn('Clarity identify failed', clarityError); // eslint-disable-line no-console
         }
         bootEditor(appTarget);
     }).catch(bootError => {

@@ -4,6 +4,7 @@ import bindAll from 'lodash.bindall';
 import ConnectionModalComponent, {PHASES} from '../components/connection-modal/connection-modal.jsx';
 import VM from 'openblock-vm';
 import analytics from '../lib/analytics';
+import {clarityEvent, setClarityTag, upgradeClaritySession} from '../lib/clarity';
 import {connect} from 'react-redux';
 import {closeConnectionModal} from '../reducers/modals';
 import {setConnectionModalPeripheralName, setListAll, clearConnectionModalPeripheralName} from '../reducers/connection-modal';
@@ -81,6 +82,8 @@ class ConnectionModal extends React.Component {
             action: 'connecting',
             label: this.props.deviceId
         });
+        setClarityTag('device', this.props.deviceId);
+        clarityEvent('board_connecting');
     }
     handleDisconnect () {
         try {
@@ -110,6 +113,9 @@ class ConnectionModal extends React.Component {
             phase: PHASES.connected,
             peripheralName: label
         });
+        setClarityTag('device', this.props.deviceId);
+        clarityEvent('board_connected');
+        upgradeClaritySession('board_connected');
         this.props.onConnected(label);
     }
     handleError (err) {
@@ -129,6 +135,7 @@ class ConnectionModal extends React.Component {
                 action: 'connecting error',
                 label: this.props.deviceId
             });
+            clarityEvent('board_connect_error');
         }
     }
     handleConnected () {
@@ -140,6 +147,9 @@ class ConnectionModal extends React.Component {
             action: 'connected',
             label: this.props.deviceId
         });
+        setClarityTag('device', this.props.deviceId);
+        clarityEvent('board_connected');
+        upgradeClaritySession('board_connected');
         this.props.onConnected(this.state.peripheralName);
     }
     handleHelp () {
