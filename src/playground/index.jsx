@@ -12,6 +12,7 @@ import analytics, {initialAnalytics} from '../lib/analytics';
 import AppStateHOC from '../lib/app-state-hoc.jsx';
 import BrowserModalComponent from '../components/browser-modal/browser-modal.jsx';
 import supportedBrowser from '../lib/supported-browser';
+import {ensureIdeAuth} from '../lib/auth-client';
 
 import styles from './index.css';
 
@@ -35,6 +36,22 @@ const showBootError = message => {
     }
 };
 
+const bootEditor = appTarget => {
+    if (supportedBrowser()) {
+        setBootMessage('Loading editor…');
+        // require needed here to avoid importing unsupported browser-crashing code
+        // at the top level
+        require('./render-gui.jsx').default(appTarget);
+    } else {
+        BrowserModalComponent.setAppElement(appTarget);
+        const WrappedBrowserModalComponent = AppStateHOC(BrowserModalComponent, true /* localesOnly */);
+        const handleBack = () => {};
+        // eslint-disable-next-line react/jsx-no-bind
+        ReactDOM.render(<WrappedBrowserModalComponent onBack={handleBack} />, appTarget);
+    }
+    hidePreloader();
+};
+
 try {
     setBootMessage('Starting…');
 
@@ -50,20 +67,17 @@ try {
     appTarget.className = styles.app;
     document.body.appendChild(appTarget);
 
-    if (supportedBrowser()) {
-        setBootMessage('Loading editor…');
-        // require needed here to avoid importing unsupported browser-crashing code
-        // at the top level
-        require('./render-gui.jsx').default(appTarget);
-    } else {
-        BrowserModalComponent.setAppElement(appTarget);
-        const WrappedBrowserModalComponent = AppStateHOC(BrowserModalComponent, true /* localesOnly */);
-        const handleBack = () => {};
-        // eslint-disable-next-line react/jsx-no-bind
-        ReactDOM.render(<WrappedBrowserModalComponent onBack={handleBack} />, appTarget);
-    }
-
-    hidePreloader();
+    setBootMessage('Checking sign-in…');
+    ensureIdeAuth().then(session => {
+        if (session === null) {
+            // Redirecting to /login
+            return;
+        }
+        bootEditor(appTarget);
+    }).catch(bootError => {
+        showBootError(`Failed to start: ${bootError.message || bootError}`);
+        throw bootError;
+    });
 } catch (bootError) {
     showBootError(`Failed to start: ${bootError.message || bootError}`);
     throw bootError;

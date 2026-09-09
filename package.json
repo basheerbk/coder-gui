@@ -48,6 +48,7 @@
     "get-user-media-promise": "1.1.4",
     "immutable": "3.8.2",
     "intl": "1.2.5",
+    "jose": "^6.2.12",
     "js-base64": "2.4.9",
     "keymirror": "0.1.1",
     "lodash.bindall": "4.4.0",

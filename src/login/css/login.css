@@ -1,0 +1,134 @@
+:root {
+  --primary: #FF6B35;
+  --secondary: #00A896;
+  --bg: #FFFBF5;
+  --text: #2B2B2B;
+  --text-muted: #5A5A5A;
+  --white: #FFFFFF;
+  --danger: #B42318;
+  --danger-bg: #FEF3F2;
+  --radius: 1rem;
+  --shadow-soft: 0 8px 28px rgba(43, 43, 43, 0.08);
+  --font-display: "Quicksand", system-ui, sans-serif;
+  --font-body: "Nunito", system-ui, sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--font-body);
+  color: var(--text);
+  background:
+    radial-gradient(1200px 600px at 10% -10%, rgba(255, 107, 53, 0.16), transparent 60%),
+    radial-gradient(900px 500px at 100% 0%, rgba(0, 168, 150, 0.14), transparent 55%),
+    var(--bg);
+}
+
+.login-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+}
+
+.login-card {
+  width: min(100%, 26rem);
+  background: var(--white);
+  border-radius: calc(var(--radius) + 0.25rem);
+  box-shadow: var(--shadow-soft);
+  padding: 2rem 1.75rem 1.75rem;
+  text-align: center;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  text-decoration: none;
+  color: var(--text);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.15rem;
+  margin-bottom: 1.25rem;
+}
+
+.brand-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.55rem;
+  background: var(--primary);
+  color: var(--white);
+  font-size: 0.75rem;
+}
+
+h1 {
+  margin: 0 0 0.65rem;
+  font-family: var(--font-display);
+  font-size: 1.55rem;
+  line-height: 1.25;
+}
+
+.lead,
+.note {
+  margin: 0 0 1.25rem;
+  color: var(--text-muted);
+  font-size: 0.98rem;
+  line-height: 1.5;
+}
+
+.note {
+  margin-top: 1.25rem;
+  margin-bottom: 1rem;
+  font-size: 0.86rem;
+}
+
+.error {
+  margin: 0 0 1rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 0.65rem;
+  background: var(--danger-bg);
+  color: var(--danger);
+  font-size: 0.9rem;
+  text-align: left;
+}
+
+.google-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  width: 100%;
+  padding: 0.8rem 1rem;
+  border-radius: 999px;
+  border: 1px solid rgba(43, 43, 43, 0.12);
+  background: var(--white);
+  color: var(--text);
+  text-decoration: none;
+  font-weight: 700;
+  font-family: var(--font-display);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.google-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(43, 43, 43, 0.1);
+}
+
+.back {
+  color: var(--secondary);
+  font-weight: 700;
+  text-decoration: none;
+  font-size: 0.92rem;
+}
+
+.back:hover {
+  text-decoration: underline;
+}

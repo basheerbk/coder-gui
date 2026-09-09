@@ -33,6 +33,7 @@ import Alerts from '../../containers/alerts.jsx';
 import DragLayer from '../../containers/drag-layer.jsx';
 import ConnectionModal from '../../containers/connection-modal.jsx';
 import UploadProgress from '../../containers/upload-progress.jsx';
+import UploadBrowserModal from '../../containers/upload-browser-modal.jsx';
 import TelemetryModal from '../telemetry-modal/telemetry-modal.jsx';
 import UpdateModal from '../../containers/update-modal.jsx';
 
@@ -199,6 +200,7 @@ const GUIComponent = props => {
                 {isRendererSupported ? null : (
                     <WebGlModal isRtl={isRtl} />
                 )}
+                <UploadBrowserModal isRtl={isRtl} />
                 {tipsLibraryVisible ? (
                     <TipsLibrary />
                 ) : null}

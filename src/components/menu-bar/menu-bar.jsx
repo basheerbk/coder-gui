@@ -24,6 +24,7 @@ import ProjectTitleInput from './project-title-input.jsx';
 import AuthorInfo from './author-info.jsx';
 import AccountNav from '../../containers/account-nav.jsx'; // eslint-disable-line no-unused-vars
 import LoginDropdown from './login-dropdown.jsx'; // eslint-disable-line no-unused-vars
+import TinkerBitAccount from './tinkerbit-account.jsx';
 import SB3Downloader from '../../containers/sb3-downloader.jsx';
 import DeletionRestorer from '../../containers/deletion-restorer.jsx';
 import TurboMode from '../../containers/turbo-mode.jsx';
@@ -945,6 +946,8 @@ class MenuBar extends React.Component {
                             </MenuBarMenu>
                         </div>
                     ) : null}
+                    <Divider className={classNames(styles.divider)} />
+                    <TinkerBitAccount className={styles.menuBarItem} />
                 </div>
                 { (typeof this.props.onClickAbout === 'function') ? aboutButton : null}
             </Box>

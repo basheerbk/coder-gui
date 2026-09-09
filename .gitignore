@@ -23,6 +23,9 @@ npm-*
 # Secrets / local keys
 MakerShop.pem
 *.pem
+.env
+.env.local
+.env.*.local
 
 # Local recovery helpers
 scripts/recover-from-transcript.js

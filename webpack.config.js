@@ -38,10 +38,16 @@ const base = {
         injectHot: false,
         historyApiFallback: {
             rewrites: [
-                {from: /^\/ide\/?$/, to: '/ide.html'}
+                {from: /^\/ide\/?$/, to: '/ide.html'},
+                {from: /^\/login\/?$/, to: '/login.html'}
             ]
         },
         proxy: {
+            '/api/auth': {
+                target: process.env.AUTH_PROXY_TARGET || 'http://127.0.0.1:3000',
+                changeOrigin: true,
+                secure: false
+            },
             '/api/compile': Object.assign({}, linkProxy, {
                 timeout: 180000,
                 proxyTimeout: 180000
@@ -203,6 +209,19 @@ module.exports = [
             new CopyWebpackPlugin([{
                 from: 'src/landing/media',
                 to: 'static/landing'
+            }]),
+            // Google Sign-In gate at /login → login.html
+            new CopyWebpackPlugin([{
+                from: 'src/login/index.html',
+                to: 'login.html'
+            }]),
+            new CopyWebpackPlugin([{
+                from: 'src/login/css/login.css',
+                to: 'static/login/login.css'
+            }]),
+            new CopyWebpackPlugin([{
+                from: 'src/login/js/login.js',
+                to: 'static/login/login.js'
             }]),
             // Block IDE at /ide → ide.html
             new HtmlWebpackPlugin({
