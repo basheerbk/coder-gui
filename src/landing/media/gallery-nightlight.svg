@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480" viewBox="0 0 640 480">
-  <rect width="640" height="480" fill="#00A896"/>
-  <circle cx="320" cy="210" r="70" fill="#FFD23F"/>
-  <rect x="200" y="300" width="240" height="70" rx="16" fill="#FFFBF5"/>
-  <text x="320" y="420" text-anchor="middle" fill="#FFFBF5" font-family="Quicksand, sans-serif" font-size="20" font-weight="700">PLACEHOLDER · Night Owl Nightlight</text>
-</svg>

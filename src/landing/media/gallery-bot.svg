@@ -1,7 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480" viewBox="0 0 640 480">
-  <rect width="640" height="480" fill="#2B2B2B"/>
-  <rect x="210" y="180" width="220" height="100" rx="20" fill="#00A896"/>
-  <circle cx="250" cy="320" r="36" fill="#FF6B35"/>
-  <circle cx="390" cy="320" r="36" fill="#FF6B35"/>
-  <text x="320" y="420" text-anchor="middle" fill="#FFFBF5" font-family="Quicksand, sans-serif" font-size="20" font-weight="700">PLACEHOLDER · Desk Rover</text>
-</svg>

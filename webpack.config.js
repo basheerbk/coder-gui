@@ -311,12 +311,12 @@ module.exports = [
                     '<meta property="og:title" content="TinkerBit — Block Coding Meets Real Circuits">',
                     '<meta property="og:description" content="Drag-and-drop coding meets snap-in RJ11 boards. No wires, no soldering — just click, code, and watch it come alive.">',
                     '<meta property="og:url" content="https://tinkerbit.io/">',
-                    '<meta property="og:image" content="https://tinkerbit.io/static/landing/og-image.svg">',
+                    '<meta property="og:image" content="https://tinkerbit.io/static/landing/og-image.png">',
                     '<meta name="twitter:card" content="summary_large_image">',
                     '<meta name="twitter:title" content="TinkerBit — Block Coding Meets Real Circuits">',
                     '<meta name="twitter:description" content="Drag-and-drop coding meets snap-in RJ11 boards. No wires, no soldering — just click, code, and watch it come alive.">',
-                    '<meta name="twitter:image" content="https://tinkerbit.io/static/landing/og-image.svg">',
-                    '<script type="application/ld+json">{"@context":"https://schema.org","@type":"Product","name":"TinkerBit","description":"Block-based coding platform paired with RJ11 snap-in circuit boards and modules for kids.","brand":{"@type":"Brand","name":"TinkerBit"},"url":"https://tinkerbit.io/","image":"https://tinkerbit.io/static/landing/og-image.svg"}</script>'
+                    '<meta name="twitter:image" content="https://tinkerbit.io/static/landing/og-image.png">',
+                    '<script type="application/ld+json">{"@context":"https://schema.org","@type":"Product","name":"TinkerBit","description":"Block-based coding platform paired with RJ11 snap-in circuit boards and modules for kids.","brand":{"@type":"Brand","name":"TinkerBit"},"url":"https://tinkerbit.io/","image":"https://tinkerbit.io/static/landing/og-image.png"}</script>'
                 ].join('\n    ')
             }),
             new HtmlWebpackPlugin({

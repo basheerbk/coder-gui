@@ -125,17 +125,17 @@ const App = () => {
                 >
                     <div className="hero-bg">
                         <img
-                            src="/static/landing/hero-placeholder.svg"
-                            width="960"
-                            height="720"
-                            alt="Child clicking an RJ11 module into a TinkerBit board while a laptop nearby shows colorful coding blocks"
+                            src="/static/landing/hero.png"
+                            width="1376"
+                            height="768"
+                            alt="A young maker coding a glowing TinkerBit robot on a laptop with colorful blocks"
+                            fetchpriority="high"
                         />
-                        <span className="placeholder-tag">Placeholder photo</span>
                     </div>
                     <div className="container hero-inner">
                         <div className="hero-copy">
                             <p className="hero-brand">TinkerBit</p>
-                            <h1 id="hero-title">Block Coding Meets Real Circuits — TinkerBit</h1>
+                            <h1 id="hero-title">Block coding meets real circuits</h1>
                             <p className="hero-sub">
                                 Snap RJ11 modules onto a board, drag colorful blocks on screen, and make lights flash,
                                 buzzers beep, and sensors react — no wires, no soldering, no breadboard mess.
@@ -319,32 +319,30 @@ const App = () => {
                     <div className="container">
                         <p className="section-kicker">Build gallery</p>
                         <h2 id="gallery-title">Things kids actually make</h2>
-                        <p className="section-lead">A few starter builds — more photos coming as we shoot the kit in the wild.</p>
+                        <p className="section-lead">Starter builds that click together in minutes — and feel real on the table.</p>
                         <div className="gallery-grid">
                             <article className="gallery-item">
                                 <div className="gallery-frame">
                                     <img
-                                        src="/static/landing/gallery-nightlight.svg"
-                                        width="640"
-                                        height="480"
+                                        src="/static/landing/gallery-nightlight.png"
+                                        width="1024"
+                                        height="1024"
                                         loading="lazy"
-                                        alt="Placeholder for Night Owl Nightlight: glowing LED module on a TinkerBit board"
+                                        alt="TinkerBit board with a glowing owl nightlight and warm maker desk props"
                                     />
-                                    <span className="placeholder-tag">Placeholder</span>
                                 </div>
                                 <h3>Night Owl Nightlight</h3>
-                                <p>A soft LED that fades when the room goes dark.</p>
+                                <p>A soft glow that comes alive when the room goes quiet.</p>
                             </article>
                             <article className="gallery-item">
                                 <div className="gallery-frame">
                                     <img
-                                        src="/static/landing/gallery-doorbell.svg"
-                                        width="640"
-                                        height="480"
+                                        src="/static/landing/gallery-doorbell.png"
+                                        width="1024"
+                                        height="1024"
                                         loading="lazy"
-                                        alt="Placeholder for Door Beep Doorbell: button and buzzer modules snapped into a board"
+                                        alt="Child pressing a blue button module connected to a TinkerBit board and speaker"
                                     />
-                                    <span className="placeholder-tag">Placeholder</span>
                                 </div>
                                 <h3>Door Beep Doorbell</h3>
                                 <p>Press the button, hear a cheerful buzz — classic first win.</p>
@@ -352,13 +350,12 @@ const App = () => {
                             <article className="gallery-item">
                                 <div className="gallery-frame">
                                     <img
-                                        src="/static/landing/gallery-bot.svg"
-                                        width="640"
-                                        height="480"
+                                        src="/static/landing/gallery-bot.png"
+                                        width="1024"
+                                        height="1024"
                                         loading="lazy"
-                                        alt="Placeholder for Desk Rover: small wheeled robot base with motor modules"
+                                        alt="TinkerBit desk rover with ultrasonic eyes beside a laptop showing block code"
                                     />
-                                    <span className="placeholder-tag">Placeholder</span>
                                 </div>
                                 <h3>Desk Rover</h3>
                                 <p>Two motors, a little chassis, and a path it can follow across the table.</p>
