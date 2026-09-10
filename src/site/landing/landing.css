@@ -212,6 +212,7 @@ p {
   min-height: calc(100svh - var(--nav-h));
   display: grid;
   align-items: center;
+  justify-items: start;
   overflow: hidden;
   color: var(--text);
   background: #3d4a2e;
@@ -237,10 +238,10 @@ p {
   background:
     linear-gradient(
       90deg,
-      rgba(255, 251, 245, 0.92) 0%,
-      rgba(255, 251, 245, 0.78) 28%,
-      rgba(255, 251, 245, 0.28) 48%,
-      rgba(255, 251, 245, 0) 62%
+      rgba(255, 251, 245, 0.94) 0%,
+      rgba(255, 251, 245, 0.82) 26%,
+      rgba(255, 251, 245, 0.35) 46%,
+      rgba(255, 251, 245, 0) 60%
     ),
     linear-gradient(
       180deg,
@@ -254,12 +255,18 @@ p {
 .hero-inner {
   position: relative;
   z-index: 1;
+  width: min(34rem, calc(100% - 2rem));
+  max-width: 34rem;
+  margin: 0;
+  margin-left: clamp(1.25rem, 5vw, 4.5rem);
+  margin-right: auto;
   padding: 4.5rem 0 4rem;
-  max-width: 36rem;
+  text-align: left;
 }
 
 .hero-copy {
   position: relative;
+  text-align: left;
 }
 
 .hero-brand {
@@ -439,24 +446,15 @@ p {
   border-radius: var(--radius);
   background: var(--white);
   box-shadow: var(--shadow-soft);
-  padding: 1rem;
   overflow: hidden;
+  aspect-ratio: 1 / 1;
 }
 
-.rj11-frame svg {
+.rj11-frame img {
   width: 100%;
-  height: auto;
-}
-
-.click-pulse {
-  transform-origin: center;
-  animation: click-in 2.4s ease-in-out infinite;
-}
-
-@keyframes click-in {
-  0%, 100% { transform: translateY(0); }
-  45% { transform: translateY(14px); }
-  55% { transform: translateY(14px); }
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
 }
 
 /* Gallery */
@@ -727,7 +725,10 @@ p {
   }
 
   .hero-inner {
+    width: min(100% - 2rem, 34rem);
     max-width: none;
+    margin-left: 1rem;
+    margin-right: 1rem;
     padding: 2.5rem 0 2.75rem;
   }
 
@@ -783,7 +784,6 @@ p {
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .hero-copy,
-  .click-pulse,
   .btn-primary:hover {
     animation: none;
     transition: none;

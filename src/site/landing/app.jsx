@@ -132,7 +132,7 @@ const App = () => {
                             fetchpriority="high"
                         />
                     </div>
-                    <div className="container hero-inner">
+                    <div className="hero-inner">
                         <div className="hero-copy">
                             <p className="hero-brand">TinkerBit</p>
                             <h1 id="hero-title">Block coding meets real circuits</h1>
@@ -246,66 +246,13 @@ const App = () => {
                                 </p>
                             </div>
                             <div className="rj11-frame">
-                                <svg
-                                    viewBox="0 0 420 260"
-                                    role="img"
-                                    aria-labelledby="rj11Title rj11Desc"
-                                >
-                                    <title id="rj11Title">RJ11 module clicking into a board port</title>
-                                    <desc id="rj11Desc">Animation of a module plug sliding down into a board socket until it seats with a click.</desc>
-                                    <rect
-                                        x="20"
-                                        y="150"
-                                        width="380"
-                                        height="90"
-                                        rx="18"
-                                        fill="#00A896"
-                                    />
-                                    <rect
-                                        x="160"
-                                        y="168"
-                                        width="100"
-                                        height="54"
-                                        rx="8"
-                                        fill="#FFFBF5"
-                                    />
-                                    <text
-                                        x="210"
-                                        y="230"
-                                        textAnchor="middle"
-                                        fill="#FFFBF5"
-                                        fontFamily="Quicksand, sans-serif"
-                                        fontSize="14"
-                                        fontWeight="700"
-                                    >Board port</text>
-                                    <g className="click-pulse">
-                                        <rect
-                                            x="175"
-                                            y="40"
-                                            width="70"
-                                            height="90"
-                                            rx="10"
-                                            fill="#FF6B35"
-                                        />
-                                        <rect
-                                            x="188"
-                                            y="110"
-                                            width="44"
-                                            height="36"
-                                            rx="4"
-                                            fill="#FFD23F"
-                                        />
-                                        <text
-                                            x="210"
-                                            y="78"
-                                            textAnchor="middle"
-                                            fill="#FFFBF5"
-                                            fontFamily="Quicksand, sans-serif"
-                                            fontSize="12"
-                                            fontWeight="700"
-                                        >Module</text>
-                                    </g>
-                                </svg>
+                                <img
+                                    src="/static/landing/rj11-click.png"
+                                    width="1024"
+                                    height="1024"
+                                    loading="lazy"
+                                    alt="Hand plugging an orange light sensor module into a TinkerBit board next to button, buzzer, and motion modules"
+                                />
                             </div>
                         </div>
                     </div>
