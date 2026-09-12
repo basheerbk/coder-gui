@@ -49,7 +49,9 @@ const base = {
         historyApiFallback: {
             rewrites: [
                 {from: /^\/ide\/?$/, to: '/ide.html'},
-                {from: /^\/login\/?$/, to: '/login.html'}
+                {from: /^\/login\/?$/, to: '/login.html'},
+                {from: /^\/choose\/?$/, to: '/choose.html'},
+                {from: /^\/beginner\/?$/, to: '/beginner.html'}
             ]
         },
         proxy: {
@@ -273,30 +275,48 @@ module.exports = [
         const site = defaultsDeep({}, base, {
             name: 'tinkerbit-site',
             entry: {
-                'site-vendor': ['react', 'react-dom'],
                 landing: './src/site/landing/index.jsx',
-                login: './src/site/login/index.jsx'
+                login: './src/site/login/index.jsx',
+                choose: './src/site/choose/index.jsx',
+                beginnerStudio: './src/beginner-studio/index.jsx'
             },
             output: {
                 path: path.resolve(__dirname, 'build'),
                 filename: '[name].js',
-                chunkFilename: 'chunks/[name].js'
+                chunkFilename: 'chunks/[name].js',
+                publicPath: '/'
             },
-            optimization: {
-                splitChunks: {
-                    chunks: 'all',
-                    name: 'site-vendor'
-                },
-                runtimeChunk: {
-                    name: 'site-vendor'
-                }
+            node: {
+                fs: 'empty',
+                net: 'empty',
+                tls: 'empty'
             }
         });
         delete site.output.library;
+        // Assign after defaultsDeep so IDE splitChunks/runtimeChunk never leak in.
+        // Lazy upload/esptool must stay out of the initial site-vendor chunk.
+        site.optimization = {
+            minimizer: (base.optimization && base.optimization.minimizer) || [],
+            runtimeChunk: false,
+            splitChunks: {
+                chunks: 'initial',
+                cacheGroups: {
+                    default: false,
+                    vendors: false,
+                    siteVendor: {
+                        test: /[\\/]node_modules[\\/](react|react-dom)[\\/]/,
+                        name: 'site-vendor',
+                        chunks: 'initial',
+                        enforce: true
+                    }
+                }
+            }
+        };
         site.plugins = [
             new webpack.DefinePlugin({
                 'process.env.NODE_ENV': '"' + process.env.NODE_ENV + '"',
-                'process.env.CLARITY_ID': JSON.stringify(process.env.CLARITY_ID || '')
+                'process.env.CLARITY_ID': JSON.stringify(process.env.CLARITY_ID || ''),
+                'process.env.COMPILE_API_URL': JSON.stringify(process.env.COMPILE_API_URL || '')
             }),
             new HtmlWebpackPlugin({
                 chunks: ['site-vendor', 'landing'],
@@ -331,6 +351,33 @@ module.exports = [
                     // Allow Clarity CDN + Google fonts; keep frame-ancestors locked down.
                     '<meta http-equiv="Content-Security-Policy" content="default-src \'self\'; style-src \'self\' \'unsafe-inline\' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src \'self\' data: https:; script-src \'self\' https://*.clarity.ms https://c.bing.com; connect-src \'self\' https://*.clarity.ms https://c.bing.com; frame-ancestors \'none\'; base-uri \'self\'; form-action \'self\'">',
                     '<meta http-equiv="X-Frame-Options" content="DENY">'
+                ].join('\n    ')
+            }),
+            new HtmlWebpackPlugin({
+                chunks: ['site-vendor', 'choose'],
+                template: 'src/site/site.ejs',
+                filename: 'choose.html',
+                title: 'Choose your mode — TinkerBit',
+                description: 'Pick Beginner or Advanced after signing in to TinkerBit.',
+                robots: 'noindex',
+                canonical: 'https://tinkerbit.io/choose',
+                extraHead: [
+                    '<meta http-equiv="Content-Security-Policy" content="default-src \'self\'; style-src \'self\' \'unsafe-inline\' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src \'self\' data: https:; script-src \'self\' https://*.clarity.ms https://c.bing.com; connect-src \'self\' https://*.clarity.ms https://c.bing.com; frame-ancestors \'none\'; base-uri \'self\'; form-action \'self\'">',
+                    '<meta http-equiv="X-Frame-Options" content="DENY">'
+                ].join('\n    ')
+            }),
+            new HtmlWebpackPlugin({
+                chunks: ['site-vendor', 'beginnerStudio'],
+                template: 'src/site/site.ejs',
+                filename: 'beginner.html',
+                title: 'TinkerBit Beginner Studio',
+                description: 'Wire RJ11 modules and program them with blocks — live Arduino C++ for beginners.',
+                robots: 'noindex',
+                canonical: 'https://tinkerbit.io/beginner',
+                extraHead: [
+                    '<meta http-equiv="Content-Security-Policy" content="default-src \'self\'; style-src \'self\' \'unsafe-inline\' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src \'self\' data: https:; script-src \'self\' \'unsafe-eval\' https://*.clarity.ms https://c.bing.com; connect-src \'self\' https://*.clarity.ms https://c.bing.com; worker-src \'self\' blob:; frame-ancestors \'none\'; base-uri \'self\'; form-action \'self\'">',
+                    '<meta http-equiv="X-Frame-Options" content="DENY">',
+                    '<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">'
                 ].join('\n    ')
             })
         ];

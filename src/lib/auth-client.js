@@ -11,9 +11,12 @@ const safeIdeNext = () => {
     if (
         path === '/ide' ||
         path === '/ide.html' ||
-        path.indexOf('/ide/') === 0
+        path.indexOf('/ide/') === 0 ||
+        path === '/beginner' ||
+        path === '/beginner/' ||
+        path === '/beginner.html'
     ) {
-        return path;
+        return path === '/beginner/' ? '/beginner' : path;
     }
     return '/ide';
 };

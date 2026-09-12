@@ -223,6 +223,7 @@ const GUIComponent = props => {
                         vm={vm}
                     />
                 ) : null}
+
                 {costumeLibraryVisible ? (
                     <CostumeLibrary
                         vm={vm}

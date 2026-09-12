@@ -663,6 +663,7 @@ class MenuBar extends React.Component {
                             </MenuBarMenu>
                         </div>
                     )}
+                    )}
                     <div
                         className={classNames(styles.menuBarItem,
                             this.props.isRealtimeMode ? styles.hoverable : styles.disabled,
@@ -823,41 +824,41 @@ class MenuBar extends React.Component {
                         />
                         {this.state.isOverflow ? null : <FormattedMessage {...ariaMessages.community} />}
                     </div>*/}
-                    <div
-                        aria-label={this.props.intl.formatMessage(ariaMessages.wiki)}
-                        className={classNames(styles.menuBarItem, styles.hoverable)}
-                        onClick={this.handleClickOpenWiki}
-                    >
-                        <img
-                            className={styles.wikiIcon}
-                            src={wikiIcon}
-                        />
-                        {this.state.isOverflow ? null : <FormattedMessage {...ariaMessages.wiki} />}
-                    </div>
-                    <div
-                        aria-label={this.props.intl.formatMessage(ariaMessages.tutorials)}
-                        className={classNames(styles.menuBarItem, styles.hoverable)}
-                        onClick={this.props.onOpenTipLibrary}
-                    >
-                        <img
-                            className={styles.helpIcon}
-                            src={helpIcon}
-                        />
-                        {this.state.isOverflow ? null : <FormattedMessage {...ariaMessages.tutorials} />}
-                    </div>
-                    <Divider className={classNames(styles.divider)} />
-                    <div
-                        className={classNames(styles.menuBarItem, styles.hoverable)}
-                        onMouseUp={this.handleScreenshot}
-                    >
-                        <img
-                            alt="Screenshot"
-                            className={classNames(styles.screenShotLogo)}
-                            draggable={false}
-                            src={screenshotIcon}
-                        />
-                    </div>
-                    <Divider className={classNames(styles.divider)} />
+                        <div
+                            aria-label={this.props.intl.formatMessage(ariaMessages.wiki)}
+                            className={classNames(styles.menuBarItem, styles.hoverable)}
+                            onClick={this.handleClickOpenWiki}
+                        >
+                            <img
+                                className={styles.wikiIcon}
+                                src={wikiIcon}
+                            />
+                            {this.state.isOverflow ? null : <FormattedMessage {...ariaMessages.wiki} />}
+                        </div>
+                        <div
+                            aria-label={this.props.intl.formatMessage(ariaMessages.tutorials)}
+                            className={classNames(styles.menuBarItem, styles.hoverable)}
+                            onClick={this.props.onOpenTipLibrary}
+                        >
+                            <img
+                                className={styles.helpIcon}
+                                src={helpIcon}
+                            />
+                            {this.state.isOverflow ? null : <FormattedMessage {...ariaMessages.tutorials} />}
+                        </div>
+                        <Divider className={classNames(styles.divider)} />
+                        <div
+                            className={classNames(styles.menuBarItem, styles.hoverable)}
+                            onMouseUp={this.handleScreenshot}
+                        >
+                            <img
+                                alt="Screenshot"
+                                className={classNames(styles.screenShotLogo)}
+                                draggable={false}
+                                src={screenshotIcon}
+                            />
+                        </div>
+                        <Divider className={classNames(styles.divider)} />
                     <div style={{display: 'none'}}
                         className={classNames(styles.menuBarItem, this.props.isRealtimeMode &&
                             this.props.peripheralName ? styles.hoverable : styles.disabled)}

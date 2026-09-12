@@ -12,16 +12,21 @@ const ERROR_MESSAGES = {
 
 const sanitizeNext = next => {
     if (!next || typeof next !== 'string') {
-        return '/ide';
+        return '/choose';
     }
     const pathOnly = next.split('?')[0].split('#')[0];
+    const allowed =
+        pathOnly === '/choose' || pathOnly === '/choose/' ||
+        pathOnly === '/beginner' || pathOnly === '/beginner/' ||
+        pathOnly === '/beginner.html' || pathOnly === '/choose.html' ||
+        pathOnly === '/ide' || pathOnly.indexOf('/ide/') === 0 || pathOnly === '/ide.html';
     if (
         next.charAt(0) !== '/' ||
         next.indexOf('//') === 0 ||
         next.indexOf('://') !== -1 ||
-        !(pathOnly === '/ide' || pathOnly.indexOf('/ide/') === 0 || pathOnly === '/ide.html')
+        !allowed
     ) {
-        return '/ide';
+        return '/choose';
     }
     return next;
 };
@@ -30,7 +35,7 @@ const App = () => {
     const {next, error} = useMemo(() => {
         const params = new URLSearchParams(window.location.search);
         return {
-            next: sanitizeNext(params.get('next') || '/ide'),
+            next: sanitizeNext(params.get('next') || '/choose'),
             error: params.get('error')
         };
     }, []);

@@ -31,7 +31,7 @@ const App = () => {
         return () => window.removeEventListener('scroll', onScroll);
     }, []);
 
-    const ideHref = isMobileLike ? '#how-it-works' : '/ide';
+    const ideHref = isMobileLike ? '#how-it-works' : '/choose';
 
     const closeNav = () => setNavOpen(false);
 
@@ -137,8 +137,8 @@ const App = () => {
                             <p className="hero-brand">TinkerBit</p>
                             <h1 id="hero-title">Block coding meets real circuits</h1>
                             <p className="hero-sub">
-                                Snap RJ11 modules onto a board, drag colorful blocks on screen, and make lights flash,
-                                buzzers beep, and sensors react — no wires, no soldering, no breadboard mess.
+                                Plug something in. Stack a few blocks. Watch the table come alive — lights, sound,
+                                motion. No soldering. No breadboard chaos.
                             </p>
                             <div className="hero-cta-wrap">
                                 <a
@@ -194,8 +194,7 @@ const App = () => {
                 >
                     <div className="container">
                         <p>
-                            It’s click-in circuits and drag-and-drop code — plug a module in, stack a few blocks,
-                            and watch something real light up or move.
+                            One board. Colorful modules. Blocks that make something real happen.
                         </p>
                     </div>
                 </section>
@@ -216,7 +215,7 @@ const App = () => {
                                     aria-hidden="true"
                                 >1</span>
                                 <h3>Plug a module into the board</h3>
-                                <p>RJ11 connectors click in like a phone handset jack — firm, obvious, and kid-friendly.</p>
+                                <p>Modules click into the board — firm, obvious, and kid-friendly.</p>
                             </article>
                             <article className="step">
                                 <span
@@ -313,25 +312,25 @@ const App = () => {
 
                 <section
                     className="section section--warm"
-                    id="why-rj11"
+                    id="modules"
                     aria-labelledby="why-title"
                 >
                     <div className="container">
-                        <p className="section-kicker">Why RJ11 modules</p>
-                        <h2 id="why-title">No wires. No breadboard. Just click.</h2>
+                        <p className="section-kicker">Snap-in modules</p>
+                        <h2 id="why-title">Lights, buzzers, sensors — click and go</h2>
                         <div className="split">
                             <p
                                 className="section-lead"
                                 style={{margin: 0}}
                             >
-                                Tiny jumper wires look clever until they fall out mid-demo. TinkerBit modules lock into
-                                the board with an RJ11 click — the same solid feel as plugging in a phone handset —
-                                so builds stay put while kids experiment.
+                                Every piece has a job you can see. Plug in a light, a button, or a sensor, stack a few
+                                blocks, and the table answers back. When the idea changes, swap the module — the board
+                                stays put.
                             </p>
                             <ul className="point-list">
-                                <li>No soldering, no wire-strippers, no mysterious short circuits from a loose jumper.</li>
-                                <li>Modules are labeled and color-friendly — grab a light, a sensor, a motor, and go.</li>
-                                <li>Swap parts in seconds when the idea changes mid-afternoon.</li>
+                                <li>Color-labeled modules so kids grab the right part without a wiring chart.</li>
+                                <li>Firm click-in ports — builds stay together through the whole experiment.</li>
+                                <li>Swap a light for a sensor in seconds when curiosity takes a new turn.</li>
                             </ul>
                         </div>
                     </div>

@@ -83,6 +83,7 @@ const initPlayer = function (currentState) {
         {mode: {
             isFullScreen: currentState.mode.isFullScreen,
             isPlayerOnly: true,
+            showBranding: currentState.mode.showBranding,
             // When initializing in player mode, make sure to reset
             // hasEverEnteredEditorMode
             hasEverEnteredEditor: false
@@ -96,6 +97,7 @@ const initFullScreen = function (currentState) {
         {mode: {
             isFullScreen: true,
             isPlayerOnly: currentState.mode.isPlayerOnly,
+            showBranding: currentState.mode.showBranding,
             hasEverEnteredEditor: currentState.mode.hasEverEnteredEditor
         }}
     );
@@ -113,6 +115,7 @@ const initEmbedded = function (currentState) {
         }}
     );
 };
+
 
 const initTutorialCard = function (currentState, deckId) {
     return Object.assign(

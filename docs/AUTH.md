@@ -1,6 +1,6 @@
 # TinkerBit Google Sign-In
 
-The IDE is gated behind Google OAuth. Guests who open `/ide` are redirected to `/login`.
+The IDE and mode pages are gated behind Google OAuth. Guests who open `/choose`, `/beginner`, or `/ide` are redirected to `/login`.
 
 ## Setup
 
@@ -34,13 +34,18 @@ Optional non-production bypass: `AUTH_DISABLED=1` (ignored when `VERCEL_ENV=prod
 | Path | Purpose |
 |------|---------|
 | `/login` | Sign-in page |
+| `/choose` | Post-login Beginner / Advanced chooser |
+| `/beginner` | Beginner Studio — visual RJ11 wiring + click blocks + live Arduino C++ |
+| `/ide` | Full (Advanced) OpenBlock IDE with upload |
 | `/api/auth/google` | Start Google OAuth |
-| `/api/auth/callback` | OAuth callback → session cookie |
+| `/api/auth/callback` | OAuth callback → session cookie → `/choose` by default |
 | `/api/auth/me` | Current user JSON |
 | `/api/auth/logout` | Clear session |
+
+After sign-in, users land on `/choose`. **Advanced** opens `/ide`. **Beginner** opens `/beginner` (React wiring + block codegen studio; no Scratch VM on that route).
 
 Session cookie: `tb_session` (httpOnly, SameSite=Lax, Secure in production).
 
 ## Clarity
 
-When `CLARITY_ID` is set, sessions are tagged with `page` (`landing` / `login` / `ide`), signed-in users are identified (hashed), and custom events fire for sign-in, board select/connect, and upload outcomes.
+When `CLARITY_ID` is set, sessions are tagged with `page` (`landing` / `login` / `choose` / `beginner` / `ide`), signed-in users are identified (hashed), and custom events fire for sign-in, mode choice, board select/connect, and upload outcomes. Beginner Studio also fires `beginner_ide_opened`.

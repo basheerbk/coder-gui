@@ -29,7 +29,7 @@ export default async function handler (req, res) {
 
     if (isAuthDisabled()) {
         res.statusCode = 302;
-        res.setHeader('Location', '/ide');
+        res.setHeader('Location', '/choose');
         res.end();
         return;
     }

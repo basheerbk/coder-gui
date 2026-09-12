@@ -7,7 +7,17 @@ import {
 } from './lib/auth/session.mjs';
 
 export const config = {
-    matcher: ['/ide', '/ide/', '/ide.html']
+    matcher: [
+        '/ide',
+        '/ide/',
+        '/ide.html',
+        '/choose',
+        '/choose/',
+        '/choose.html',
+        '/beginner',
+        '/beginner/',
+        '/beginner.html'
+    ]
 };
 
 export default async function middleware (request) {
