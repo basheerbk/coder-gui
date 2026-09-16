@@ -45,7 +45,10 @@ const Port = ({
     onClick
 }) => {
     const {K} = useStudio();
-    const color = port.signal === 'analog' ? K.analog : K.digital;
+    const color = port.kind === 'analog' ? K.analog
+        : (port.kind === 'i2c' ? K.cyan
+            : (port.kind === 'motor' ? K.orange
+                : (port.kind === 'stepper' ? K.dim : K.digital)));
     const opacity = occupied || compatible ? 1 : (dimmed ? 0.2 : 0.92);
     const rot = sideRotate[port.side] || 0;
     const gid = `sock-${port.id}`;
@@ -68,7 +71,7 @@ const Port = ({
         : compatible
             ? `Snap into ${port.label}`
             : dimmed
-                ? `${port.label} needs a ${port.signal} module`
+                ? `${port.label} needs a ${port.kind} module`
                 : port.label;
 
     return (
@@ -209,28 +212,38 @@ const Port = ({
 
             {/* Floating label chip */}
             <g style={{pointerEvents: 'none'}}>
-                <rect
-                    x={labelG.anchor === 'middle' ? labelG.x - 16 : (labelG.anchor === 'end' ? labelG.x - 30 : labelG.x - 2)}
-                    y={labelG.y - 12}
-                    width={32}
-                    height={16}
-                    rx={8}
-                    fill={K.panel}
-                    stroke={color}
-                    strokeWidth={1.4}
-                    opacity={0.96}
-                    filter="url(#socketPop)"
-                />
-                <text
-                    x={labelG.x}
-                    y={labelG.y}
-                    textAnchor={labelG.anchor}
-                    fill={color}
-                    fontSize={11}
-                    fontWeight={800}
-                >
-                    {port.label}
-                </text>
+                {(() => {
+                    const chipW = Math.max(32, (String(port.label).length * 8) + 14);
+                    const chipX = labelG.anchor === 'middle'
+                        ? labelG.x - (chipW / 2)
+                        : (labelG.anchor === 'end' ? labelG.x - chipW + 2 : labelG.x - 2);
+                    return (
+                        <React.Fragment>
+                            <rect
+                                x={chipX}
+                                y={labelG.y - 12}
+                                width={chipW}
+                                height={16}
+                                rx={8}
+                                fill={K.panel}
+                                stroke={color}
+                                strokeWidth={1.4}
+                                opacity={0.96}
+                                filter="url(#socketPop)"
+                            />
+                            <text
+                                x={labelG.x}
+                                y={labelG.y}
+                                textAnchor={labelG.anchor}
+                                fill={color}
+                                fontSize={11}
+                                fontWeight={800}
+                            >
+                                {port.label}
+                            </text>
+                        </React.Fragment>
+                    );
+                })()}
             </g>
         </g>
     );

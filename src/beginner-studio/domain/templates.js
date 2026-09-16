@@ -1,10 +1,7 @@
 import {uid} from './ids';
 import {moduleById} from './modules';
-import {portById} from './ports';
+import {pickPortForModule, portById} from './ports';
 import {createBlock} from './tree';
-
-const DIGITAL_PORTS = ['D4', 'D5', 'D13', 'SPARE1', 'SPARE2'];
-const ANALOG_PORTS = ['A1', 'A2', 'A3'];
 
 const wire = (moduleId, portId) => {
     const port = portById(portId);
@@ -26,23 +23,18 @@ const actionBlock = (conn, actionType, params) => {
 };
 
 const assignWiring = moduleIds => {
-    let d = 0;
-    let a = 0;
+    const used = {};
     return moduleIds.map(moduleId => {
         const mod = moduleById(moduleId);
         if (!mod) {
             throw new Error(`Unknown module: ${moduleId}`);
         }
-        if (mod.signal === 'analog') {
-            if (a >= ANALOG_PORTS.length) {
-                throw new Error(`Too many analog modules in ${moduleIds.join(',')}`);
-            }
-            return [moduleId, ANALOG_PORTS[a++]];
+        const portId = pickPortForModule(mod, used);
+        if (!portId) {
+            throw new Error(`No free jack for ${moduleId} in ${moduleIds.join(',')}`);
         }
-        if (d >= DIGITAL_PORTS.length) {
-            throw new Error(`Too many digital modules in ${moduleIds.join(',')}`);
-        }
-        return [moduleId, DIGITAL_PORTS[d++]];
+        used[portId] = true;
+        return [moduleId, portId];
     });
 };
 
@@ -473,7 +465,7 @@ const PROJECT_SPECS = [
     {id: 'p100-maker-kit', name: 'Maker Kit Demo', description: 'Button unlocks servo + lights RGB', difficulty: 'Beginner', modules: ['btn', 'servo', 'rgb'], pattern: 'button_burst'}
 ];
 
-/** Advanced multi-module scenes — pack more jacks (up to 5 digital + 3 analog). */
+/** Advanced multi-module scenes — D4/D13/3D + A1–A4 + I2C + MD. */
 const ADVANCED_SPECS = [
     {id: 'adv-smart-home', name: 'Smart Home Hub', description: 'Light + motion run lamp, buzzer, and screen', difficulty: 'Advanced', modules: ['ldr', 'pir', 'led', 'buzz', 'oled'], pattern: 'advanced_scene', primary: 'pir', thenText: 'HOME', elseText: 'IDLE', wait: 0.15},
     {id: 'adv-garden-station', name: 'Garden Station', description: 'Soil + light drive pump, LED, and OLED', difficulty: 'Advanced', modules: ['soil', 'ldr', 'pump', 'led', 'oled'], pattern: 'advanced_scene', primary: 'soil', op: '<', value: 400, burstPump: true, burst: 2, wait: 0.5},

@@ -18,7 +18,7 @@ const StatusBar = () => {
                 color: K.muted
             }}
         >
-            <span>Sound · RJ11 cables</span>
+            <span>Maker ESP32 · D4=25 D13=33 3D=32 · A1=4 A2=15 A3=2 A4=0 · I2C 21/22 · MD 5/17</span>
             <div style={{flex: 1}} />
             <button
                 type="button"

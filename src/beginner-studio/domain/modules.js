@@ -34,7 +34,7 @@ const MODULES = [
         dir: 'out',
         category: 'output',
         color: K.cyan,
-        description: 'Show text or a number',
+        description: 'Show text or a number — plug into I2C',
         includes: ['Wire.h', 'Adafruit_SSD1306.h', 'Adafruit_GFX.h'],
         actions: [
             {type: 'show_text', label: 'Show text', params: {text: 'Hello'}},
@@ -61,7 +61,7 @@ const MODULES = [
         dir: 'out',
         category: 'output',
         color: K.dim,
-        description: 'Spin a motor at a speed',
+        description: 'Spin a motor at a speed — plug into MD',
         actions: [
             {type: 'motor_speed', label: 'Set speed', params: {speed: 180}},
             {type: 'motor_stop', label: 'Stop motor'}

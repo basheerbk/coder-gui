@@ -3,7 +3,7 @@ import {useCallback} from 'react';
 import {defaultIfParams} from '../domain/condition';
 import {uid} from '../domain/ids';
 import {moduleById} from '../domain/modules';
-import {portById, isPortCompatible} from '../domain/ports';
+import {portById, isPortCompatible, compatibilityHint} from '../domain/ports';
 import {playConnect, playDisconnect, playTick} from '../domain/sound';
 import {templateById} from '../domain/templates';
 import {persistTheme} from '../domain/tokens';
@@ -51,9 +51,8 @@ const useStudioActions = (state, setState) => {
                 return prev;
             }
             if (!isPortCompatible(port, mod)) {
-                const need = port.signal === 'analog' ? 'sensor (analog)' : 'digital';
                 return Object.assign({}, prev, {
-                    wireHint: `${port.label} needs a ${need} part`
+                    wireHint: compatibilityHint(port, mod)
                 });
             }
             const occupied = prev.connections.some(c => c.portId === portId);
@@ -92,7 +91,11 @@ const useStudioActions = (state, setState) => {
                 program,
                 selectedModule: null,
                 flashPortId: portId,
-                wireHint: null,
+                wireHint: port.boot
+                    ? 'A4 is IO0 (BOOT). Unplug it if the board will not start.'
+                    : (port.strapping && mod.dir === 'out'
+                        ? `${port.label} is a boot strap pin — keep it HIGH/floating at reset.`
+                        : null),
                 activeTemplateId: null
             });
         });

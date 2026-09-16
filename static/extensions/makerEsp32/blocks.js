@@ -11,8 +11,9 @@ function registerBlocks (Blockly) {
             [Blockly.Msg.MAKERESP32_PORT_D4, 'D4'],
             [Blockly.Msg.MAKERESP32_PORT_D5, 'D5'],
             [Blockly.Msg.MAKERESP32_PORT_D13, 'D13'],
-            [Blockly.Msg.MAKERESP32_PORT_SPARE1, 'SPARE1'],
-            [Blockly.Msg.MAKERESP32_PORT_SPARE2, 'SPARE2']
+            [Blockly.Msg.MAKERESP32_PORT_3D, '3D'],
+            [Blockly.Msg.MAKERESP32_PORT_A2, 'A2'],
+            [Blockly.Msg.MAKERESP32_PORT_A3, 'A3']
         ];
     };
 
@@ -20,7 +21,8 @@ function registerBlocks (Blockly) {
         return [
             [Blockly.Msg.MAKERESP32_PORT_A1, 'A1'],
             [Blockly.Msg.MAKERESP32_PORT_A2, 'A2'],
-            [Blockly.Msg.MAKERESP32_PORT_A3, 'A3']
+            [Blockly.Msg.MAKERESP32_PORT_A3, 'A3'],
+            [Blockly.Msg.MAKERESP32_PORT_A4, 'A4']
         ];
     };
 

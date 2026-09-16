@@ -8,7 +8,7 @@ import ConnectedModuleCard from './ConnectedModuleCard.jsx';
 import Port from './Port.jsx';
 import Rj11Cable from './Rj11Cable.jsx';
 
-const SCENE = {x: -40, y: -70, w: 860, h: 580};
+const SCENE = {x: -50, y: -90, w: 940, h: 640};
 
 const centeredPan = (w, h) => ({
     x: ((w - SCENE.w) / 2) - SCENE.x,
@@ -407,16 +407,16 @@ const BoardCanvas = () => {
                                 </text>
                                 <text
                                     x={BOARD.x + BOARD.w - 20}
-                                    y={BOARD.y + (BOARD.h / 2)}
+                                    y={BOARD.y + 88}
                                     textAnchor="middle"
-                                    fill={K.digital}
-                                    fontSize={9}
+                                    fill={K.orange}
+                                    fontSize={8}
                                     fontWeight={700}
-                                    opacity={0.5}
-                                    letterSpacing={1.4}
-                                    transform={`rotate(90 ${BOARD.x + BOARD.w - 20} ${BOARD.y + (BOARD.h / 2)})`}
+                                    opacity={0.55}
+                                    letterSpacing={1.2}
+                                    transform={`rotate(90 ${BOARD.x + BOARD.w - 20} ${BOARD.y + 88})`}
                                 >
-                                    DIGITAL
+                                    MD / I2C
                                 </text>
                                 <text
                                     x={cx}

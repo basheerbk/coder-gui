@@ -68,8 +68,9 @@ const setupLinesForConnection = c => {
     if (mod.id === 'dht') {
         return [`dht_${pin}.begin();`];
     }
-    if (mod.id === 'oled') {
+    if (mod.id === 'oled' || port.kind === 'i2c') {
         return [
+            'Wire.begin(SDA_PIN, SCL_PIN);',
             'if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {',
             '  Serial.println(F("SSD1306 alloc failed"));',
             '}',
@@ -80,8 +81,21 @@ const setupLinesForConnection = c => {
             'display.display();'
         ];
     }
+    if (mod.id === 'dc' || port.kind === 'motor') {
+        const motorPins = port.pins && port.pins.length ? port.pins : [pin];
+        return motorPins.map(p => `pinMode(${p}, OUTPUT);`).concat([
+            'analogWrite(MOTOR_A1, 0);',
+            'analogWrite(MOTOR_A2, 0);',
+            'analogWrite(MOTOR_B1, 0);',
+            'analogWrite(MOTOR_B2, 0);'
+        ]);
+    }
     if (mod.dir === 'out') {
-        return [`pinMode(${pin}, OUTPUT);`];
+        const lines = [`pinMode(${pin}, OUTPUT);`];
+        if (port.boot) {
+            lines.unshift('// IO0 (A4) is a boot pin — do not hold LOW during reset.');
+        }
+        return lines;
     }
     const mode = mod.pinMode || 'INPUT';
     return [`pinMode(${pin}, ${mode});`];
@@ -151,12 +165,27 @@ const emitLeaf = (block, connById, level) => {
         lines.push(indent(level, `servo_${pin}.write(${Number(p.angle) || 90});`));
         break;
     case 'motor_speed':
-        lines.push(indent(level, `analogWrite(${pin}, ${Number(p.speed) || 0});`));
+        if (port && port.kind === 'motor') {
+            lines.push(indent(level, `analogWrite(MOTOR_A1, ${Number(p.speed) || 0});`));
+            lines.push(indent(level, 'analogWrite(MOTOR_A2, 0);'));
+        } else {
+            lines.push(indent(level, `analogWrite(${pin}, ${Number(p.speed) || 0});`));
+        }
         break;
     case 'motor_stop':
-        lines.push(indent(level, `analogWrite(${pin}, 0);`));
+        if (port && port.kind === 'motor') {
+            lines.push(indent(level, 'analogWrite(MOTOR_A1, 0);'));
+            lines.push(indent(level, 'analogWrite(MOTOR_A2, 0);'));
+            lines.push(indent(level, 'analogWrite(MOTOR_B1, 0);'));
+            lines.push(indent(level, 'analogWrite(MOTOR_B2, 0);'));
+        } else {
+            lines.push(indent(level, `analogWrite(${pin}, 0);`));
+        }
         break;
     case 'read_value':
+        if (port && port.adc === 2) {
+            lines.push(indent(level, `// ${port.label} is ADC2 (GPIO ${pin}) — analogRead can fail if WiFi is on`));
+        }
         lines.push(indent(level, `${(mod && mod.valueName) || 'value'} = analogRead(${pin});`));
         break;
     case 'is_pressed':
@@ -228,9 +257,18 @@ const generateArduino = (connections, program) => {
     }
 
     const out = [];
-    out.push('// TinkerBit Beginner Studio — Maker ESP32 pin map');
-    out.push('// Digital: D4=25 D5=26 D13=33 S1=15 S2=2 | Analog: A1=32 A2=34 A3=35');
+    out.push('// TinkerBit Beginner Studio — Maker ESP32 RJ11 map');
+    out.push('// D4=25 (D5=26 same jack) D13=33 3D=32  ST=12,13,14,27');
+    out.push('// MD=17,5,18,19  I2C SDA=21 SCL=22');
+    out.push('// Analog ADC2: A1=4 A2=15 A3=2 A4=0 (A4 is BOOT — do not hold LOW at reset)');
     out.push('// Use Upload in the Code tab (Chrome/Edge + Web Serial).');
+    out.push('');
+    out.push('#define SDA_PIN 21');
+    out.push('#define SCL_PIN 22');
+    out.push('#define MOTOR_A1 5');
+    out.push('#define MOTOR_A2 17');
+    out.push('#define MOTOR_B1 18');
+    out.push('#define MOTOR_B2 19');
     out.push('');
     includes.forEach(inc => out.push(`#include <${inc}>`));
     if (includes.length) {
