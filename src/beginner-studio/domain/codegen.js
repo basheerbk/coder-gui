@@ -239,38 +239,55 @@ const dualDistanceHelper = () => [
     '}'
 ];
 
-/** ESP32-friendly DHT11 bit-bang (Adafruit DHT often returns 255/NaN on ESP32 + RJ11). */
+/** ESP32 DHT11 reader (DHTesp-style edges + portENTER_CRITICAL). */
 const dht11Helper = () => [
-    'bool sampleDht11(uint8_t pin, float *temperatureC, float *humidityPct) {',
-    '  uint8_t data[5] = {0, 0, 0, 0, 0};',
-    '  pinMode(pin, OUTPUT);',
+    'bool sampleDht11Once(uint8_t pin, float *temperatureC, float *humidityPct) {',
+    '  uint16_t rawHumidity = 0;',
+    '  uint16_t rawTemperature = 0;',
+    '  uint16_t data = 0;',
+    '  // Start signal ≥18ms low',
     '  digitalWrite(pin, LOW);',
+    '  pinMode(pin, OUTPUT);',
     '  delay(20);',
-    '  digitalWrite(pin, HIGH);',
-    '  delayMicroseconds(30);',
     '  pinMode(pin, INPUT_PULLUP);',
-    '  unsigned long t = micros();',
-    '  while (digitalRead(pin) == HIGH) { if (micros() - t > 100) return false; }',
-    '  t = micros();',
-    '  while (digitalRead(pin) == LOW) { if (micros() - t > 100) return false; }',
-    '  t = micros();',
-    '  while (digitalRead(pin) == HIGH) { if (micros() - t > 100) return false; }',
-    '  for (int i = 0; i < 40; i++) {',
-    '    t = micros();',
-    '    while (digitalRead(pin) == LOW) { if (micros() - t > 80) return false; }',
-    '    unsigned long highStart = micros();',
-    '    while (digitalRead(pin) == HIGH) { if (micros() - highStart > 100) return false; }',
-    '    data[i / 8] <<= 1;',
-    '    if ((micros() - highStart) > 40) data[i / 8] |= 1;',
+    '  // 83 edges: response + 40 data bits (must not be preempted on ESP32)',
+    '  portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;',
+    '  portENTER_CRITICAL(&mux);',
+    '  for (int8_t i = -3; i < 80; i++) {',
+    '    unsigned long startTime = micros();',
+    '    unsigned long age = 0;',
+    '    do {',
+    '      age = micros() - startTime;',
+    '      if (age > 90) {',
+    '        portEXIT_CRITICAL(&mux);',
+    '        return false;',
+    '      }',
+    '    } while (digitalRead(pin) == ((i & 1) ? HIGH : LOW));',
+    '    if (i >= 0 && (i & 1)) {',
+    '      data <<= 1;',
+    '      if (age > 30) data |= 1;',
+    '    }',
+    '    if (i == 31) rawHumidity = data;',
+    '    if (i == 63) { rawTemperature = data; data = 0; }',
     '  }',
-    '  if (data[4] != (uint8_t)(data[0] + data[1] + data[2] + data[3])) return false;',
-    '  float h = data[0];',
-    '  float tempC = data[2];',
-    '  // Reject 255 / garbage from failed RJ11 timing',
-    '  if (h > 100 || tempC > 60 || h == 255 || tempC == 255) return false;',
+    '  portEXIT_CRITICAL(&mux);',
+    '  uint8_t sum = (uint8_t)rawHumidity + (uint8_t)(rawHumidity >> 8) + (uint8_t)rawTemperature + (uint8_t)(rawTemperature >> 8);',
+    '  if (sum != (uint8_t)data) return false;',
+    '  float h = (rawHumidity >> 8) + (rawHumidity & 0xFF) * 0.1f;',
+    '  float t = (rawTemperature >> 8) + (rawTemperature & 0x7F) * 0.1f;',
+    '  if (rawTemperature & 0x80) t = -t;',
+    '  if (isnan(h) || isnan(t) || h > 100 || t > 60 || h < 0) return false;',
     '  *humidityPct = h;',
-    '  *temperatureC = tempC;',
+    '  *temperatureC = t;',
     '  return true;',
+    '}',
+    '',
+    'bool sampleDht11(uint8_t pin, float *temperatureC, float *humidityPct) {',
+    '  for (int attempt = 0; attempt < 3; attempt++) {',
+    '    if (attempt) delay(250);',
+    '    if (sampleDht11Once(pin, temperatureC, humidityPct)) return true;',
+    '  }',
+    '  return false;',
     '}'
 ];
 
@@ -475,7 +492,7 @@ const emitLeaf = (block, connById, level) => {
         lines.push(indent(level + 1, `bool dhtOk = sampleDht11(${pin}, &dhtT, &dhtH);`));
         lines.push(indent(level + 1, 'lastDhtMs = millis();'));
         lines.push(indent(level + 1, 'if (!dhtOk) {'));
-        lines.push(indent(level + 2, 'Serial.println(F("DHT11 failed — use D13/A1, check cable"));'));
+        lines.push(indent(level + 2, 'Serial.println(F("DHT11 failed — plug into A1 (IO4), check cable power"));'));
         lines.push(indent(level + 1, '} else {'));
         lines.push(indent(level + 2, 'temperature = dhtT;'));
         lines.push(indent(level + 2, 'humidity = dhtH;'));

@@ -181,7 +181,7 @@ const MODULES = [
         dir: 'in',
         category: 'sensor',
         color: K.orange,
-        description: 'Temperature and humidity — plug into D13 (best) or A1–A3',
+        description: 'Temperature and humidity — plug into A1 (IO4). Avoid D13 for DHT.',
         includes: [],
         valueName: 'temperature',
         valueType: 'float',

@@ -281,8 +281,8 @@ const pickPortForModule = (moduleDef, usedIds) => {
         return take(['D5']);
     }
     if (moduleDef.id === 'dht') {
-        // DHT11 timing is flaky on some analog jacks — prefer D13.
-        return take(['D13', 'A1', 'A2', 'A3']);
+        // GPIO33 (D13) is unreliable for DHT one-wire on ESP32 — prefer A1 (IO4).
+        return take(['A1', 'A2', 'A3', 'D13']);
     }
     if (need === 'analog') {
         return take(ANALOG_ASSIGN);
