@@ -194,7 +194,7 @@ const MODULES = [
         dir: 'in',
         category: 'sensor',
         color: K.cyan,
-        description: 'Distance in cm — plug into D5 (Trig IO25, Echo IO26)',
+        description: 'Distance in cm — D5 only (Trig IO25, Echo IO26). Use the kit cable; Echo must stay 3.3V.',
         valueName: 'distance',
         valueType: 'int',
         helpers: ['getDistance'],

@@ -34,7 +34,7 @@ const assign = ids => {
         } else if (kind === 'analog') {
             portId = ANALOG_ASSIGN.find(id => !used[id]);
         } else {
-            portId = ['D13', 'A1', 'A2', 'A3', 'A4', 'D5'].find(id => {
+            portId = ['D13', 'A1', 'A2', 'A3', 'A4'].find(id => {
                 if (used[id]) {
                     return false;
                 }

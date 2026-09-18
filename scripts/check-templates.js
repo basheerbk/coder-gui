@@ -51,15 +51,12 @@ const assign = ids => {
         } else if (kind === 'analog') {
             portId = ANALOG_ASSIGN.find(id => !used[id]);
         } else {
-            // Prefer D13 then analogs; avoid D5 so ultra stays free; skip D13 if 3D used
-            const dig = ['D13', 'A1', 'A2', 'A3', 'A4', 'D5'].filter(id => {
+            // Prefer D13 then analogs; never D5 (HC-SR04 only); skip D13 if 3D used
+            const dig = ['D13', 'A1', 'A2', 'A3', 'A4'].filter(id => {
                 if (used[id]) {
                     return false;
                 }
                 if (id === 'D13' && used['3D']) {
-                    return false;
-                }
-                if (id === 'D5' && used.D5) {
                     return false;
                 }
                 return true;

@@ -94,13 +94,17 @@ const setupLinesForConnection = c => {
         return [`dht_${pin}.begin();`];
     }
     if (mod.id === 'ultra') {
-        if (port.pins && port.pins.length >= 2) {
+        const trig = (port.ultra && port.ultra.trig) || (port.pins && port.pins[0]);
+        const echo = (port.ultra && port.ultra.echo) || (port.pins && port.pins[1]);
+        if (trig && echo) {
             return [
-                `pinMode(${port.pins[0]}, OUTPUT);`,
-                `pinMode(${port.pins[1]}, INPUT);`
+                `// HC-SR04 on D5: Trig=${trig} OUTPUT, Echo=${echo} INPUT (never drive Echo)`,
+                `pinMode(${trig}, OUTPUT);`,
+                `digitalWrite(${trig}, LOW);`,
+                `pinMode(${echo}, INPUT);`
             ];
         }
-        return [];
+        return ['// HC-SR04 needs D5 (Trig+Echo) — no dual pins on this jack'];
     }
     if (mod.id === 'oled' || port.kind === 'i2c') {
         return [
@@ -168,38 +172,30 @@ const setupLinesForConnection = c => {
     return [`pinMode(${pin}, ${mode});`];
 };
 
+const ultraPins = port => {
+    if (!port) {
+        return null;
+    }
+    if (port.ultra && port.ultra.trig && port.ultra.echo) {
+        return {trig: port.ultra.trig, echo: port.ultra.echo};
+    }
+    if (port.pins && port.pins.length >= 2) {
+        return {trig: port.pins[0], echo: port.pins[1]};
+    }
+    return null;
+};
+
 const needsDualUltrasonic = connections =>
     (connections || []).some(c => {
         const mod = moduleById(c.moduleId);
-        const port = portById(c.portId);
-        return mod && mod.id === 'ultra' && port && port.pins && port.pins.length >= 2;
+        return mod && mod.id === 'ultra' && ultraPins(portById(c.portId));
     });
-
-const needsDistanceHelper = connections =>
-    (connections || []).some(c => {
-        const mod = moduleById(c.moduleId);
-        const port = portById(c.portId);
-        return mod && mod.id === 'ultra' && !(port && port.pins && port.pins.length >= 2);
-    });
-
-const distanceHelper = () => [
-    'long getDistance(int trigPin) {',
-    '  // Single-pin ultrasonic: pulse then listen',
-    '  pinMode(trigPin, OUTPUT);',
-    '  digitalWrite(trigPin, LOW);',
-    '  delayMicroseconds(2);',
-    '  digitalWrite(trigPin, HIGH);',
-    '  delayMicroseconds(10);',
-    '  digitalWrite(trigPin, LOW);',
-    '  pinMode(trigPin, INPUT);',
-    '  long duration = pulseIn(trigPin, HIGH, 30000);',
-    '  return duration * 0.034 / 2;',
-    '}'
-];
 
 const dualDistanceHelper = () => [
     'long getDistanceTrigEcho(int trigPin, int echoPin) {',
-    '  // D5 RJ11: IO25 Trig (pin 2), IO26 Echo (pin 3). Echo must stay INPUT.',
+    '  // Echo must stay INPUT — driving it against HC-SR04 Echo heats the module.',
+    '  pinMode(trigPin, OUTPUT);',
+    '  pinMode(echoPin, INPUT);',
     '  digitalWrite(trigPin, LOW);',
     '  delayMicroseconds(2);',
     '  digitalWrite(trigPin, HIGH);',
@@ -324,14 +320,17 @@ const emitLeaf = (block, connById, level) => {
     case 'is_pressed':
         lines.push(indent(level, `${(mod && mod.valueName) || 'buttonState'} = digitalRead(${pin}) == LOW;`));
         break;
-    case 'read_distance':
-        if (port && port.pins && port.pins.length >= 2) {
+    case 'read_distance': {
+        const ue = ultraPins(port);
+        if (ue) {
             lines.push(indent(level,
-                `${(mod && mod.valueName) || 'distance'} = getDistanceTrigEcho(${port.pins[0]}, ${port.pins[1]});`));
+                `${(mod && mod.valueName) || 'distance'} = getDistanceTrigEcho(${ue.trig}, ${ue.echo});`));
         } else {
-            lines.push(indent(level, `${(mod && mod.valueName) || 'distance'} = getDistance(${pin});`));
+            lines.push(indent(level, '// HC-SR04 must use D5 (Trig IO25 + Echo IO26) — skipped'));
+            lines.push(indent(level, `${(mod && mod.valueName) || 'distance'} = 0;`));
         }
         break;
+    }
     case 'read_temp':
         lines.push(indent(level, `temperature = dht_${pin}.readTemperature();`));
         break;
@@ -446,10 +445,6 @@ const generateArduino = (connections, program) => {
     }
     if (needsDualUltrasonic(connections)) {
         dualDistanceHelper().forEach(l => out.push(l));
-        out.push('');
-    }
-    if (needsDistanceHelper(connections)) {
-        distanceHelper().forEach(l => out.push(l));
         out.push('');
     }
     out.push('void setup() {');

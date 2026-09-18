@@ -41,7 +41,18 @@ const PORTS = [
         spi: {ss: '32', rst: '33', miso: '34', sck: '16', mosi: '23'},
         index: 2
     },
-    {id: 'D5', label: 'D5', side: 'top', kind: 'digital', signal: 'digital', pin: '25', pins: ['25', '26'], index: 3},
+    {
+        id: 'D5',
+        label: 'D5',
+        side: 'top',
+        kind: 'digital',
+        signal: 'digital',
+        pin: '25',
+        pins: ['25', '26'],
+        // HC-SR04 kit cable: RJ pin2 → Trig, RJ pin3 → Echo. Echo must never be OUTPUT.
+        ultra: {trig: '25', echo: '26'},
+        index: 3
+    },
     {id: 'MD', label: 'MD', side: 'right', kind: 'motor', signal: 'motor', pin: '5', pins: ['17', '5', '18', '19'], index: 0},
     {id: 'I2C', label: 'I2C', side: 'right', kind: 'i2c', signal: 'i2c', pin: '21', pins: ['21', '22'], index: 1},
     {id: 'A3', label: 'A3', side: 'right', kind: 'analog', signal: 'analog', pin: '2', pins: ['2'], strapping: true, adc: 2, index: 2},
@@ -142,6 +153,11 @@ const isPortCompatible = (port, moduleDef, usedIds) => {
         return port.kind === 'analog';
     }
     if (need === 'digital') {
+        // D5 is reserved for HC-SR04 (dual GPIO). Driving it as a plain
+        // digital out can hold Trig HIGH or fight Echo → module heats.
+        if (port.id === 'D5') {
+            return false;
+        }
         return port.kind === 'digital' || port.kind === 'analog';
     }
     return false;
@@ -192,10 +208,13 @@ const compatibilityHint = (port, moduleDef) => {
         return 'Plug the RFID RC522 into 3D (not D13 — they share IO33)';
     }
     if (need === 'ultra') {
-        return 'Plug the HC-SR04 into D5 (IO25 Trig / IO26 Echo)';
+        return 'Plug the HC-SR04 into D5 only (Trig IO25 / Echo IO26 — Echo stays INPUT)';
     }
     if (need === 'analog') {
         return `${port.label} needs an analog sensor`;
+    }
+    if (port.id === 'D5') {
+        return 'D5 is reserved for the HC-SR04 ultrasonic module';
     }
     if (port.kind === 'stepper') {
         return 'ST is only for a stepper motor';
@@ -246,8 +265,8 @@ const pickPortForModule = (moduleDef, usedIds) => {
     if (need === 'analog') {
         return take(ANALOG_ASSIGN);
     }
-    // Prefer D13 over D5 so HC-SR04 keeps the dual-GPIO jack free.
-    return take(['D13', 'A1', 'A2', 'A3', 'A4', 'D5']);
+    // Never auto-assign D5 to plain digital parts (HC-SR04 only).
+    return take(['D13', 'A1', 'A2', 'A3', 'A4']);
 };
 
 const topBottomX = (index, count) => {
