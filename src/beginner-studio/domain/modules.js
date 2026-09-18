@@ -126,6 +126,7 @@ const MODULES = [
         valueName: 'gasLevel',
         valueType: 'int',
         actions: [
+            {type: 'print_gas', label: 'Print gas level'},
             {type: 'read_value', label: 'Read gas'}
         ]
     },
@@ -186,6 +187,7 @@ const MODULES = [
         valueType: 'float',
         humidityName: 'humidity',
         actions: [
+            {type: 'print_climate', label: 'Print temp & humidity'},
             {type: 'read_temp', label: 'Read temperature'},
             {type: 'read_humidity', label: 'Read humidity'}
         ]

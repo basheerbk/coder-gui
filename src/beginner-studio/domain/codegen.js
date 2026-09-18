@@ -37,6 +37,7 @@ const collectGlobals = connections => {
         }
         if (mod.id === 'dht' && port) {
             lines.push(`DHT dht_${port.pin}(${port.pin}, DHT11);`);
+            lines.push('unsigned long lastDhtMs = 0;');
         }
         if (mod.id === 'oled') {
             lines.push('Adafruit_SSD1306 display(128, 64, &Wire, -1);');
@@ -100,7 +101,8 @@ const setupLinesForConnection = c => {
         ];
     }
     if (mod.id === 'dht') {
-        return [`dht_${pin}.begin();`];
+        // DHT11 needs ~1s after power-up before the first reliable sample.
+        return [`dht_${pin}.begin();`, 'delay(1500);', 'Serial.println(F("DHT11 ready — sample every 2s"));'];
     }
     if (mod.id === 'ultra') {
         const trig = (port.ultra && port.ultra.trig) || (port.pins && port.pins[0]);
@@ -368,6 +370,14 @@ const emitLeaf = (block, connById, level) => {
         lines.push(indent(level + 1, `Serial.println(F("BLE send: ${String(p.text || '').replace(/"/g, '\\"')}"));`));
         lines.push(indent(level, '}'));
         break;
+    case 'print_gas':
+        if (port && port.adc === 2) {
+            lines.push(indent(level, `// ${port.label} is ADC2 (GPIO ${pin}) — analogRead can fail if WiFi is on`));
+        }
+        lines.push(indent(level, `gasLevel = analogRead(${pin});`));
+        lines.push(indent(level, 'Serial.print(F("Gas level="));'));
+        lines.push(indent(level, 'Serial.println(gasLevel);'));
+        break;
     case 'read_value':
         if (mod && mod.id === 'pulse') {
             lines.push(indent(level, 'if (pulseReady) {'));
@@ -410,13 +420,36 @@ const emitLeaf = (block, connById, level) => {
         break;
     }
     case 'read_temp':
-        lines.push(indent(level, `temperature = dht_${pin}.readTemperature();`));
-        serialLabel('DHT11 tempC=', 'temperature');
-        break;
     case 'read_humidity':
-        lines.push(indent(level, `humidity = dht_${pin}.readHumidity();`));
-        serialLabel('DHT11 humidity%=', 'humidity');
+    case 'print_climate': {
+        // DHT11 needs ≥2s between samples; faster polls return NaN / garbage (often 255).
+        const mode = block.type;
+        lines.push(indent(level, 'if (millis() - lastDhtMs >= 2000) {'));
+        lines.push(indent(level + 1, `float dhtH = dht_${pin}.readHumidity();`));
+        lines.push(indent(level + 1, `float dhtT = dht_${pin}.readTemperature();`));
+        lines.push(indent(level + 1, 'lastDhtMs = millis();'));
+        lines.push(indent(level + 1, 'if (isnan(dhtH) || isnan(dhtT) || dhtH > 100 || dhtT > 80) {'));
+        lines.push(indent(level + 2, 'Serial.println(F("DHT11 read failed — check jack/wiring, keep ≥2s between reads"));'));
+        lines.push(indent(level + 1, '} else {'));
+        lines.push(indent(level + 2, 'humidity = dhtH;'));
+        lines.push(indent(level + 2, 'temperature = dhtT;'));
+        if (mode === 'print_climate') {
+            lines.push(indent(level + 2, 'Serial.print(F("Temp="));'));
+            lines.push(indent(level + 2, 'Serial.print(temperature);'));
+            lines.push(indent(level + 2, 'Serial.print(F(" C  Humidity="));'));
+            lines.push(indent(level + 2, 'Serial.print(humidity);'));
+            lines.push(indent(level + 2, 'Serial.println(F(" %"));'));
+        } else if (mode === 'read_temp') {
+            lines.push(indent(level + 2, 'Serial.print(F("DHT11 tempC="));'));
+            lines.push(indent(level + 2, 'Serial.println(temperature);'));
+        } else {
+            lines.push(indent(level + 2, 'Serial.print(F("DHT11 humidity%="));'));
+            lines.push(indent(level + 2, 'Serial.println(humidity);'));
+        }
+        lines.push(indent(level + 1, '}'));
+        lines.push(indent(level, '}'));
         break;
+    }
     case 'is_motion':
         lines.push(indent(level, `${(mod && mod.valueName) || 'motionDetected'} = digitalRead(${pin});`));
         serialLabel(`${modLabel}: `, (mod && mod.valueName) || 'motionDetected');

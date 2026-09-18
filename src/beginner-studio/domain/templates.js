@@ -101,7 +101,9 @@ const programFor = (spec, m, act, blk) => {
 
     const op = spec.op || '<';
     const threshold = spec.value != null ? spec.value : 500;
-    const waitSec = spec.wait != null ? spec.wait : 0.2;
+    const waitSec = spec.wait != null
+        ? spec.wait
+        : ((sensor === 'dht' || primary === 'dht' || modules.indexOf('dht') !== -1) ? 2.5 : 0.2);
     const pattern = spec.pattern;
 
     if (pattern === 'blink') {
@@ -123,18 +125,18 @@ const programFor = (spec, m, act, blk) => {
 
     if (pattern === 'display_temp') {
         return [
-            act(m.dht, 'read_temp'),
-            oled ? act(m.oled, 'show_number', {varName: 'temperature'}) : blk('serial_var', {params: {varName: 'temperature'}}),
-            blk('wait', {params: {seconds: 1}})
-        ];
+            act(m.dht, 'print_climate'),
+            oled ? act(m.oled, 'show_number', {varName: 'temperature'}) : null,
+            blk('wait', {params: {seconds: 2.5}})
+        ].filter(Boolean);
     }
 
     if (pattern === 'display_humid') {
         return [
-            act(m.dht, 'read_humidity'),
-            oled ? act(m.oled, 'show_number', {varName: 'humidity'}) : blk('serial_var', {params: {varName: 'humidity'}}),
-            blk('wait', {params: {seconds: 1}})
-        ];
+            act(m.dht, 'print_climate'),
+            oled ? act(m.oled, 'show_number', {varName: 'humidity'}) : null,
+            blk('wait', {params: {seconds: 2.5}})
+        ].filter(Boolean);
     }
 
     if (pattern === 'pot_motor') {
