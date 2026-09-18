@@ -104,7 +104,9 @@ const programFor = (spec, m, act, blk) => {
     const threshold = spec.value != null ? spec.value : 500;
     const waitSec = spec.wait != null
         ? spec.wait
-        : ((sensor === 'dht' || primary === 'dht' || modules.indexOf('dht') !== -1) ? 2.5 : 0.2);
+        : ((sensor === 'dht' || primary === 'dht' || modules.indexOf('dht') !== -1)
+            ? 2.5
+            : ((sensor === 'mq2' || primary === 'mq2') ? 0.5 : 0.2));
     const pattern = spec.pattern;
 
     if (pattern === 'blink') {

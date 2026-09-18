@@ -135,7 +135,7 @@ const MODULES = [
         dir: 'in',
         category: 'sensor',
         color: K.muted,
-        description: 'Read smoke / gas level',
+        description: 'Raw smoke/gas ADC 0–4095 (heater needs ~1 min). Not calibrated ppm.',
         valueName: 'gasLevel',
         valueType: 'int',
         actions: [

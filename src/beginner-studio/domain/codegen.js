@@ -152,6 +152,12 @@ const setupLinesForConnection = c => {
             '}'
         ];
     }
+    if (mod.id === 'mq2') {
+        return [
+            `analogSetPinAttenuation(${pin}, ADC_11db);`,
+            'Serial.println(F("MQ-2 ready — heater needs ~1 min; values are raw 0–4095, not ppm"));'
+        ];
+    }
     if (mod.id === 'relay4') {
         const motorPins = port.pins && port.pins.length ? port.pins : [pin];
         // Active-LOW boards: HIGH = off at boot
@@ -308,6 +314,25 @@ const needsDht11Helper = connections =>
         return mod && mod.id === 'dht';
     });
 
+const needsAnalogAvgHelper = connections =>
+    (connections || []).some(c => {
+        const mod = moduleById(c.moduleId);
+        return mod && (mod.signal === 'analog' || mod.id === 'mq2' || mod.id === 'mic' ||
+            mod.id === 'soil' || mod.id === 'pot');
+    });
+
+/** Average ADC samples — MQ-2/mic raw reads swing wildly if polled every loop. */
+const analogAvgHelper = () => [
+    'int readAnalogAvg(int pin, int samples) {',
+    '  long sum = 0;',
+    '  for (int i = 0; i < samples; i++) {',
+    '    sum += analogRead(pin);',
+    '    delay(2);',
+    '  }',
+    '  return (int)(sum / samples);',
+    '}'
+];
+
 const emitLeaf = (block, connById, level) => {
     const lines = [];
     const conn = block.cid ? connById[block.cid] : null;
@@ -462,11 +487,13 @@ const emitLeaf = (block, connById, level) => {
         break;
     case 'print_gas':
         if (port && port.adc === 2) {
-            lines.push(indent(level, `// ${port.label} is ADC2 (GPIO ${pin}) — analogRead can fail if WiFi is on`));
+            lines.push(indent(level, `// ${port.label} GPIO ${pin} is ADC2 — keep WiFi/BLE off for stable reads`));
         }
-        lines.push(indent(level, `gasLevel = analogRead(${pin});`));
+        lines.push(indent(level, 'delay(400);'));
+        lines.push(indent(level, `gasLevel = readAnalogAvg(${pin}, 16);`));
         lines.push(indent(level, 'Serial.print(F("Gas level="));'));
-        lines.push(indent(level, 'Serial.println(gasLevel);'));
+        lines.push(indent(level, 'Serial.print(gasLevel);'));
+        lines.push(indent(level, 'Serial.println(F(" (0-4095 raw)"));'));
         break;
     case 'read_value':
         if (mod && mod.id === 'pulse') {
@@ -488,9 +515,13 @@ const emitLeaf = (block, connById, level) => {
             break;
         }
         if (port && port.adc === 2) {
-            lines.push(indent(level, `// ${port.label} is ADC2 (GPIO ${pin}) — analogRead can fail if WiFi is on`));
+            lines.push(indent(level, `// ${port.label} GPIO ${pin} is ADC2 — keep WiFi/BLE off for stable reads`));
         }
-        lines.push(indent(level, `${(mod && mod.valueName) || 'value'} = analogRead(${pin});`));
+        if (mod && (mod.signal === 'analog' || mod.id === 'mq2' || mod.id === 'mic' || mod.id === 'soil' || mod.id === 'pot')) {
+            lines.push(indent(level, `${mod.valueName || 'value'} = readAnalogAvg(${pin}, 12);`));
+        } else {
+            lines.push(indent(level, `${(mod && mod.valueName) || 'value'} = analogRead(${pin});`));
+        }
         serialLabel(`${modLabel}: `, (mod && mod.valueName) || 'value');
         break;
     case 'is_pressed':
@@ -667,6 +698,10 @@ const generateArduino = (connections, program) => {
     }
     if (needsDht11Helper(connections)) {
         dht11Helper().forEach(l => out.push(l));
+        out.push('');
+    }
+    if (needsAnalogAvgHelper(connections)) {
+        analogAvgHelper().forEach(l => out.push(l));
         out.push('');
     }
     out.push('void setup() {');
