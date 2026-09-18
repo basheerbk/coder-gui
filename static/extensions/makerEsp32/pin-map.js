@@ -4,7 +4,8 @@
  * Maker ESP32 RJ11 hardware map — source of truth (connector schematic).
  * Do not change pin numbers without updating the board table.
  *
- * Analog jacks are ADC2 (IO0/2/4/15). SPARE1/SPARE2 kept as aliases of A2/A3.
+ * D5 RJ11 is one jack: pin2=IO25 (D4_PIN), pin3=IO26 (D5_PIN), pins 4–5 NC.
+ * RC522 on 3D: SS=32 RST=33 MISO=34; SPI bus SCK=16 MOSI=23 (not D5).
  */
 (function (root) {
     const PINS = {
@@ -26,6 +27,11 @@
         D5: 26,
         D13: 33,
         T3D: 32,
+        RFID_SS: 32,
+        RFID_RST: 33,
+        RFID_MISO: 34,
+        RFID_SCK: 16,
+        RFID_MOSI: 23,
         SPARE1: 15,
         SPARE2: 2
     };

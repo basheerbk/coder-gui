@@ -39,6 +39,52 @@ const glyphs = {
             <path d="M12 7l2 5-2 5-2-5z" />
         </g>
     ),
+    l293d: c => (
+        <g stroke={c} {...stroke}>
+            <rect x="5" y="6" width="14" height="12" rx="2" />
+            <path d="M8 10h8M8 14h5M12 6v12" />
+        </g>
+    ),
+    stepper: c => (
+        <g stroke={c} {...stroke}>
+            <circle cx="12" cy="12" r="7" />
+            <path d="M12 5v3M12 16v3M5 12h3M16 12h3M7.5 7.5l2 2M14.5 14.5l2 2M16.5 7.5l-2 2M9.5 14.5l-2 2" />
+        </g>
+    ),
+    gas: c => (
+        <g stroke={c} {...stroke}>
+            <path d="M7 16c2-2 2-5 0-7M12 18c3-3 3-8 0-11M17 16c2-2 2-5 0-7" />
+        </g>
+    ),
+    mq2: c => (
+        <g stroke={c} {...stroke}>
+            <path d="M7 16c2-2 2-5 0-7M12 18c3-3 3-8 0-11M17 16c2-2 2-5 0-7" />
+            <rect x="9" y="17" width="6" height="3" rx="1" />
+        </g>
+    ),
+    sound: c => (
+        <g stroke={c} {...stroke}>
+            <rect x="9" y="4" width="6" height="10" rx="3" />
+            <path d="M12 14v3M8 20h8M8 17h8" />
+        </g>
+    ),
+    mic: c => (
+        <g stroke={c} {...stroke}>
+            <rect x="9" y="4" width="6" height="10" rx="3" />
+            <path d="M12 14v3M8 20h8M8 17h8" />
+        </g>
+    ),
+    rfid: c => (
+        <g stroke={c} {...stroke}>
+            <rect x="4" y="7" width="16" height="10" rx="2" />
+            <path d="M8 12h8M7 10a6 6 0 000 4M17 10a6 6 0 010 4" />
+        </g>
+    ),
+    ble: c => (
+        <g stroke={c} {...stroke}>
+            <path d="M12 4v16M12 4l5 4-5 4 5 4-5 4M7 8l5 4M7 16l5-4" />
+        </g>
+    ),
     pump: c => (
         <g stroke={c} {...stroke}>
             <path d="M12 5s5 6 5 9a5 5 0 11-10 0c0-3 5-9 5-9z" />

@@ -17,6 +17,7 @@
     "test:lint": "eslint . --ext .js,.jsx --fix",
     "test:unit": "",
     "test:smoke": "jest --runInBand test[\\\\/]smoke",
+    "check:templates": "node scripts/check-templates.js && node scripts/check-kit-projects.js",
     "watch": "cross-env NODE_OPTIONS=--openssl-legacy-provider webpack --colors --watch"
   },
   "author": "Massachusetts Institute of Technology",

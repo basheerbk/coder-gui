@@ -593,8 +593,8 @@ const BoardCanvas = () => {
                     {PORTS.map(port => {
                         const pos = portPosition(port);
                         const conn = usedPorts[port.id];
-                        const compatible = Boolean(selectedDef && !conn && isPortCompatible(port, selectedDef));
-                        const dimmed = Boolean(selectedDef && !conn && !isPortCompatible(port, selectedDef));
+                        const compatible = Boolean(selectedDef && !conn && isPortCompatible(port, selectedDef, usedPorts));
+                        const dimmed = Boolean(selectedDef && !conn && !isPortCompatible(port, selectedDef, usedPorts));
                         return (
                             <Port
                                 key={port.id}

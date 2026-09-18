@@ -22,12 +22,56 @@ const useStudioActions = (state, setState) => {
 
     const selectModule = useCallback(moduleId => {
         setState(prev => {
+            const mod = moduleById(moduleId);
+            // BLE is onboard — snap it in without picking a jack.
+            if (mod && mod.onboard) {
+                if (prev.connections.some(c => c.moduleId === mod.id)) {
+                    return Object.assign({}, prev, {
+                        selectedModule: null,
+                        wireHint: `${mod.name} is already on`
+                    });
+                }
+                const port = portById('ONBOARD');
+                const conn = {
+                    id: uid('conn'),
+                    moduleId: mod.id,
+                    portId: 'ONBOARD',
+                    pin: port ? port.pin : '-',
+                    offsetX: 0,
+                    offsetY: 0,
+                    bendX: null,
+                    bendY: null
+                };
+                const first = mod.actions && mod.actions[0];
+                let program = prev.program;
+                if (first) {
+                    program = appendBlock(program, createBlock(first.type, {
+                        cid: conn.id,
+                        params: Object.assign({}, first.params || {})
+                    }), null);
+                }
+                playConnect();
+                return Object.assign({}, prev, {
+                    connections: prev.connections.concat([conn]),
+                    program,
+                    selectedModule: null,
+                    flashPortId: 'ONBOARD',
+                    wireHint: 'Bluetooth is built into the ESP32',
+                    activeTemplateId: null
+                });
+            }
             const next = prev.selectedModule === moduleId ? null : moduleId;
             if (next) {
                 playTick();
             }
             return Object.assign({}, prev, {selectedModule: next, wireHint: null});
         });
+        setTimeout(() => {
+            setState(prev => (prev.flashPortId ? Object.assign({}, prev, {flashPortId: null}) : prev));
+        }, 450);
+        setTimeout(() => {
+            setState(prev => (prev.wireHint ? Object.assign({}, prev, {wireHint: null}) : prev));
+        }, 2600);
     }, [setState]);
 
     const clearSelection = useCallback(() => {
@@ -50,7 +94,11 @@ const useStudioActions = (state, setState) => {
             if (!mod || !port) {
                 return prev;
             }
-            if (!isPortCompatible(port, mod)) {
+            const usedIds = {};
+            prev.connections.forEach(c => {
+                usedIds[c.portId] = true;
+            });
+            if (!isPortCompatible(port, mod, usedIds)) {
                 return Object.assign({}, prev, {
                     wireHint: compatibilityHint(port, mod)
                 });

@@ -48,7 +48,9 @@ const Port = ({
     const color = port.kind === 'analog' ? K.analog
         : (port.kind === 'i2c' ? K.cyan
             : (port.kind === 'motor' ? K.orange
-                : (port.kind === 'stepper' ? K.dim : K.digital)));
+                : (port.kind === 'stepper' ? K.dim
+                    : (port.kind === 'spi' ? K.purple
+                        : (port.kind === 'onboard' ? K.cyan : K.digital)))));
     const opacity = occupied || compatible ? 1 : (dimmed ? 0.2 : 0.92);
     const rot = sideRotate[port.side] || 0;
     const gid = `sock-${port.id}`;

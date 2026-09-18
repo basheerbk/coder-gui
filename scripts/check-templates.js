@@ -3,14 +3,26 @@ const fs = require('fs');
 const path = require('path');
 
 const ANALOG_ASSIGN = ['A1', 'A2', 'A3', 'A4'];
-const DIGITAL_ASSIGN = ['D4', 'D13', '3D', 'A1', 'A2', 'A3', 'A4'];
+const DIGITAL_ASSIGN = ['D5', 'D13', '3D', 'A1', 'A2', 'A3', 'A4'];
 
+/** Kit module → jack kind (mirrors ports.js pickPortForModule). */
 const kindOf = {
-    led: 'digital', buzz: 'digital', oled: 'i2c', servo: 'digital', dc: 'motor',
-    pump: 'digital', relay: 'digital', rgb: 'digital',
-    ldr: 'analog', soil: 'analog', gas: 'analog', flame: 'analog', sound: 'analog',
-    pulse: 'analog', pot: 'analog',
-    btn: 'digital', ultra: 'digital', dht: 'digital', pir: 'digital'
+    btn: 'digital',
+    pot: 'analog',
+    led: 'digital',
+    relay: 'digital',
+    servo: 'digital',
+    l293d: 'motor',
+    stepper: 'stepper',
+    oled: 'i2c',
+    mq2: 'analog',
+    mic: 'analog',
+    pulse: 'analog',
+    soil: 'analog',
+    dht: 'digital',
+    ultra: 'ultra',
+    rfid: 'spi',
+    ble: 'onboard'
 };
 
 const assign = ids => {
@@ -21,14 +33,38 @@ const assign = ids => {
             throw new Error(`unknown ${moduleId}`);
         }
         let portId = null;
-        if (kind === 'i2c') {
+        if (kind === 'onboard') {
+            portId = used.ONBOARD ? null : 'ONBOARD';
+        } else if (kind === 'i2c') {
             portId = used.I2C ? null : 'I2C';
         } else if (kind === 'motor') {
             portId = used.MD ? null : 'MD';
+        } else if (kind === 'stepper') {
+            portId = used.STEPPER ? null : 'STEPPER';
+        } else if (kind === 'ultra') {
+            portId = used.D5 ? null : 'D5';
+        } else if (kind === 'spi') {
+            if (used.D13) {
+                throw new Error('RFID 3D conflicts with D13 (IO33)');
+            }
+            portId = used['3D'] ? null : '3D';
         } else if (kind === 'analog') {
             portId = ANALOG_ASSIGN.find(id => !used[id]);
         } else {
-            portId = DIGITAL_ASSIGN.find(id => !used[id]);
+            // Prefer D13 then analogs; avoid D5 so ultra stays free; skip D13 if 3D used
+            const dig = ['D13', 'A1', 'A2', 'A3', 'A4', 'D5'].filter(id => {
+                if (used[id]) {
+                    return false;
+                }
+                if (id === 'D13' && used['3D']) {
+                    return false;
+                }
+                if (id === 'D5' && used.D5) {
+                    return false;
+                }
+                return true;
+            });
+            portId = dig[0] || null;
         }
         if (!portId) {
             throw new Error(`no jack for ${moduleId}`);
@@ -43,9 +79,23 @@ const re = /modules:\s*\[([^\]]+)\]/g;
 let m;
 const errors = [];
 let count = 0;
+let skipped = 0;
 while ((m = re.exec(text))) {
+    const raw = m[1];
+    // Only validate static string module lists (skip expandPairs generators).
+    if (/[^',\s\w-]/.test(raw) || /\bid\b/.test(raw) || !/'[^']+'/.test(raw)) {
+        skipped += 1;
+        continue;
+    }
+    const ids = raw.split(',').map(s => s.trim().replace(/['"]/g, '')).filter(Boolean);
+    if (!ids.length || ids.some(id => !kindOf[id])) {
+        // Dynamic or unknown — skip generator lines
+        if (ids.some(id => !kindOf[id] && !/^[a-z0-9-]+$/.test(id))) {
+            skipped += 1;
+            continue;
+        }
+    }
     count += 1;
-    const ids = m[1].split(',').map(s => s.trim().replace(/['"]/g, '')).filter(Boolean);
     try {
         assign(ids);
     } catch (err) {
@@ -53,7 +103,7 @@ while ((m = re.exec(text))) {
     }
 }
 
-console.log('module lists', count);
+console.log('module lists', count, '(skipped dynamic', skipped + ')');
 console.log('errors', errors.length);
 errors.forEach(e => console.log(' ', e));
 if (errors.length) {

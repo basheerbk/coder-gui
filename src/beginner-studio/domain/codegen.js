@@ -29,17 +29,37 @@ const collectGlobals = connections => {
     (connections || []).forEach(c => {
         const mod = moduleById(c.moduleId);
         const port = portById(c.portId);
-        if (!mod || !port) {
+        if (!mod) {
             return;
         }
-        if (mod.id === 'servo') {
+        if (mod.id === 'servo' && port) {
             lines.push(`Servo servo_${port.pin};`);
         }
-        if (mod.id === 'dht') {
+        if (mod.id === 'dht' && port) {
             lines.push(`DHT dht_${port.pin}(${port.pin}, DHT11);`);
         }
         if (mod.id === 'oled') {
             lines.push('Adafruit_SSD1306 display(128, 64, &Wire, -1);');
+        }
+        if (mod.id === 'stepper' && port && port.pins && port.pins.length >= 4) {
+            lines.push(
+                `Stepper stepperMotor(200, ${port.pins[0]}, ${port.pins[1]}, ${port.pins[2]}, ${port.pins[3]});`
+            );
+        }
+        if (mod.id === 'rfid') {
+            const spi = (port && port.spi) || {ss: '32', rst: '33', miso: '34', sck: '16', mosi: '23'};
+            lines.push(`#define RFID_SS_PIN ${spi.ss}`);
+            lines.push(`#define RFID_RST_PIN ${spi.rst}`);
+            lines.push(`#define RFID_SCK_PIN ${spi.sck}`);
+            lines.push(`#define RFID_MISO_PIN ${spi.miso}`);
+            lines.push(`#define RFID_MOSI_PIN ${spi.mosi}`);
+            lines.push('MFRC522 mfrc522(RFID_SS_PIN, RFID_RST_PIN);');
+        }
+        if (mod.id === 'ble') {
+            lines.push('BLEServer *pBleServer = NULL;');
+            lines.push('BLECharacteristic *pBleCharacteristic = NULL;');
+            lines.push('bool bleReady = false;');
+            lines.push('String bleDeviceName = "TinkerBit";');
         }
         if (mod.valueName) {
             const t = mod.valueType || 'int';
@@ -50,7 +70,12 @@ const collectGlobals = connections => {
         }
     });
     Object.keys(vars).forEach(name => {
-        lines.push(`${vars[name]} ${name} = 0;`);
+        const t = vars[name];
+        if (t === 'String') {
+            lines.push(`String ${name} = "";`);
+        } else {
+            lines.push(`${t} ${name} = 0;`);
+        }
     });
     return lines;
 };
@@ -68,6 +93,15 @@ const setupLinesForConnection = c => {
     if (mod.id === 'dht') {
         return [`dht_${pin}.begin();`];
     }
+    if (mod.id === 'ultra') {
+        if (port.pins && port.pins.length >= 2) {
+            return [
+                `pinMode(${port.pins[0]}, OUTPUT);`,
+                `pinMode(${port.pins[1]}, INPUT);`
+            ];
+        }
+        return [];
+    }
     if (mod.id === 'oled' || port.kind === 'i2c') {
         return [
             'Wire.begin(SDA_PIN, SCL_PIN);',
@@ -81,7 +115,7 @@ const setupLinesForConnection = c => {
             'display.display();'
         ];
     }
-    if (mod.id === 'dc' || port.kind === 'motor') {
+    if (mod.id === 'dc' || mod.id === 'l293d' || port.kind === 'motor') {
         const motorPins = port.pins && port.pins.length ? port.pins : [pin];
         return motorPins.map(p => `pinMode(${p}, OUTPUT);`).concat([
             'analogWrite(MOTOR_A1, 0);',
@@ -89,6 +123,39 @@ const setupLinesForConnection = c => {
             'analogWrite(MOTOR_B1, 0);',
             'analogWrite(MOTOR_B2, 0);'
         ]);
+    }
+    if (mod.id === 'stepper' || port.kind === 'stepper') {
+        const pins = port.pins && port.pins.length ? port.pins : [pin];
+        return pins.map(p => `pinMode(${p}, OUTPUT);`).concat([
+            'stepperMotor.setSpeed(12);'
+        ]);
+    }
+    if (mod.id === 'rfid') {
+        return [
+            '// RC522 on 3D: SS/RST/MISO; SCK/MOSI on free GPIOs (D5 left for HC-SR04)',
+            'SPI.begin(RFID_SCK_PIN, RFID_MISO_PIN, RFID_MOSI_PIN, RFID_SS_PIN);',
+            'mfrc522.PCD_Init();'
+        ];
+    }
+    if (mod.id === 'ble' || port.kind === 'onboard') {
+        return [
+            'BLEDevice::init(bleDeviceName.c_str());',
+            'pBleServer = BLEDevice::createServer();',
+            'BLEService *pService = pBleServer->createService("4fafc201-1fb5-459e-8fcc-c5c9c331914b");',
+            'pBleCharacteristic = pService->createCharacteristic(',
+            '  "beb5483e-36e1-4688-b7f5-ea07361b26a8",',
+            '  BLECharacteristic::PROPERTY_READ | BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_NOTIFY',
+            ');',
+            'pBleCharacteristic->setValue("ready");',
+            'pService->start();',
+            'BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();',
+            'pAdvertising->addServiceUUID("4fafc201-1fb5-459e-8fcc-c5c9c331914b");',
+            'pAdvertising->start();',
+            'bleReady = true;'
+        ];
+    }
+    if (mod.onboard) {
+        return [];
     }
     if (mod.dir === 'out') {
         const lines = [`pinMode(${pin}, OUTPUT);`];
@@ -101,8 +168,19 @@ const setupLinesForConnection = c => {
     return [`pinMode(${pin}, ${mode});`];
 };
 
+const needsDualUltrasonic = connections =>
+    (connections || []).some(c => {
+        const mod = moduleById(c.moduleId);
+        const port = portById(c.portId);
+        return mod && mod.id === 'ultra' && port && port.pins && port.pins.length >= 2;
+    });
+
 const needsDistanceHelper = connections =>
-    (connections || []).some(c => moduleById(c.moduleId) && moduleById(c.moduleId).id === 'ultra');
+    (connections || []).some(c => {
+        const mod = moduleById(c.moduleId);
+        const port = portById(c.portId);
+        return mod && mod.id === 'ultra' && !(port && port.pins && port.pins.length >= 2);
+    });
 
 const distanceHelper = () => [
     'long getDistance(int trigPin) {',
@@ -115,6 +193,19 @@ const distanceHelper = () => [
     '  digitalWrite(trigPin, LOW);',
     '  pinMode(trigPin, INPUT);',
     '  long duration = pulseIn(trigPin, HIGH, 30000);',
+    '  return duration * 0.034 / 2;',
+    '}'
+];
+
+const dualDistanceHelper = () => [
+    'long getDistanceTrigEcho(int trigPin, int echoPin) {',
+    '  // D5 RJ11: IO25 Trig (pin 2), IO26 Echo (pin 3). Echo must stay INPUT.',
+    '  digitalWrite(trigPin, LOW);',
+    '  delayMicroseconds(2);',
+    '  digitalWrite(trigPin, HIGH);',
+    '  delayMicroseconds(10);',
+    '  digitalWrite(trigPin, LOW);',
+    '  long duration = pulseIn(echoPin, HIGH, 30000);',
     '  return duration * 0.034 / 2;',
     '}'
 ];
@@ -164,16 +255,29 @@ const emitLeaf = (block, connById, level) => {
     case 'set_angle':
         lines.push(indent(level, `servo_${pin}.write(${Number(p.angle) || 90});`));
         break;
-    case 'motor_speed':
-        if (port && port.kind === 'motor') {
-            lines.push(indent(level, `analogWrite(MOTOR_A1, ${Number(p.speed) || 0});`));
-            lines.push(indent(level, 'analogWrite(MOTOR_A2, 0);'));
+    case 'motor_speed': {
+        const speedExpr = p.speedVar
+            ? `map(constrain((int)${p.speedVar}, 0, 4095), 0, 4095, 0, 255)`
+            : String(Number(p.speed) || 0);
+        const channel = (p.motor === 'B' || p.channel === 'B') ? 'B' : 'A';
+        const reverse = p.dir === 'backward' || p.reverse === true;
+        if (port && (port.kind === 'motor' || (mod && mod.id === 'l293d'))) {
+            const pin1 = channel === 'B' ? 'MOTOR_B1' : 'MOTOR_A1';
+            const pin2 = channel === 'B' ? 'MOTOR_B2' : 'MOTOR_A2';
+            if (reverse) {
+                lines.push(indent(level, `analogWrite(${pin1}, 0);`));
+                lines.push(indent(level, `analogWrite(${pin2}, ${speedExpr});`));
+            } else {
+                lines.push(indent(level, `analogWrite(${pin1}, ${speedExpr});`));
+                lines.push(indent(level, `analogWrite(${pin2}, 0);`));
+            }
         } else {
-            lines.push(indent(level, `analogWrite(${pin}, ${Number(p.speed) || 0});`));
+            lines.push(indent(level, `analogWrite(${pin}, ${speedExpr});`));
         }
         break;
+    }
     case 'motor_stop':
-        if (port && port.kind === 'motor') {
+        if (port && (port.kind === 'motor' || (mod && mod.id === 'l293d'))) {
             lines.push(indent(level, 'analogWrite(MOTOR_A1, 0);'));
             lines.push(indent(level, 'analogWrite(MOTOR_A2, 0);'));
             lines.push(indent(level, 'analogWrite(MOTOR_B1, 0);'));
@@ -181,6 +285,35 @@ const emitLeaf = (block, connById, level) => {
         } else {
             lines.push(indent(level, `analogWrite(${pin}, 0);`));
         }
+        break;
+    case 'stepper_move':
+        lines.push(indent(level, `stepperMotor.setSpeed(${Number(p.rpm) || 12});`));
+        lines.push(indent(level, `stepperMotor.step(${Number(p.steps) || 100});`));
+        break;
+    case 'rfid_read':
+        lines.push(indent(level, 'if (mfrc522.PICC_IsNewCardPresent() && mfrc522.PICC_ReadCardSerial()) {'));
+        lines.push(indent(level + 1, 'rfidUid = "";'));
+        lines.push(indent(level + 1, 'for (byte i = 0; i < mfrc522.uid.size; i++) {'));
+        lines.push(indent(level + 2, 'if (mfrc522.uid.uidByte[i] < 0x10) rfidUid += "0";'));
+        lines.push(indent(level + 2, 'rfidUid += String(mfrc522.uid.uidByte[i], HEX);'));
+        lines.push(indent(level + 1, '}'));
+        lines.push(indent(level + 1, 'mfrc522.PICC_HaltA();'));
+        lines.push(indent(level, '}'));
+        break;
+    case 'ble_advertise': {
+        const name = String(p.name || 'TinkerBit').replace(/\\/g, '').replace(/"/g, '');
+        lines.push(indent(level, `bleDeviceName = "${name}";`));
+        lines.push(indent(level, 'if (bleReady) {'));
+        lines.push(indent(level + 1, 'BLEDevice::getAdvertising()->stop();'));
+        lines.push(indent(level + 1, 'BLEDevice::getAdvertising()->start();'));
+        lines.push(indent(level, '}'));
+        break;
+    }
+    case 'ble_send':
+        lines.push(indent(level, `if (bleReady && pBleCharacteristic) {`));
+        lines.push(indent(level + 1, `pBleCharacteristic->setValue("${String(p.text || '').replace(/"/g, '\\"')}");`));
+        lines.push(indent(level + 1, 'pBleCharacteristic->notify();'));
+        lines.push(indent(level, '}'));
         break;
     case 'read_value':
         if (port && port.adc === 2) {
@@ -192,7 +325,12 @@ const emitLeaf = (block, connById, level) => {
         lines.push(indent(level, `${(mod && mod.valueName) || 'buttonState'} = digitalRead(${pin}) == LOW;`));
         break;
     case 'read_distance':
-        lines.push(indent(level, `${(mod && mod.valueName) || 'distance'} = getDistance(${pin});`));
+        if (port && port.pins && port.pins.length >= 2) {
+            lines.push(indent(level,
+                `${(mod && mod.valueName) || 'distance'} = getDistanceTrigEcho(${port.pins[0]}, ${port.pins[1]});`));
+        } else {
+            lines.push(indent(level, `${(mod && mod.valueName) || 'distance'} = getDistance(${pin});`));
+        }
         break;
     case 'read_temp':
         lines.push(indent(level, `temperature = dht_${pin}.readTemperature();`));
@@ -242,10 +380,37 @@ const emitBlocks = (blocks, connById, level) => {
     return lines;
 };
 
+const findBleName = blocks => {
+    let found = null;
+    const walk = list => {
+        (list || []).forEach(block => {
+            if (found) {
+                return;
+            }
+            if (block.type === 'ble_advertise' && block.params && block.params.name) {
+                found = String(block.params.name);
+                return;
+            }
+            walk(block.children);
+            walk(block.elseChildren);
+        });
+    };
+    walk(blocks);
+    return found;
+};
+
 const generateArduino = (connections, program) => {
     const connById = connectionLookup(connections);
     const includes = collectIncludes(connections);
     const globals = collectGlobals(connections);
+    const bleName = findBleName(program);
+    if (bleName) {
+        const safe = bleName.replace(/\\/g, '').replace(/"/g, '');
+        const idx = globals.findIndex(g => g.indexOf('bleDeviceName') !== -1);
+        if (idx !== -1) {
+            globals[idx] = `String bleDeviceName = "${safe}";`;
+        }
+    }
     const setupBody = ['Serial.begin(9600);'];
     (connections || []).forEach(c => {
         setupLinesForConnection(c).forEach(line => setupBody.push(line));
@@ -258,8 +423,9 @@ const generateArduino = (connections, program) => {
 
     const out = [];
     out.push('// TinkerBit Beginner Studio — Maker ESP32 RJ11 map');
-    out.push('// D4=25 (D5=26 same jack) D13=33 3D=32  ST=12,13,14,27');
-    out.push('// MD=17,5,18,19  I2C SDA=21 SCL=22');
+    out.push('// D5 jack IO25+IO26 (Trig/Echo)  D13=33  3D SS=32 RST=33 MISO=34');
+    out.push('// RFID SPI bus SCK=16 MOSI=23 (D5 free for HC-SR04)  ST=12,13,14,27');
+    out.push('// MD A=5/17 B=18/19  I2C SDA=21 SCL=22  BLE=onboard');
     out.push('// Analog ADC2: A1=4 A2=15 A3=2 A4=0 (A4 is BOOT — do not hold LOW at reset)');
     out.push('// Use Upload in the Code tab (Chrome/Edge + Web Serial).');
     out.push('');
@@ -276,6 +442,10 @@ const generateArduino = (connections, program) => {
     }
     globals.forEach(g => out.push(g));
     if (globals.length) {
+        out.push('');
+    }
+    if (needsDualUltrasonic(connections)) {
+        dualDistanceHelper().forEach(l => out.push(l));
         out.push('');
     }
     if (needsDistanceHelper(connections)) {

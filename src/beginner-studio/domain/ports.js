@@ -4,8 +4,8 @@
  * Jack → GPIO (signal pin used by single-wire modules listed first):
  *   STEPPER  IO12, IO13, IO14, IO27
  *   D13/D12  IO33
- *   3D       IO32, IO33, IO34  (IO34 is input-only)
- *   D5/D4    IO25, IO26        (one physical jack; beginner uses IO25)
+ *   3D       IO32 SS, IO33 RST, IO34 MISO (input-only)
+ *   D5       IO25 (RJ pin 2), IO26 (RJ pin 3); pins 4–5 NC. One jack, two GPIOs.
  *   MD1      IO17, IO5, IO18, IO19
  *   I2C      IO21 SDA, IO22 SCL (I2C1 is the same bus)
  *   A1       IO4
@@ -13,24 +13,47 @@
  *   A3/A1    IO2   (strapping)
  *   A4/A0    IO0   (BOOT / strapping)
  *
+ * RC522 SPI bus (not on D5 — HC-SR04 keeps 25/26):
+ *   SCK=16, MOSI=23 on-board; SS/RST/MISO via 3D jack.
+ * D13 and 3D both use IO33 — mutually exclusive.
+ *
  * UART RX/TX has no GPIO numbers on the connector sheet — omitted here.
  */
+
+/** Shared GPIO conflict groups (jack ids). */
+const PORT_CONFLICTS = {
+    D13: ['3D'],
+    '3D': ['D13']
+};
 
 const PORTS = [
     {id: 'STEPPER', label: 'ST', side: 'top', kind: 'stepper', signal: 'stepper', pin: '12', pins: ['12', '13', '14', '27'], strapping: true, index: 0},
     {id: 'D13', label: 'D13', side: 'top', kind: 'digital', signal: 'digital', pin: '33', pins: ['33'], index: 1},
-    {id: '3D', label: '3D', side: 'top', kind: 'digital', signal: 'digital', pin: '32', pins: ['32', '33', '34'], inputOnly: ['34'], index: 2},
-    {id: 'D4', label: 'D4', side: 'top', kind: 'digital', signal: 'digital', pin: '25', pins: ['25', '26'], index: 3},
+    {
+        id: '3D',
+        label: '3D',
+        side: 'top',
+        kind: 'spi',
+        signal: 'digital',
+        pin: '32',
+        pins: ['32', '33', '34'],
+        inputOnly: ['34'],
+        spi: {ss: '32', rst: '33', miso: '34', sck: '16', mosi: '23'},
+        index: 2
+    },
+    {id: 'D5', label: 'D5', side: 'top', kind: 'digital', signal: 'digital', pin: '25', pins: ['25', '26'], index: 3},
     {id: 'MD', label: 'MD', side: 'right', kind: 'motor', signal: 'motor', pin: '5', pins: ['17', '5', '18', '19'], index: 0},
     {id: 'I2C', label: 'I2C', side: 'right', kind: 'i2c', signal: 'i2c', pin: '21', pins: ['21', '22'], index: 1},
     {id: 'A3', label: 'A3', side: 'right', kind: 'analog', signal: 'analog', pin: '2', pins: ['2'], strapping: true, adc: 2, index: 2},
     {id: 'A2', label: 'A2', side: 'right', kind: 'analog', signal: 'analog', pin: '15', pins: ['15'], strapping: true, adc: 2, index: 3},
     {id: 'A1', label: 'A1', side: 'bottom', kind: 'analog', signal: 'analog', pin: '4', pins: ['4'], adc: 2, index: 0},
-    {id: 'A4', label: 'A4', side: 'bottom', kind: 'analog', signal: 'analog', pin: '0', pins: ['0'], strapping: true, boot: true, adc: 2, index: 1}
+    {id: 'A4', label: 'A4', side: 'bottom', kind: 'analog', signal: 'analog', pin: '0', pins: ['0'], strapping: true, boot: true, adc: 2, index: 1},
+    // Built-in ESP32 radios — no physical RJ11
+    {id: 'ONBOARD', label: 'ESP', side: 'left', kind: 'onboard', signal: 'onboard', pin: '-', pins: [], index: 0}
 ];
 
 const ANALOG_ASSIGN = ['A1', 'A2', 'A3', 'A4'];
-const DIGITAL_ASSIGN = ['D4', 'D13', '3D', 'A1', 'A2', 'A3', 'A4'];
+const DIGITAL_ASSIGN = ['D5', 'D13', 'A1', 'A2', 'A3', 'A4'];
 
 /** Landscape controller — room for 4 top / 4 right / 2 bottom jacks. */
 const BOARD = {x: 150, y: 105, w: 480, h: 300};
@@ -44,17 +67,34 @@ const extrudeFaces = (x, y, w, h, dx = DEPTH.x, dy = DEPTH.y) => ({
     right: `M ${x + w} ${y} L ${x + w + dx} ${y + dy} L ${x + w + dx} ${y + h + dy} L ${x + w} ${y + h} Z`
 });
 
-const portById = id => PORTS.find(p => p.id === id) || null;
+const portById = id => {
+    if (id === 'D4') {
+        return PORTS.find(p => p.id === 'D5') || null;
+    }
+    return PORTS.find(p => p.id === id) || null;
+};
 
 const neededKind = moduleDef => {
     if (!moduleDef) {
         return null;
     }
+    if (moduleDef.onboard || moduleDef.id === 'ble') {
+        return 'onboard';
+    }
     if (moduleDef.id === 'oled') {
         return 'i2c';
     }
-    if (moduleDef.id === 'dc') {
+    if (moduleDef.id === 'l293d' || moduleDef.id === 'dc') {
         return 'motor';
+    }
+    if (moduleDef.id === 'stepper') {
+        return 'stepper';
+    }
+    if (moduleDef.id === 'rfid') {
+        return 'spi';
+    }
+    if (moduleDef.id === 'ultra') {
+        return 'ultra';
     }
     if (moduleDef.signal === 'analog') {
         return 'analog';
@@ -62,16 +102,41 @@ const neededKind = moduleDef => {
     return 'digital';
 };
 
-const isPortCompatible = (port, moduleDef) => {
+const isPortBlockedByConflicts = (portId, usedIds) => {
+    const used = usedIds || {};
+    const rivals = PORT_CONFLICTS[portId] || [];
+    return rivals.some(id => used[id]);
+};
+
+const isPortCompatible = (port, moduleDef, usedIds) => {
     if (!port || !moduleDef) {
         return false;
     }
+    if (isPortBlockedByConflicts(port.id, usedIds)) {
+        return false;
+    }
+    // Digital modules must not steal D5 when HC-SR04 needs it, or D13 when RFID is on 3D.
+    if (usedIds && usedIds.D5 && port.id === 'D5' && moduleDef.id !== 'ultra') {
+        return false;
+    }
     const need = neededKind(moduleDef);
+    if (need === 'onboard') {
+        return port.kind === 'onboard';
+    }
     if (need === 'i2c') {
         return port.kind === 'i2c';
     }
     if (need === 'motor') {
         return port.kind === 'motor';
+    }
+    if (need === 'stepper') {
+        return port.kind === 'stepper';
+    }
+    if (need === 'spi') {
+        return port.kind === 'spi';
+    }
+    if (need === 'ultra') {
+        return port.id === 'D5' || (port.pins && port.pins.length >= 2 && port.kind === 'digital');
     }
     if (need === 'analog') {
         return port.kind === 'analog';
@@ -91,10 +156,19 @@ const compatibilityHint = (port, moduleDef) => {
             return 'ST is the 4-wire stepper jack (IO12–27)';
         }
         if (port.kind === 'i2c') {
-            return 'I2C is for the OLED screen (SDA 21 / SCL 22)';
+            return 'I2C is for the OLED (SDA 21 / SCL 22)';
         }
         if (port.kind === 'motor') {
-            return 'MD is the motor-driver jack';
+            return 'MD is the L293D motor-driver jack';
+        }
+        if (port.kind === 'spi') {
+            return '3D is for RFID RC522 (SPI)';
+        }
+        if (port.kind === 'onboard') {
+            return 'Built-in ESP32 Bluetooth';
+        }
+        if (port.id === 'D5') {
+            return 'D5 is HC-SR04 / digital (IO25 + IO26)';
         }
         if (port.boot) {
             return 'A4 is IO0 (BOOT) — avoid holding it LOW at reset';
@@ -102,11 +176,23 @@ const compatibilityHint = (port, moduleDef) => {
         return `${port.label} · GPIO ${port.pin}`;
     }
     const need = neededKind(moduleDef);
+    if (need === 'onboard') {
+        return 'Bluetooth is built into the ESP32 — tap ESP';
+    }
     if (need === 'i2c') {
         return 'Plug the OLED into I2C';
     }
     if (need === 'motor') {
-        return 'Plug the DC motor into MD';
+        return 'Plug the L293D into MD';
+    }
+    if (need === 'stepper') {
+        return 'Plug the stepper into ST';
+    }
+    if (need === 'spi') {
+        return 'Plug the RFID RC522 into 3D (not D13 — they share IO33)';
+    }
+    if (need === 'ultra') {
+        return 'Plug the HC-SR04 into D5 (IO25 Trig / IO26 Echo)';
     }
     if (need === 'analog') {
         return `${port.label} needs an analog sensor`;
@@ -118,25 +204,50 @@ const compatibilityHint = (port, moduleDef) => {
         return 'I2C needs the OLED screen';
     }
     if (port.kind === 'motor') {
-        return 'MD needs a DC motor';
+        return 'MD needs the L293D driver';
+    }
+    if (port.kind === 'spi') {
+        return '3D needs the RFID module';
+    }
+    if (port.kind === 'onboard') {
+        return 'ESP is only for Bluetooth';
+    }
+    if (port.id === 'D13' && PORT_CONFLICTS.D13) {
+        return 'D13 shares IO33 with RFID on 3D — unplug RFID first';
+    }
+    if (port.id === '3D') {
+        return '3D shares IO33 with D13 — free D13 first';
     }
     return `${port.label} needs a digital part`;
 };
 
 const pickPortForModule = (moduleDef, usedIds) => {
     const used = usedIds || {};
-    const take = ids => ids.find(id => !used[id] && isPortCompatible(portById(id), moduleDef));
+    const take = ids => ids.find(id => !used[id] && isPortCompatible(portById(id), moduleDef, used));
     const need = neededKind(moduleDef);
+    if (need === 'onboard') {
+        return take(['ONBOARD']);
+    }
     if (need === 'i2c') {
         return take(['I2C']);
     }
     if (need === 'motor') {
         return take(['MD']);
     }
+    if (need === 'stepper') {
+        return take(['STEPPER']);
+    }
+    if (need === 'spi') {
+        return take(['3D']);
+    }
+    if (need === 'ultra') {
+        return take(['D5']);
+    }
     if (need === 'analog') {
         return take(ANALOG_ASSIGN);
     }
-    return take(DIGITAL_ASSIGN);
+    // Prefer D13 over D5 so HC-SR04 keeps the dual-GPIO jack free.
+    return take(['D13', 'A1', 'A2', 'A3', 'A4', 'D5']);
 };
 
 const topBottomX = (index, count) => {
@@ -221,6 +332,7 @@ const cardCablePoint = (cardX, cardY, side) => {
 
 export {
     PORTS,
+    PORT_CONFLICTS,
     BOARD,
     JACK,
     CARD,
@@ -231,6 +343,7 @@ export {
     extrudeFaces,
     portById,
     neededKind,
+    isPortBlockedByConflicts,
     isPortCompatible,
     compatibilityHint,
     pickPortForModule,

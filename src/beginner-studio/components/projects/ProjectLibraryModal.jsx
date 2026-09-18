@@ -21,7 +21,15 @@ const ProjectLibraryModal = () => {
         const list = filter === 'all'
             ? TEMPLATES.slice()
             : TEMPLATES.filter(t => t.difficulty === filter);
-        return list.sort((a, b) => a.name.localeCompare(b.name));
+        const rank = {Beginner: 0, Medium: 1, Advanced: 2};
+        return list.sort((a, b) => {
+            const da = rank[a.difficulty] != null ? rank[a.difficulty] : 9;
+            const db = rank[b.difficulty] != null ? rank[b.difficulty] : 9;
+            if (da !== db) {
+                return da - db;
+            }
+            return a.name.localeCompare(b.name);
+        });
     }, [filter]);
 
     if (!showProjectLibrary) {
