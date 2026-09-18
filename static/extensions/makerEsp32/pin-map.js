@@ -4,7 +4,7 @@
  * Maker ESP32 RJ11 hardware map — source of truth (connector schematic).
  * Do not change pin numbers without updating the board table.
  *
- * D5 RJ11 is one jack: pin2=IO25 Trig, pin3=IO26 Echo (HC-SR04 only; Echo = INPUT).
+ * D5 RJ11 is one jack: pin2=IO25 Echo, pin3=IO26 Trig (HC-SR04; Echo = INPUT).
  * RC522 on 3D: SS=32 RST=33 MISO=34; SPI bus SCK=16 MOSI=23 (not D5).
  */
 (function (root) {

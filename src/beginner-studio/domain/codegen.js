@@ -88,7 +88,11 @@ const setupLinesForConnection = c => {
     }
     const pin = port.pin;
     if (mod.id === 'servo') {
-        return [`servo_${pin}.attach(${pin});`];
+        return [
+            `servo_${pin}.setPeriodHertz(50);`,
+            `servo_${pin}.attach(${pin}, 500, 2400);`,
+            `servo_${pin}.write(90);`
+        ];
     }
     if (mod.id === 'dht') {
         return [`dht_${pin}.begin();`];
@@ -326,7 +330,7 @@ const emitLeaf = (block, connById, level) => {
             lines.push(indent(level,
                 `${(mod && mod.valueName) || 'distance'} = getDistanceTrigEcho(${ue.trig}, ${ue.echo});`));
         } else {
-            lines.push(indent(level, '// HC-SR04 must use D5 (Trig IO25 + Echo IO26) — skipped'));
+            lines.push(indent(level, '// HC-SR04 must use D5 (Trig IO26 + Echo IO25) — skipped'));
             lines.push(indent(level, `${(mod && mod.valueName) || 'distance'} = 0;`));
         }
         break;
@@ -422,10 +426,11 @@ const generateArduino = (connections, program) => {
 
     const out = [];
     out.push('// TinkerBit Beginner Studio — Maker ESP32 RJ11 map');
-    out.push('// D5 jack IO25+IO26 (Trig/Echo)  D13=33  3D SS=32 RST=33 MISO=34');
+    out.push('// D5 jack Trig=IO26 Echo=IO25  D13=33  3D SS=32 RST=33 MISO=34');
     out.push('// RFID SPI bus SCK=16 MOSI=23 (D5 free for HC-SR04)  ST=12,13,14,27');
     out.push('// MD A=5/17 B=18/19  I2C SDA=21 SCL=22  BLE=onboard');
     out.push('// Analog ADC2: A1=4 A2=15 A3=2 A4=0 (A4 is BOOT — do not hold LOW at reset)');
+    out.push('// Requires ESP32Servo library (ESP32Servo.h) for servo modules');
     out.push('// Use Upload in the Code tab (Chrome/Edge + Web Serial).');
     out.push('');
     out.push('#define SDA_PIN 21');

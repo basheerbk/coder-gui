@@ -68,8 +68,8 @@ const MODULES = [
         dir: 'out',
         category: 'output',
         color: K.accent,
-        description: 'Rotate to an angle',
-        includes: ['Servo.h'],
+        description: 'Rotate to an angle (ESP32Servo)',
+        includes: ['ESP32Servo.h'],
         actions: [
             {type: 'set_angle', label: 'Set angle', params: {angle: 90}}
         ]
@@ -194,7 +194,7 @@ const MODULES = [
         dir: 'in',
         category: 'sensor',
         color: K.cyan,
-        description: 'Distance in cm — D5 only (Trig IO25, Echo IO26). Use the kit cable; Echo must stay 3.3V.',
+        description: 'Distance in cm — D5 only (Trig IO26, Echo IO25). Use the kit cable; Echo must stay 3.3V.',
         valueName: 'distance',
         valueType: 'int',
         helpers: ['getDistance'],

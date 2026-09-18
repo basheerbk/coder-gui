@@ -5,7 +5,7 @@
  *   STEPPER  IO12, IO13, IO14, IO27
  *   D13/D12  IO33
  *   3D       IO32 SS, IO33 RST, IO34 MISO (input-only)
- *   D5       IO25 (RJ pin 2), IO26 (RJ pin 3); pins 4–5 NC. One jack, two GPIOs.
+ *   D5       IO25 Echo (RJ pin 2), IO26 Trig (RJ pin 3); pins 4–5 NC.
  *   MD1      IO17, IO5, IO18, IO19
  *   I2C      IO21 SDA, IO22 SCL (I2C1 is the same bus)
  *   A1       IO4
@@ -49,8 +49,9 @@ const PORTS = [
         signal: 'digital',
         pin: '25',
         pins: ['25', '26'],
-        // HC-SR04 kit cable: RJ pin2 → Trig, RJ pin3 → Echo. Echo must never be OUTPUT.
-        ultra: {trig: '25', echo: '26'},
+        // HC-SR04 kit cable: RJ pin2 → Echo, RJ pin3 → Trig (swapped vs silk order).
+        // Echo must never be OUTPUT — driving it heats the module.
+        ultra: {trig: '26', echo: '25'},
         index: 3
     },
     {id: 'MD', label: 'MD', side: 'right', kind: 'motor', signal: 'motor', pin: '5', pins: ['17', '5', '18', '19'], index: 0},
@@ -184,7 +185,7 @@ const compatibilityHint = (port, moduleDef) => {
             return 'Built-in ESP32 Bluetooth';
         }
         if (port.id === 'D5') {
-            return 'D5 is HC-SR04 / digital (IO25 + IO26)';
+            return 'D5 is HC-SR04 / digital (Echo IO25 + Trig IO26)';
         }
         if (port.boot) {
             return 'A4 is IO0 (BOOT) — avoid holding it LOW at reset';
@@ -208,7 +209,7 @@ const compatibilityHint = (port, moduleDef) => {
         return 'Plug the RFID RC522 into 3D (not D13 — they share IO33)';
     }
     if (need === 'ultra') {
-        return 'Plug the HC-SR04 into D5 only (Trig IO25 / Echo IO26 — Echo stays INPUT)';
+        return 'Plug the HC-SR04 into D5 only (Trig IO26 / Echo IO25 — Echo stays INPUT)';
     }
     if (need === 'analog') {
         return `${port.label} needs an analog sensor`;
