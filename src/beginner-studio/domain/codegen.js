@@ -158,6 +158,12 @@ const setupLinesForConnection = c => {
             'Serial.println(F("MQ-2 ready — heater needs ~1 min; values are raw 0–4095, not ppm"));'
         ];
     }
+    if (mod.id === 'soil') {
+        return [
+            `analogSetPinAttenuation(${pin}, ADC_11db);`,
+            'Serial.println(F("Capacitive soil ready — dry=HIGH (~2800+) wet=LOW (~1500)"));'
+        ];
+    }
     if (mod.id === 'relay4') {
         const motorPins = port.pins && port.pins.length ? port.pins : [pin];
         // Active-LOW boards: HIGH = off at boot
@@ -494,6 +500,17 @@ const emitLeaf = (block, connById, level) => {
         lines.push(indent(level, 'Serial.print(F("Gas level="));'));
         lines.push(indent(level, 'Serial.print(gasLevel);'));
         lines.push(indent(level, 'Serial.println(F(" (0-4095 raw)"));'));
+        break;
+    case 'print_soil':
+        if (port && port.adc === 2) {
+            lines.push(indent(level, `// ${port.label} GPIO ${pin} is ADC2 — keep WiFi/BLE off for stable reads`));
+        }
+        lines.push(indent(level, 'delay(300);'));
+        lines.push(indent(level, `soilMoisture = readAnalogAvg(${pin}, 16);`));
+        lines.push(indent(level, 'Serial.print(F("Soil="));'));
+        lines.push(indent(level, 'Serial.print(soilMoisture);'));
+        lines.push(indent(level, 'Serial.print(F(" "));'));
+        lines.push(indent(level, 'Serial.println(soilMoisture > 2500 ? F("DRY") : (soilMoisture < 1800 ? F("WET") : F("OK")));'));
         break;
     case 'read_value':
         if (mod && mod.id === 'pulse') {

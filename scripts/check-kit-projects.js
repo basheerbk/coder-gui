@@ -58,7 +58,7 @@ const assign = ids => {
 
 const SENSOR_GATES = [
     {id: 'pot', op: '>', value: 2000, difficulty: 'Beginner'},
-    {id: 'soil', op: '<', value: 400, difficulty: 'Beginner'},
+    {id: 'soil', op: '>', value: 2500, difficulty: 'Beginner'},
     {id: 'mq2', op: '>', value: 700, difficulty: 'Beginner'},
     {id: 'mic', op: '>', value: 600, difficulty: 'Beginner'},
     {id: 'pulse', op: '>', value: 100, difficulty: 'Medium'},

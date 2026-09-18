@@ -175,15 +175,16 @@ const MODULES = [
     },
     {
         id: 'soil',
-        name: 'Soil Moisture',
+        name: 'Capacitive Soil Moisture',
         signal: 'analog',
         dir: 'in',
         category: 'sensor',
         color: K.green,
-        description: 'Read how wet soil is',
+        description: 'Capacitive probe — dry ≈ high ADC (~2800+), wet ≈ low (~1500). Plug into A1–A4.',
         valueName: 'soilMoisture',
         valueType: 'int',
         actions: [
+            {type: 'print_soil', label: 'Print soil moisture'},
             {type: 'read_value', label: 'Read soil'}
         ]
     },
