@@ -339,9 +339,11 @@ const analogAvgHelper = () => [
     '}',
     '',
     '// Capacitive soil: dry ≈ high ADC, wet ≈ low ADC → 0–100% moisture',
+    '// Calibrated for common v1.2 modules @ 3.3V (air≈3200, water≈1200).',
     'int soilRawToPercent(int raw) {',
-    '  const int dryRaw = 3000;',
-    '  const int wetRaw = 1400;',
+    '  const int dryRaw = 3200;',
+    '  const int wetRaw = 1200;',
+    '  if (raw <= 50) return -1; // ADC dead / wrong pin',
     '  int pct = map(constrain(raw, wetRaw, dryRaw), dryRaw, wetRaw, 0, 100);',
     '  if (pct < 0) pct = 0;',
     '  if (pct > 100) pct = 100;',
@@ -511,19 +513,31 @@ const emitLeaf = (block, connById, level) => {
         lines.push(indent(level, 'Serial.print(gasLevel);'));
         lines.push(indent(level, 'Serial.println(F(" (0-4095 raw)"));'));
         break;
-    case 'print_soil':
+    case 'print_soil': {
+        const portLabel = port && port.label ? port.label : '?';
         if (port && port.adc === 2) {
-            lines.push(indent(level, `// ${port.label} GPIO ${pin} is ADC2 — keep WiFi/BLE off for stable reads`));
+            lines.push(indent(level, `// ${portLabel} GPIO ${pin} is ADC2 — keep WiFi/BLE off for stable reads`));
         }
         lines.push(indent(level, 'delay(300);'));
         lines.push(indent(level, `{`));
         lines.push(indent(level + 1, `int soilRaw = readAnalogAvg(${pin}, 16);`));
-        lines.push(indent(level + 1, 'soilMoisture = soilRawToPercent(soilRaw);'));
-        lines.push(indent(level + 1, 'Serial.print(F("Soil moisture="));'));
-        lines.push(indent(level + 1, 'Serial.print(soilMoisture);'));
-        lines.push(indent(level + 1, 'Serial.println(F(" %"));'));
+        lines.push(indent(level + 1, 'int soilPct = soilRawToPercent(soilRaw);'));
+        lines.push(indent(level + 1, 'if (soilPct < 0) {'));
+        lines.push(indent(level + 2, `Serial.print(F("Soil FAIL raw="));`));
+        lines.push(indent(level + 2, 'Serial.print(soilRaw);'));
+        lines.push(indent(level + 2, `Serial.println(F(" — wrong jack/pin or no signal (expect ${portLabel}=GPIO${pin})"));`));
+        lines.push(indent(level + 1, '} else {'));
+        lines.push(indent(level + 2, 'soilMoisture = soilPct;'));
+        lines.push(indent(level + 2, 'Serial.print(F("Soil moisture="));'));
+        lines.push(indent(level + 2, 'Serial.print(soilMoisture);'));
+        lines.push(indent(level + 2, 'Serial.print(F(" % (raw="));'));
+        lines.push(indent(level + 2, 'Serial.print(soilRaw);'));
+        lines.push(indent(level + 2, `Serial.print(F(" ${portLabel}/GPIO${pin})"));`));
+        lines.push(indent(level + 2, 'Serial.println();'));
+        lines.push(indent(level + 1, '}'));
         lines.push(indent(level, '}'));
         break;
+    }
     case 'read_value':
         if (mod && mod.id === 'pulse') {
             lines.push(indent(level, 'if (pulseReady) {'));
@@ -544,13 +558,25 @@ const emitLeaf = (block, connById, level) => {
             break;
         }
         if (mod && mod.id === 'soil') {
+            const portLabel = port && port.label ? port.label : '?';
             if (port && port.adc === 2) {
-                lines.push(indent(level, `// ${port.label} GPIO ${pin} is ADC2 — keep WiFi/BLE off for stable reads`));
+                lines.push(indent(level, `// ${portLabel} GPIO ${pin} is ADC2 — keep WiFi/BLE off for stable reads`));
             }
-            lines.push(indent(level, `soilMoisture = soilRawToPercent(readAnalogAvg(${pin}, 16));`));
-            lines.push(indent(level, 'Serial.print(F("Soil moisture="));'));
-            lines.push(indent(level, 'Serial.print(soilMoisture);'));
-            lines.push(indent(level, 'Serial.println(F(" %"));'));
+            lines.push(indent(level, `{`));
+            lines.push(indent(level + 1, `int soilRaw = readAnalogAvg(${pin}, 16);`));
+            lines.push(indent(level + 1, 'int soilPct = soilRawToPercent(soilRaw);'));
+            lines.push(indent(level + 1, 'if (soilPct < 0) {'));
+            lines.push(indent(level + 2, 'soilMoisture = 0;'));
+            lines.push(indent(level + 2, `Serial.println(F("Soil FAIL — check ${portLabel}/GPIO${pin} cable"));`));
+            lines.push(indent(level + 1, '} else {'));
+            lines.push(indent(level + 2, 'soilMoisture = soilPct;'));
+            lines.push(indent(level + 2, 'Serial.print(F("Soil moisture="));'));
+            lines.push(indent(level + 2, 'Serial.print(soilMoisture);'));
+            lines.push(indent(level + 2, 'Serial.print(F(" % (raw="));'));
+            lines.push(indent(level + 2, 'Serial.print(soilRaw);'));
+            lines.push(indent(level + 2, 'Serial.println(F(")"));'));
+            lines.push(indent(level + 1, '}'));
+            lines.push(indent(level, '}'));
             break;
         }
         if (port && port.adc === 2) {
