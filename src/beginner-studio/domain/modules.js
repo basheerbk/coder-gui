@@ -3,7 +3,7 @@ import {K} from './tokens';
 /**
  * Beginner kit catalog — only modules in the physical kit.
  * Jack rules (see ports.js):
- *   OLED / HW-605 (MAX30102) → I2C (shared bus) | L293D → MD | Stepper → ST | HC-SR04 → D5
+ *   OLED / HW-605 (MAX30102) → I2C (shared bus) | L293D / 4-ch relay → MD | Stepper → ST | HC-SR04 → D5
  *   RFID → 3D (SPI) | BLE → onboard (no RJ11) | analogs → A1–A4
  */
 const MODULES = [
@@ -85,6 +85,19 @@ const MODULES = [
         actions: [
             {type: 'motor_speed', label: 'Set speed', params: {speed: 180, motor: 'A', dir: 'forward'}},
             {type: 'motor_stop', label: 'Stop motors'}
+        ]
+    },
+    {
+        id: 'relay4',
+        name: '4-Ch Relay (MD)',
+        signal: 'digital',
+        dir: 'out',
+        category: 'output',
+        color: K.orange,
+        description: '4-channel relay on MD — CH1=IO17, CH2=IO5, CH3=IO18, CH4=IO19 (active-LOW)',
+        actions: [
+            {type: 'relay_channel', label: 'Channel on/off', params: {channel: 1, on: true}},
+            {type: 'relay_all', label: 'All channels', params: {on: false}}
         ]
     },
     {

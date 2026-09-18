@@ -13,6 +13,7 @@ const kindOf = {
     relay: 'digital',
     servo: 'digital',
     l293d: 'motor',
+    relay4: 'motor',
     stepper: 'stepper',
     oled: 'i2c',
     mq2: 'analog',

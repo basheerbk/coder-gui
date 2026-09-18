@@ -34,6 +34,14 @@ const blockMeta = (block, connections, K) => {
         if (block.type === 'set_on') {
             actionLabel = block.params && block.params.on === false ? 'Off' : 'On';
         }
+        if (block.type === 'relay_channel') {
+            const ch = (block.params && block.params.channel) || 1;
+            const on = !(block.params && block.params.on === false);
+            actionLabel = `CH${ch} ${on ? 'On' : 'Off'}`;
+        }
+        if (block.type === 'relay_all') {
+            actionLabel = block.params && block.params.on === false ? 'All Off' : 'All On';
+        }
         return {
             color,
             soft: `${color}22`,

@@ -13,6 +13,16 @@ const PARAM_FIELDS = {
     play_tone: [{key: 'freq', label: 'Hz', type: 'number'}],
     set_angle: [{key: 'angle', label: '°', type: 'number'}],
     motor_speed: [{key: 'speed', label: 'spd', type: 'number'}],
+    relay_channel: [
+        {key: 'channel', label: 'ch', type: 'select', options: [
+            {value: 1, label: 'CH1'},
+            {value: 2, label: 'CH2'},
+            {value: 3, label: 'CH3'},
+            {value: 4, label: 'CH4'}
+        ]},
+        {key: 'on', label: 'power', type: 'toggle'}
+    ],
+    relay_all: [{key: 'on', label: 'power', type: 'toggle'}],
     show_text: [{key: 'text', label: 'txt', type: 'text'}],
     serial_print: [{key: 'text', label: 'txt', type: 'text'}],
     show_number: [{key: 'varName', label: 'var', type: 'text'}],
@@ -245,6 +255,38 @@ const NodeCard = ({meta, fields, block, updateParam, deleteBlock, children}) => 
                                         </button>
                                     ))}
                                 </div>
+                            );
+                        }
+                        if (field.type === 'select') {
+                            const cur = block.params[field.key] == null ? field.options[0].value : block.params[field.key];
+                            return (
+                                <label
+                                    key={field.key}
+                                    style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: 5,
+                                        fontSize: 10,
+                                        fontWeight: 700,
+                                        color: '#fff',
+                                        background: 'rgba(0,0,0,0.18)',
+                                        borderRadius: 999,
+                                        padding: '3px 8px 3px 10px'
+                                    }}
+                                >
+                                    <span>{field.label}</span>
+                                    <select
+                                        value={cur}
+                                        onChange={e => updateParam(block.uid, {
+                                            [field.key]: Number(e.target.value)
+                                        })}
+                                        style={chipSelect}
+                                    >
+                                        {field.options.map(opt => (
+                                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                        ))}
+                                    </select>
+                                </label>
                             );
                         }
                         return (

@@ -111,7 +111,7 @@ const neededKind = moduleDef => {
     if (moduleDef.i2c || moduleDef.id === 'oled' || moduleDef.id === 'pulse') {
         return 'i2c';
     }
-    if (moduleDef.id === 'l293d' || moduleDef.id === 'dc') {
+    if (moduleDef.id === 'l293d' || moduleDef.id === 'dc' || moduleDef.id === 'relay4') {
         return 'motor';
     }
     if (moduleDef.id === 'stepper') {
@@ -191,7 +191,7 @@ const compatibilityHint = (port, moduleDef) => {
             return 'I2C bus (SDA 21 / SCL 22) — OLED and HW-605';
         }
         if (port.kind === 'motor') {
-            return 'MD is the dual motor-driver jack (A:17/5, B:18/19)';
+            return 'MD jack — L293D (A:17/5 B:18/19) or 4-ch relay';
         }
         if (port.kind === 'spi') {
             return '3D is for RFID RC522 (SPI)';
@@ -215,7 +215,7 @@ const compatibilityHint = (port, moduleDef) => {
         return 'Plug into I2C (OLED / HW-605 share SDA 21 · SCL 22)';
     }
     if (need === 'motor') {
-        return 'Plug the L293D into MD (two motors: A on IO17/5, B on IO18/19)';
+        return 'Plug into MD — L293D motors or 4-ch relay (IO17/5/18/19)';
     }
     if (need === 'stepper') {
         return 'Plug the stepper into ST';

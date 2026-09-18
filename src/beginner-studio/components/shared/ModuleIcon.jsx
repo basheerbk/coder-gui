@@ -97,6 +97,12 @@ const glyphs = {
             <path d="M11 12l4-4" />
         </g>
     ),
+    relay4: c => (
+        <g stroke={c} {...stroke}>
+            <rect x="4" y="5" width="16" height="14" rx="2" />
+            <path d="M7 9h3M14 9h3M7 12h3M14 12h3M7 15h3M14 15h3" />
+        </g>
+    ),
     rgb: c => (
         <g>
             <circle cx="8" cy="13" r="3" fill="none" stroke={c} strokeWidth="1.6" />

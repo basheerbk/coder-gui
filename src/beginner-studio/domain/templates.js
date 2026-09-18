@@ -87,6 +87,7 @@ const programFor = (spec, m, act, blk) => {
     });
     const onOff = onOffIds[0];
     const relay = outs.find(id => id === 'relay');
+    const relay4 = outs.find(id => id === 'relay4');
     const oled = outs.find(id => id === 'oled');
     const servo = outs.find(id => id === 'servo');
     const motor = outs.find(id => id === 'l293d');
@@ -165,6 +166,9 @@ const programFor = (spec, m, act, blk) => {
         if (relay) {
             thenKids.push(act(m.relay, 'set_on', {on: true}));
         }
+        if (relay4) {
+            thenKids.push(act(m.relay4, 'relay_channel', {channel: spec.channel || 1, on: true}));
+        }
         if (servo) {
             thenKids.push(act(m.servo, 'set_angle', {angle: 90}));
         }
@@ -180,6 +184,9 @@ const programFor = (spec, m, act, blk) => {
         thenKids.push(blk('wait', {params: {seconds: 0.3}}));
         if (relay) {
             thenKids.push(act(m.relay, 'set_on', {on: false}));
+        }
+        if (relay4) {
+            thenKids.push(act(m.relay4, 'relay_channel', {channel: spec.channel || 1, on: false}));
         }
         if (servo) {
             thenKids.push(blk('wait', {params: {seconds: 1.5}}));
@@ -197,6 +204,16 @@ const programFor = (spec, m, act, blk) => {
                 children: thenKids,
                 elseChildren: []
             })
+        ];
+    }
+
+    if (pattern === 'relay4_seq') {
+        const ch = spec.channel || 1;
+        return [
+            act(m.relay4, 'relay_channel', {channel: ch, on: true}),
+            blk('wait', {params: {seconds: 1}}),
+            act(m.relay4, 'relay_channel', {channel: ch, on: false}),
+            blk('wait', {params: {seconds: 0.5}})
         ];
     }
 
@@ -410,7 +427,7 @@ const programFor = (spec, m, act, blk) => {
 
 /**
  * Kit-only Project Library.
- * Modules: btn, relay, stepper, mq2, ble, led, mic, pulse (HW-605), oled,
+ * Modules: btn, relay, relay4 (MD), stepper, mq2, ble, led, mic, pulse (HW-605), oled,
  *          dht, soil, servo, l293d, ultra (HC-SR04), rfid, pot
  */
 const SENSOR_GATES = [
@@ -436,6 +453,8 @@ const FEATURED_SPECS = [
     {id: 'button-lamp', name: 'Button Lamp', description: 'Press to light the LED', difficulty: 'Beginner', modules: ['btn', 'led'], pattern: 'button_burst'},
     {id: 'smart-lock', name: 'Smart Lock', description: 'Button unlocks a servo', difficulty: 'Beginner', modules: ['btn', 'servo', 'led'], pattern: 'button_burst'},
     {id: 'relay-switch', name: 'Relay Switch', description: 'Button clicks the relay', difficulty: 'Beginner', modules: ['btn', 'relay'], pattern: 'button_burst'},
+    {id: 'md-relay-ch1', name: 'MD Relay CH1', description: 'Button clicks 4-ch relay channel 1 on MD', difficulty: 'Beginner', modules: ['btn', 'relay4'], pattern: 'button_burst', channel: 1},
+    {id: 'md-relay-sweep', name: 'MD Relay Sweep', description: 'Cycle 4-ch relay channel 1 on MD', difficulty: 'Beginner', modules: ['relay4'], pattern: 'relay4_seq', channel: 1},
     {id: 'smart-garden', name: 'Smart Garden', description: 'Relay waters when soil is dry', difficulty: 'Beginner', modules: ['soil', 'relay'], pattern: 'relay_burst', op: '<', value: 400},
     {id: 'temp-display', name: 'Temp Display', description: 'DHT11 temperature on OLED', difficulty: 'Beginner', modules: ['dht', 'oled'], pattern: 'display_temp'},
     {id: 'parking-sensor', name: 'Parking Sensor', description: 'HC-SR04 lights LED when close', difficulty: 'Medium', modules: ['ultra', 'led'], op: '<', value: 20, blink: true},

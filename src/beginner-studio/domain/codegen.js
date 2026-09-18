@@ -152,7 +152,18 @@ const setupLinesForConnection = c => {
             '}'
         ];
     }
-    if (mod.id === 'dc' || mod.id === 'l293d' || port.kind === 'motor') {
+    if (mod.id === 'relay4') {
+        const motorPins = port.pins && port.pins.length ? port.pins : [pin];
+        // Active-LOW boards: HIGH = off at boot
+        return motorPins.map(p => `pinMode(${p}, OUTPUT);`).concat([
+            'digitalWrite(MOTOR_A1, HIGH);',
+            'digitalWrite(MOTOR_A2, HIGH);',
+            'digitalWrite(MOTOR_B1, HIGH);',
+            'digitalWrite(MOTOR_B2, HIGH);',
+            'Serial.println(F("4-ch relay on MD ready (CH1=17 CH2=5 CH3=18 CH4=19, active-LOW)"));'
+        ]);
+    }
+    if (mod.id === 'dc' || mod.id === 'l293d') {
         const motorPins = port.pins && port.pins.length ? port.pins : [pin];
         return motorPins.map(p => `pinMode(${p}, OUTPUT);`).concat([
             'analogWrite(MOTOR_A1, 0);',
@@ -360,6 +371,24 @@ const emitLeaf = (block, connById, level) => {
         lines.push(indent(level, `servo_${pin}.write(${Number(p.angle) || 90});`));
         serialLabel(`${modLabel}: angle=`, String(Number(p.angle) || 90));
         break;
+    case 'relay_channel': {
+        const ch = Math.min(4, Math.max(1, Number(p.channel) || 1));
+        const pinName = ch === 1 ? 'MOTOR_A1' : ch === 2 ? 'MOTOR_A2' : ch === 3 ? 'MOTOR_B1' : 'MOTOR_B2';
+        // Active-LOW: ON drives pin LOW
+        const level = p.on === false ? 'HIGH' : 'LOW';
+        lines.push(indent(level, `digitalWrite(${pinName}, ${level});`));
+        serialLabel(`Relay CH${ch}: `, p.on === false ? '"OFF"' : '"ON"');
+        break;
+    }
+    case 'relay_all': {
+        const level = p.on === false ? 'HIGH' : 'LOW';
+        lines.push(indent(level, `digitalWrite(MOTOR_A1, ${level});`));
+        lines.push(indent(level, `digitalWrite(MOTOR_A2, ${level});`));
+        lines.push(indent(level, `digitalWrite(MOTOR_B1, ${level});`));
+        lines.push(indent(level, `digitalWrite(MOTOR_B2, ${level});`));
+        serialLabel('Relay ALL: ', p.on === false ? '"OFF"' : '"ON"');
+        break;
+    }
     case 'motor_speed': {
         const speedExpr = p.speedVar
             ? `map(constrain((int)${p.speedVar}, 0, 4095), 0, 4095, 0, 255)`
@@ -610,7 +639,7 @@ const generateArduino = (connections, program) => {
     out.push('// TinkerBit Beginner Studio — Maker ESP32 RJ11 map');
     out.push('// D5 jack Trig=IO26 Echo=IO25  D13=33  3D SS=32 RST=33 MISO=34');
     out.push('// RFID SPI bus SCK=16 MOSI=23 (D5 free for HC-SR04)  ST=12,13,14,27');
-    out.push('// MD jack: Motor A=IO17/IO5  Motor B=IO18/IO19');
+    out.push('// MD jack: IO17/IO5/IO18/IO19 — L293D motors or 4-ch relay (active-LOW)');
     out.push('// I2C SDA=21 SCL=22 (OLED + HW-605/MAX30102)  BLE=onboard');
     out.push('// Analog ADC2: A1=4 A2=15 A3=2 A4=0 (A4 is BOOT — do not hold LOW at reset)');
     out.push('// Requires ESP32Servo + SparkFun MAX3010x (for HW-605) libraries');

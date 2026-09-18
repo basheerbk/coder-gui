@@ -4,7 +4,7 @@ const DIGITAL_ASSIGN = ['D5', 'D13', 'A1', 'A2', 'A3', 'A4'];
 
 const kindOf = {
     btn: 'digital', pot: 'analog', led: 'digital', relay: 'digital', servo: 'digital',
-    l293d: 'motor', stepper: 'stepper', oled: 'i2c', mq2: 'analog', mic: 'analog',
+    l293d: 'motor', relay4: 'motor', stepper: 'stepper', oled: 'i2c', mq2: 'analog', mic: 'analog',
     pulse: 'i2c', soil: 'analog', dht: 'digital', ultra: 'ultra', rfid: 'spi', ble: 'onboard'
 };
 

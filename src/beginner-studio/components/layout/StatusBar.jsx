@@ -18,7 +18,7 @@ const StatusBar = () => {
                 color: K.muted
             }}
         >
-            <span>Maker ESP32 · D5=Trig26/Echo25 · D13=33 · 3D RFID 32/33/34 · SPI 16/23 · ST=12/13/14/27 · MD A=17/5 B=18/19 · I2C 21/22 · BLE · A1=4 A2=15 A3=2 A4=0</span>
+            <span>Maker ESP32 · D5=Trig26/Echo25 · D13=33 · 3D RFID 32/33/34 · SPI 16/23 · ST=12/13/14/27 · MD 17/5/18/19 (L293D or 4-ch relay) · I2C 21/22 · BLE · A1=4 A2=15 A3=2 A4=0</span>
             <div style={{flex: 1}} />
             <button
                 type="button"
