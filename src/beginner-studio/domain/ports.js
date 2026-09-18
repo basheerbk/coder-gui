@@ -280,6 +280,10 @@ const pickPortForModule = (moduleDef, usedIds) => {
     if (need === 'ultra') {
         return take(['D5']);
     }
+    if (moduleDef.id === 'dht') {
+        // DHT11 timing is flaky on some analog jacks — prefer D13.
+        return take(['D13', 'A1', 'A2', 'A3']);
+    }
     if (need === 'analog') {
         return take(ANALOG_ASSIGN);
     }

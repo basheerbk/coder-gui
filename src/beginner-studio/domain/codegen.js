@@ -36,7 +36,6 @@ const collectGlobals = connections => {
             lines.push(`Servo servo_${port.pin};`);
         }
         if (mod.id === 'dht' && port) {
-            lines.push(`DHT dht_${port.pin}(${port.pin}, DHT11);`);
             lines.push('unsigned long lastDhtMs = 0;');
         }
         if (mod.id === 'oled') {
@@ -101,8 +100,12 @@ const setupLinesForConnection = c => {
         ];
     }
     if (mod.id === 'dht') {
-        // DHT11 needs ~1s after power-up before the first reliable sample.
-        return [`dht_${pin}.begin();`, 'delay(1500);', 'Serial.println(F("DHT11 ready — sample every 2s"));'];
+        // DHT11 needs settle time after power-up; keep the data line pulled up.
+        return [
+            `pinMode(${pin}, INPUT_PULLUP);`,
+            'delay(2000);',
+            'Serial.println(F("DHT11 ready — sampling every 2s"));'
+        ];
     }
     if (mod.id === 'ultra') {
         const trig = (port.ultra && port.ultra.trig) || (port.pins && port.pins[0]);
@@ -235,6 +238,47 @@ const dualDistanceHelper = () => [
     '  return duration * 0.034 / 2;',
     '}'
 ];
+
+/** ESP32-friendly DHT11 bit-bang (Adafruit DHT often returns 255/NaN on ESP32 + RJ11). */
+const dht11Helper = () => [
+    'bool sampleDht11(uint8_t pin, float *temperatureC, float *humidityPct) {',
+    '  uint8_t data[5] = {0, 0, 0, 0, 0};',
+    '  pinMode(pin, OUTPUT);',
+    '  digitalWrite(pin, LOW);',
+    '  delay(20);',
+    '  digitalWrite(pin, HIGH);',
+    '  delayMicroseconds(30);',
+    '  pinMode(pin, INPUT_PULLUP);',
+    '  unsigned long t = micros();',
+    '  while (digitalRead(pin) == HIGH) { if (micros() - t > 100) return false; }',
+    '  t = micros();',
+    '  while (digitalRead(pin) == LOW) { if (micros() - t > 100) return false; }',
+    '  t = micros();',
+    '  while (digitalRead(pin) == HIGH) { if (micros() - t > 100) return false; }',
+    '  for (int i = 0; i < 40; i++) {',
+    '    t = micros();',
+    '    while (digitalRead(pin) == LOW) { if (micros() - t > 80) return false; }',
+    '    unsigned long highStart = micros();',
+    '    while (digitalRead(pin) == HIGH) { if (micros() - highStart > 100) return false; }',
+    '    data[i / 8] <<= 1;',
+    '    if ((micros() - highStart) > 40) data[i / 8] |= 1;',
+    '  }',
+    '  if (data[4] != (uint8_t)(data[0] + data[1] + data[2] + data[3])) return false;',
+    '  float h = data[0];',
+    '  float tempC = data[2];',
+    '  // Reject 255 / garbage from failed RJ11 timing',
+    '  if (h > 100 || tempC > 60 || h == 255 || tempC == 255) return false;',
+    '  *humidityPct = h;',
+    '  *temperatureC = tempC;',
+    '  return true;',
+    '}'
+];
+
+const needsDht11Helper = connections =>
+    (connections || []).some(c => {
+        const mod = moduleById(c.moduleId);
+        return mod && mod.id === 'dht';
+    });
 
 const emitLeaf = (block, connById, level) => {
     const lines = [];
@@ -422,17 +466,19 @@ const emitLeaf = (block, connById, level) => {
     case 'read_temp':
     case 'read_humidity':
     case 'print_climate': {
-        // DHT11 needs ≥2s between samples; faster polls return NaN / garbage (often 255).
+        // Built-in 2s wait — DHT11 cannot be polled faster (255/NaN otherwise).
         const mode = block.type;
-        lines.push(indent(level, 'if (millis() - lastDhtMs >= 2000) {'));
-        lines.push(indent(level + 1, `float dhtH = dht_${pin}.readHumidity();`));
-        lines.push(indent(level + 1, `float dhtT = dht_${pin}.readTemperature();`));
+        lines.push(indent(level, 'delay(2000);'));
+        lines.push(indent(level, `{`));
+        lines.push(indent(level + 1, 'float dhtT = 0;'));
+        lines.push(indent(level + 1, 'float dhtH = 0;'));
+        lines.push(indent(level + 1, `bool dhtOk = sampleDht11(${pin}, &dhtT, &dhtH);`));
         lines.push(indent(level + 1, 'lastDhtMs = millis();'));
-        lines.push(indent(level + 1, 'if (isnan(dhtH) || isnan(dhtT) || dhtH > 100 || dhtT > 80) {'));
-        lines.push(indent(level + 2, 'Serial.println(F("DHT11 read failed — check jack/wiring, keep ≥2s between reads"));'));
+        lines.push(indent(level + 1, 'if (!dhtOk) {'));
+        lines.push(indent(level + 2, 'Serial.println(F("DHT11 failed — use D13/A1, check cable"));'));
         lines.push(indent(level + 1, '} else {'));
-        lines.push(indent(level + 2, 'humidity = dhtH;'));
         lines.push(indent(level + 2, 'temperature = dhtT;'));
+        lines.push(indent(level + 2, 'humidity = dhtH;'));
         if (mode === 'print_climate') {
             lines.push(indent(level + 2, 'Serial.print(F("Temp="));'));
             lines.push(indent(level + 2, 'Serial.print(temperature);'));
@@ -440,11 +486,13 @@ const emitLeaf = (block, connById, level) => {
             lines.push(indent(level + 2, 'Serial.print(humidity);'));
             lines.push(indent(level + 2, 'Serial.println(F(" %"));'));
         } else if (mode === 'read_temp') {
-            lines.push(indent(level + 2, 'Serial.print(F("DHT11 tempC="));'));
-            lines.push(indent(level + 2, 'Serial.println(temperature);'));
+            lines.push(indent(level + 2, 'Serial.print(F("Temp="));'));
+            lines.push(indent(level + 2, 'Serial.print(temperature);'));
+            lines.push(indent(level + 2, 'Serial.println(F(" C"));'));
         } else {
-            lines.push(indent(level + 2, 'Serial.print(F("DHT11 humidity%="));'));
-            lines.push(indent(level + 2, 'Serial.println(humidity);'));
+            lines.push(indent(level + 2, 'Serial.print(F("Humidity="));'));
+            lines.push(indent(level + 2, 'Serial.print(humidity);'));
+            lines.push(indent(level + 2, 'Serial.println(F(" %"));'));
         }
         lines.push(indent(level + 1, '}'));
         lines.push(indent(level, '}'));
@@ -549,6 +597,7 @@ const generateArduino = (connections, program) => {
     out.push('// I2C SDA=21 SCL=22 (OLED + HW-605/MAX30102)  BLE=onboard');
     out.push('// Analog ADC2: A1=4 A2=15 A3=2 A4=0 (A4 is BOOT — do not hold LOW at reset)');
     out.push('// Requires ESP32Servo + SparkFun MAX3010x (for HW-605) libraries');
+    out.push('// DHT11 uses built-in bit-bang (no DHT.h) — sample every 2s');
     out.push('// Use Upload in the Code tab (Chrome/Edge + Web Serial).');
     out.push('');
     out.push('#define SDA_PIN 21');
@@ -568,6 +617,10 @@ const generateArduino = (connections, program) => {
     }
     if (needsDualUltrasonic(connections)) {
         dualDistanceHelper().forEach(l => out.push(l));
+        out.push('');
+    }
+    if (needsDht11Helper(connections)) {
+        dht11Helper().forEach(l => out.push(l));
         out.push('');
     }
     out.push('void setup() {');
