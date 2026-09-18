@@ -33,7 +33,12 @@ const assignWiring = moduleIds => {
         if (!portId) {
             throw new Error(`No free jack for ${moduleId} in ${moduleIds.join(',')}`);
         }
-        used[portId] = true;
+        // I2C is a shared bus — do not block a second I2C device.
+        if (!(mod.i2c || mod.id === 'oled' || mod.id === 'pulse')) {
+            used[portId] = true;
+        } else {
+            used[portId] = true; // still mark for conflict hints; pickPort allows reuse
+        }
         return [moduleId, portId];
     });
 };
@@ -411,7 +416,7 @@ const SENSOR_GATES = [
     {id: 'soil', label: 'Soil', noun: 'soil', op: '<', value: 400, difficulty: 'Beginner'},
     {id: 'mq2', label: 'Gas', noun: 'gas', op: '>', value: 700, difficulty: 'Beginner'},
     {id: 'mic', label: 'Mic', noun: 'sound', op: '>', value: 600, difficulty: 'Beginner'},
-    {id: 'pulse', label: 'Pulse', noun: 'heartbeat', op: '>', value: 100, difficulty: 'Medium'},
+    {id: 'pulse', label: 'Pulse', noun: 'heartbeat', op: '>', value: 60, difficulty: 'Medium'},
     {id: 'ultra', label: 'Range', noun: 'distance', op: '<', value: 25, difficulty: 'Medium'},
     {id: 'dht', label: 'Temp', noun: 'temperature', op: '>', value: 30, difficulty: 'Medium'}
 ];
@@ -513,8 +518,8 @@ const EXTRA_SPECS = [
     {id: 'gas-alert', name: 'MQ-2 Alert', description: 'LED when gas is high', difficulty: 'Beginner', modules: ['mq2', 'led'], op: '>', value: 700},
     {id: 'gas-servo', name: 'Gas Vent', description: 'Servo opens when gas is high', difficulty: 'Medium', modules: ['mq2', 'servo'], op: '>', value: 720},
     {id: 'gas-motor', name: 'Gas Fan', description: 'L293D fan when gas is high', difficulty: 'Medium', modules: ['mq2', 'l293d'], op: '>', value: 710, speed: 220},
-    {id: 'pulse-led', name: 'Pulse LED', description: 'LED blinks with heartbeat', difficulty: 'Beginner', modules: ['pulse', 'led'], op: '>', value: 100, blink: true},
-    {id: 'pulse-relay', name: 'Pulse Relay', description: 'Relay ticks with heartbeat', difficulty: 'Medium', modules: ['pulse', 'relay'], op: '>', value: 110},
+    {id: 'pulse-led', name: 'Pulse LED', description: 'LED blinks with heartbeat', difficulty: 'Beginner', modules: ['pulse', 'led'], op: '>', value: 60, blink: true},
+    {id: 'pulse-relay', name: 'Pulse Relay', description: 'Relay ticks with heartbeat', difficulty: 'Medium', modules: ['pulse', 'relay'], op: '>', value: 60},
     {id: 'near-relay', name: 'Near Relay', description: 'Relay when something is close', difficulty: 'Medium', modules: ['ultra', 'relay'], pattern: 'relay_burst', op: '<', value: 22},
     {id: 'near-motor', name: 'Near Motor', description: 'Motor when object is close', difficulty: 'Medium', modules: ['ultra', 'l293d'], op: '<', value: 30, speed: 180},
     {id: 'range-display', name: 'Range Display', description: 'Show distance on OLED', difficulty: 'Beginner', modules: ['ultra', 'oled'], pattern: 'display'},
@@ -536,7 +541,7 @@ const ADVANCED_SPECS = [
     {id: 'adv-gas-lab', name: 'Gas Lab', description: 'MQ-2 + OLED + relay safety', difficulty: 'Advanced', modules: ['mq2', 'oled', 'relay', 'led'], pattern: 'advanced_scene', primary: 'mq2', op: '>', value: 700, thenText: 'GAS!', elseText: 'OK'},
     {id: 'adv-console', name: 'Maker Console', description: 'Button + knob command center', difficulty: 'Advanced', modules: ['btn', 'pot', 'led', 'servo', 'oled'], pattern: 'command_center', hold: 2},
     {id: 'adv-access', name: 'Access Gate', description: 'RFID + button + servo gate', difficulty: 'Advanced', modules: ['rfid', 'btn', 'servo', 'led', 'oled'], pattern: 'command_center', hold: 2},
-    {id: 'adv-pulse-lab', name: 'Pulse Lab', description: 'HW-605 + OLED + LED', difficulty: 'Advanced', modules: ['pulse', 'oled', 'led'], pattern: 'advanced_scene', primary: 'pulse', op: '>', value: 90, blink: true},
+    {id: 'adv-pulse-lab', name: 'Pulse Lab', description: 'HW-605 + OLED + LED', difficulty: 'Advanced', modules: ['pulse', 'oled', 'led'], pattern: 'advanced_scene', primary: 'pulse', op: '>', value: 60, blink: true},
     {id: 'adv-step-rig', name: 'Stepper Rig', description: 'Button + stepper + LED feedback', difficulty: 'Advanced', modules: ['btn', 'stepper', 'led'], pattern: 'stepper_demo'},
     {id: 'adv-sound-stage', name: 'Sound Stage', description: 'Mic + pot + LED + servo show', difficulty: 'Advanced', modules: ['mic', 'pot', 'led', 'servo', 'oled'], pattern: 'advanced_scene', primary: 'mic', op: '>', value: 620, blink: true, thenText: 'LOUD', elseText: 'QUIET'},
     {id: 'adv-soil-fan', name: 'Soil Fan Lab', description: 'Dry soil runs L293D + OLED', difficulty: 'Advanced', modules: ['soil', 'l293d', 'led', 'oled'], pattern: 'advanced_scene', primary: 'soil', op: '<', value: 400, speed: 200},
@@ -544,7 +549,7 @@ const ADVANCED_SPECS = [
     {id: 'adv-ble-garden', name: 'BLE Garden', description: 'Soil relay with BLE beacon', difficulty: 'Advanced', modules: ['soil', 'relay', 'ble', 'oled'], pattern: 'advanced_scene', primary: 'soil', op: '<', value: 400, burstRelay: true},
     {id: 'adv-hot-gate', name: 'Hot Gate', description: 'Temp opens servo and lights LED', difficulty: 'Advanced', modules: ['dht', 'servo', 'led', 'oled'], pattern: 'advanced_scene', primary: 'dht', op: '>', value: 31, thenText: 'HOT', elseText: 'OK'},
     {id: 'adv-gas-step', name: 'Gas Stepper', description: 'MQ-2 + stepper vent demo', difficulty: 'Advanced', modules: ['mq2', 'stepper', 'led'], pattern: 'advanced_scene', primary: 'mq2', op: '>', value: 700, steps: 120},
-    {id: 'adv-heart-stage', name: 'Heart Stage', description: 'Pulse + mic + OLED monitor', difficulty: 'Advanced', modules: ['pulse', 'mic', 'oled', 'led'], pattern: 'advanced_scene', primary: 'pulse', op: '>', value: 95, blink: true},
+    {id: 'adv-heart-stage', name: 'Heart Stage', description: 'Pulse + mic + OLED monitor', difficulty: 'Advanced', modules: ['pulse', 'mic', 'oled', 'led'], pattern: 'advanced_scene', primary: 'pulse', op: '>', value: 60, blink: true},
     {id: 'adv-kit-tour', name: 'Kit Tour', description: 'Button tours LED, servo, OLED', difficulty: 'Advanced', modules: ['btn', 'led', 'servo', 'oled'], pattern: 'command_center', hold: 1.5}
 ];
 

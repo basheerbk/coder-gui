@@ -12,7 +12,7 @@ function registerGenerators (Blockly) {
         return {
             pins: {
                 STEP_IN1: 12, STEP_IN2: 13, STEP_IN3: 14, STEP_IN4: 27,
-                MOTOR_A1: 5, MOTOR_A2: 17, MOTOR_B1: 18, MOTOR_B2: 19,
+                MOTOR_A1: 17, MOTOR_A2: 5, MOTOR_B1: 18, MOTOR_B2: 19,
                 SDA: 21, SCL: 22,
                 A1: 4, A2: 15, A3: 2, A4: 0,
                 D4: 25, D5: 26, D13: 33, T3D: 32,

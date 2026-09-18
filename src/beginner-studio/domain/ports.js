@@ -6,7 +6,8 @@
  *   D13/D12  IO33
  *   3D       IO32 SS, IO33 RST, IO34 MISO (input-only)
  *   D5       IO25 Echo (RJ pin 2), IO26 Trig (RJ pin 3); pins 4–5 NC.
- *   MD1      IO17, IO5, IO18, IO19
+ *   MD1      RJ: 1=VCC, 2=IO17, 3=IO5, 4=IO18, 5=IO19, 6=GND
+ *            Motor A = IO17+IO5 | Motor B = IO18+IO19
  *   I2C      IO21 SDA, IO22 SCL (I2C1 is the same bus)
  *   A1       IO4
  *   A2/A0    IO15  (strapping)
@@ -54,7 +55,21 @@ const PORTS = [
         ultra: {trig: '26', echo: '25'},
         index: 3
     },
-    {id: 'MD', label: 'MD', side: 'right', kind: 'motor', signal: 'motor', pin: '5', pins: ['17', '5', '18', '19'], index: 0},
+    {
+        id: 'MD',
+        label: 'MD',
+        side: 'right',
+        kind: 'motor',
+        signal: 'motor',
+        pin: '17',
+        pins: ['17', '5', '18', '19'],
+        // Dual H-bridge: Motor A = IO17/IO5, Motor B = IO18/IO19
+        motors: {
+            A: {in1: '17', in2: '5'},
+            B: {in1: '18', in2: '19'}
+        },
+        index: 0
+    },
     {id: 'I2C', label: 'I2C', side: 'right', kind: 'i2c', signal: 'i2c', pin: '21', pins: ['21', '22'], index: 1},
     {id: 'A3', label: 'A3', side: 'right', kind: 'analog', signal: 'analog', pin: '2', pins: ['2'], strapping: true, adc: 2, index: 2},
     {id: 'A2', label: 'A2', side: 'right', kind: 'analog', signal: 'analog', pin: '15', pins: ['15'], strapping: true, adc: 2, index: 3},
@@ -93,7 +108,7 @@ const neededKind = moduleDef => {
     if (moduleDef.onboard || moduleDef.id === 'ble') {
         return 'onboard';
     }
-    if (moduleDef.id === 'oled') {
+    if (moduleDef.i2c || moduleDef.id === 'oled' || moduleDef.id === 'pulse') {
         return 'i2c';
     }
     if (moduleDef.id === 'l293d' || moduleDef.id === 'dc') {
@@ -173,10 +188,10 @@ const compatibilityHint = (port, moduleDef) => {
             return 'ST is the 4-wire stepper jack (IO12–27)';
         }
         if (port.kind === 'i2c') {
-            return 'I2C is for the OLED (SDA 21 / SCL 22)';
+            return 'I2C bus (SDA 21 / SCL 22) — OLED and HW-605';
         }
         if (port.kind === 'motor') {
-            return 'MD is the L293D motor-driver jack';
+            return 'MD is the dual motor-driver jack (A:17/5, B:18/19)';
         }
         if (port.kind === 'spi') {
             return '3D is for RFID RC522 (SPI)';
@@ -197,10 +212,10 @@ const compatibilityHint = (port, moduleDef) => {
         return 'Bluetooth is built into the ESP32 — tap ESP';
     }
     if (need === 'i2c') {
-        return 'Plug the OLED into I2C';
+        return 'Plug into I2C (OLED / HW-605 share SDA 21 · SCL 22)';
     }
     if (need === 'motor') {
-        return 'Plug the L293D into MD';
+        return 'Plug the L293D into MD (two motors: A on IO17/5, B on IO18/19)';
     }
     if (need === 'stepper') {
         return 'Plug the stepper into ST';
@@ -221,7 +236,7 @@ const compatibilityHint = (port, moduleDef) => {
         return 'ST is only for a stepper motor';
     }
     if (port.kind === 'i2c') {
-        return 'I2C needs the OLED screen';
+        return 'I2C needs an I2C part (OLED or HW-605)';
     }
     if (port.kind === 'motor') {
         return 'MD needs the L293D driver';
@@ -249,7 +264,9 @@ const pickPortForModule = (moduleDef, usedIds) => {
         return take(['ONBOARD']);
     }
     if (need === 'i2c') {
-        return take(['I2C']);
+        // Shared bus — OLED and HW-605 can both use I2C.
+        const port = portById('I2C');
+        return port && isPortCompatible(port, moduleDef, used) ? 'I2C' : null;
     }
     if (need === 'motor') {
         return take(['MD']);

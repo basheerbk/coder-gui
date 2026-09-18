@@ -103,8 +103,9 @@ const useStudioActions = (state, setState) => {
                     wireHint: compatibilityHint(port, mod)
                 });
             }
-            const occupied = prev.connections.some(c => c.portId === portId);
-            if (occupied) {
+            const samePort = prev.connections.filter(c => c.portId === portId);
+            const shareI2c = port.kind === 'i2c' && (mod.i2c || mod.id === 'oled' || mod.id === 'pulse');
+            if (samePort.length && !shareI2c) {
                 return Object.assign({}, prev, {
                     wireHint: `${port.label} already has a part plugged in`
                 });
@@ -121,7 +122,7 @@ const useStudioActions = (state, setState) => {
                 portId: port.id,
                 pin: port.pin,
                 offsetX: 0,
-                offsetY: 0,
+                offsetY: shareI2c ? samePort.length * 46 : 0,
                 bendX: null,
                 bendY: null
             };

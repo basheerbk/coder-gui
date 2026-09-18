@@ -17,7 +17,7 @@ const kindOf = {
     oled: 'i2c',
     mq2: 'analog',
     mic: 'analog',
-    pulse: 'analog',
+    pulse: 'i2c',
     soil: 'analog',
     dht: 'digital',
     ultra: 'ultra',
@@ -36,7 +36,7 @@ const assign = ids => {
         if (kind === 'onboard') {
             portId = used.ONBOARD ? null : 'ONBOARD';
         } else if (kind === 'i2c') {
-            portId = used.I2C ? null : 'I2C';
+            portId = 'I2C'; // shared bus
         } else if (kind === 'motor') {
             portId = used.MD ? null : 'MD';
         } else if (kind === 'stepper') {
@@ -66,7 +66,11 @@ const assign = ids => {
         if (!portId) {
             throw new Error(`no jack for ${moduleId}`);
         }
-        used[portId] = true;
+        if (kind !== 'i2c') {
+            used[portId] = true;
+        } else {
+            used[portId] = true;
+        }
         return portId;
     });
 };

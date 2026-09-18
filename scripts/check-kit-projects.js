@@ -5,7 +5,7 @@ const DIGITAL_ASSIGN = ['D5', 'D13', 'A1', 'A2', 'A3', 'A4'];
 const kindOf = {
     btn: 'digital', pot: 'analog', led: 'digital', relay: 'digital', servo: 'digital',
     l293d: 'motor', stepper: 'stepper', oled: 'i2c', mq2: 'analog', mic: 'analog',
-    pulse: 'analog', soil: 'analog', dht: 'digital', ultra: 'ultra', rfid: 'spi', ble: 'onboard'
+    pulse: 'i2c', soil: 'analog', dht: 'digital', ultra: 'ultra', rfid: 'spi', ble: 'onboard'
 };
 
 const assign = ids => {
@@ -19,7 +19,8 @@ const assign = ids => {
         if (kind === 'onboard') {
             portId = used.ONBOARD ? null : 'ONBOARD';
         } else if (kind === 'i2c') {
-            portId = used.I2C ? null : 'I2C';
+            // Shared I2C bus (OLED + HW-605)
+            portId = 'I2C';
         } else if (kind === 'motor') {
             portId = used.MD ? null : 'MD';
         } else if (kind === 'stepper') {
@@ -47,7 +48,11 @@ const assign = ids => {
         if (!portId) {
             throw new Error(`no jack for ${moduleId} in ${ids.join(',')}`);
         }
-        used[portId] = true;
+        if (kind !== 'i2c') {
+            used[portId] = true;
+        } else {
+            used[portId] = true;
+        }
     });
 };
 

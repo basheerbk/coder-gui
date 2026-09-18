@@ -41,6 +41,10 @@ const collectGlobals = connections => {
         if (mod.id === 'oled') {
             lines.push('Adafruit_SSD1306 display(128, 64, &Wire, -1);');
         }
+        if (mod.id === 'pulse') {
+            lines.push('MAX30105 pulseSensor;');
+            lines.push('long pulseLastBeat = 0;');
+        }
         if (mod.id === 'stepper' && port && port.pins && port.pins.length >= 4) {
             lines.push(
                 `Stepper stepperMotor(200, ${port.pins[0]}, ${port.pins[1]}, ${port.pins[2]}, ${port.pins[3]});`
@@ -110,9 +114,8 @@ const setupLinesForConnection = c => {
         }
         return ['// HC-SR04 needs D5 (Trig+Echo) — no dual pins on this jack'];
     }
-    if (mod.id === 'oled' || port.kind === 'i2c') {
+    if (mod.id === 'oled') {
         return [
-            'Wire.begin(SDA_PIN, SCL_PIN);',
             'if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {',
             '  Serial.println(F("SSD1306 alloc failed"));',
             '}',
@@ -121,6 +124,16 @@ const setupLinesForConnection = c => {
             'display.setTextColor(SSD1306_WHITE);',
             'display.setCursor(0, 0);',
             'display.display();'
+        ];
+    }
+    if (mod.id === 'pulse') {
+        return [
+            'if (!pulseSensor.begin(Wire, I2C_SPEED_FAST)) {',
+            '  Serial.println(F("HW-605 / MAX30102 not found"));',
+            '}',
+            'pulseSensor.setup();',
+            'pulseSensor.setPulseAmplitudeRed(0x0A);',
+            'pulseSensor.setPulseAmplitudeGreen(0);'
         ];
     }
     if (mod.id === 'dc' || mod.id === 'l293d' || port.kind === 'motor') {
@@ -316,6 +329,18 @@ const emitLeaf = (block, connById, level) => {
         lines.push(indent(level, '}'));
         break;
     case 'read_value':
+        if (mod && mod.id === 'pulse') {
+            lines.push(indent(level, '{'));
+            lines.push(indent(level + 1, 'long irValue = pulseSensor.getIR();'));
+            lines.push(indent(level + 1, 'if (checkForBeat(irValue)) {'));
+            lines.push(indent(level + 2, 'long delta = millis() - pulseLastBeat;'));
+            lines.push(indent(level + 2, 'pulseLastBeat = millis();'));
+            lines.push(indent(level + 2, 'if (delta > 0) heartRate = (int)(60000.0 / delta);'));
+            lines.push(indent(level + 1, '}'));
+            lines.push(indent(level + 1, 'if (irValue < 50000) heartRate = 0;'));
+            lines.push(indent(level, '}'));
+            break;
+        }
         if (port && port.adc === 2) {
             lines.push(indent(level, `// ${port.label} is ADC2 (GPIO ${pin}) — analogRead can fail if WiFi is on`));
         }
@@ -415,6 +440,13 @@ const generateArduino = (connections, program) => {
         }
     }
     const setupBody = ['Serial.begin(9600);'];
+    const needsWire = (connections || []).some(c => {
+        const mod = moduleById(c.moduleId);
+        return mod && (mod.i2c || mod.id === 'oled' || mod.id === 'pulse');
+    });
+    if (needsWire) {
+        setupBody.push('Wire.begin(SDA_PIN, SCL_PIN);');
+    }
     (connections || []).forEach(c => {
         setupLinesForConnection(c).forEach(line => setupBody.push(line));
     });
@@ -428,15 +460,16 @@ const generateArduino = (connections, program) => {
     out.push('// TinkerBit Beginner Studio — Maker ESP32 RJ11 map');
     out.push('// D5 jack Trig=IO26 Echo=IO25  D13=33  3D SS=32 RST=33 MISO=34');
     out.push('// RFID SPI bus SCK=16 MOSI=23 (D5 free for HC-SR04)  ST=12,13,14,27');
-    out.push('// MD A=5/17 B=18/19  I2C SDA=21 SCL=22  BLE=onboard');
+    out.push('// MD jack: Motor A=IO17/IO5  Motor B=IO18/IO19');
+    out.push('// I2C SDA=21 SCL=22 (OLED + HW-605/MAX30102)  BLE=onboard');
     out.push('// Analog ADC2: A1=4 A2=15 A3=2 A4=0 (A4 is BOOT — do not hold LOW at reset)');
-    out.push('// Requires ESP32Servo library (ESP32Servo.h) for servo modules');
+    out.push('// Requires ESP32Servo + SparkFun MAX3010x (for HW-605) libraries');
     out.push('// Use Upload in the Code tab (Chrome/Edge + Web Serial).');
     out.push('');
     out.push('#define SDA_PIN 21');
     out.push('#define SCL_PIN 22');
-    out.push('#define MOTOR_A1 5');
-    out.push('#define MOTOR_A2 17');
+    out.push('#define MOTOR_A1 17');
+    out.push('#define MOTOR_A2 5');
     out.push('#define MOTOR_B1 18');
     out.push('#define MOTOR_B2 19');
     out.push('');

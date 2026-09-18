@@ -3,6 +3,8 @@ import React, {useState} from 'react';
 import {useStudio} from '../../context/StudioContext.jsx';
 import useBoardUpload from '../../hooks/useBoardUpload.js';
 
+import SerialMonitorPanel from './SerialMonitorPanel.jsx';
+
 const colorize = (line, K) => {
     if (/^\s*\/\//.test(line) || line.indexOf('//') === 0) {
         return {color: K.muted};
@@ -13,7 +15,7 @@ const colorize = (line, K) => {
     if (/\bvoid\b/.test(line)) {
         return {color: K.accent};
     }
-    if (/\b(int|float|long|Servo|DHT|Adafruit_SSD1306)\b/.test(line)) {
+    if (/\b(int|float|long|Servo|DHT|Adafruit_SSD1306|MAX30105)\b/.test(line)) {
         return {color: '#f472b6'};
     }
     if (/\bdelay\b/.test(line)) {
@@ -246,7 +248,8 @@ const LiveCodePanel = () => {
                     padding: 0,
                     fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
                     fontSize: 10,
-                    lineHeight: 1.45
+                    lineHeight: 1.45,
+                    minHeight: 80
                 }}
             >
                 {lines.map((line, i) => (
@@ -270,6 +273,8 @@ const LiveCodePanel = () => {
                     </div>
                 ))}
             </pre>
+
+            <SerialMonitorPanel connected={upload.connected} />
         </aside>
     );
 };

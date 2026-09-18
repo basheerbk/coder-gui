@@ -3,7 +3,7 @@ import {K} from './tokens';
 /**
  * Beginner kit catalog — only modules in the physical kit.
  * Jack rules (see ports.js):
- *   OLED → I2C | L293D → MD | Stepper → ST | HC-SR04 → D5
+ *   OLED / HW-605 (MAX30102) → I2C (shared bus) | L293D → MD | Stepper → ST | HC-SR04 → D5
  *   RFID → 3D (SPI) | BLE → onboard (no RJ11) | analogs → A1–A4
  */
 const MODULES = [
@@ -81,10 +81,10 @@ const MODULES = [
         dir: 'out',
         category: 'output',
         color: K.dim,
-        description: 'Drive a DC motor — plug into MD',
+        description: 'Drive 1–2 DC motors on MD (A: IO17/5, B: IO18/19)',
         actions: [
             {type: 'motor_speed', label: 'Set speed', params: {speed: 180, motor: 'A', dir: 'forward'}},
-            {type: 'motor_stop', label: 'Stop motor'}
+            {type: 'motor_stop', label: 'Stop motors'}
         ]
     },
     {
@@ -107,7 +107,8 @@ const MODULES = [
         dir: 'out',
         category: 'output',
         color: K.cyan,
-        description: 'Show text or a number — plug into I2C',
+        description: 'Show text or a number — plug into I2C (shared with HW-605)',
+        i2c: true,
         includes: ['Wire.h', 'Adafruit_SSD1306.h', 'Adafruit_GFX.h'],
         actions: [
             {type: 'show_text', label: 'Show text', params: {text: 'Hello'}},
@@ -145,11 +146,13 @@ const MODULES = [
     {
         id: 'pulse',
         name: 'Heartbeat HW-605',
-        signal: 'analog',
+        signal: 'digital',
         dir: 'in',
         category: 'sensor',
         color: K.red,
-        description: 'Read pulse sensor (HW-605)',
+        description: 'MAX30102 heart rate — plug into I2C (shares bus with OLED)',
+        i2c: true,
+        includes: ['Wire.h', 'MAX30105.h', 'heartRate.h'],
         valueName: 'heartRate',
         valueType: 'int',
         actions: [

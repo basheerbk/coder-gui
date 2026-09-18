@@ -5,6 +5,7 @@
  * Do not change pin numbers without updating the board table.
  *
  * D5 RJ11 is one jack: pin2=IO25 Echo, pin3=IO26 Trig (HC-SR04; Echo = INPUT).
+ * MD RJ11: pin2=IO17 pin3=IO5 (Motor A), pin4=IO18 pin5=IO19 (Motor B).
  * RC522 on 3D: SS=32 RST=33 MISO=34; SPI bus SCK=16 MOSI=23 (not D5).
  */
 (function (root) {
@@ -13,8 +14,8 @@
         STEP_IN2: 13,
         STEP_IN3: 14,
         STEP_IN4: 27,
-        MOTOR_A1: 5,
-        MOTOR_A2: 17,
+        MOTOR_A1: 17,
+        MOTOR_A2: 5,
         MOTOR_B1: 18,
         MOTOR_B2: 19,
         SDA: 21,

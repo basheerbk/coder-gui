@@ -593,17 +593,30 @@ const BoardCanvas = () => {
                     {PORTS.map(port => {
                         const pos = portPosition(port);
                         const conn = usedPorts[port.id];
-                        const compatible = Boolean(selectedDef && !conn && isPortCompatible(port, selectedDef, usedPorts));
-                        const dimmed = Boolean(selectedDef && !conn && !isPortCompatible(port, selectedDef, usedPorts));
+                        const shareI2c = Boolean(
+                            selectedDef &&
+                            port.kind === 'i2c' &&
+                            (selectedDef.i2c || selectedDef.id === 'oled' || selectedDef.id === 'pulse')
+                        );
+                        const compatible = Boolean(
+                            selectedDef &&
+                            (!conn || shareI2c) &&
+                            isPortCompatible(port, selectedDef, usedPorts)
+                        );
+                        const dimmed = Boolean(
+                            selectedDef &&
+                            !compatible &&
+                            !isPortCompatible(port, selectedDef, usedPorts)
+                        );
                         return (
                             <Port
                                 key={port.id}
                                 port={port}
                                 x={pos.x}
                                 y={pos.y}
-                                occupied={Boolean(conn)}
+                                occupied={Boolean(conn) && !shareI2c}
                                 compatible={compatible}
-                                dimmed={dimmed}
+                                dimmed={dimmed && !compatible}
                                 flashing={flashPortId === port.id}
                                 onClick={() => {
                                     connectToPort(port.id);
