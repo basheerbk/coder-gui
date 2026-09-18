@@ -44,6 +44,7 @@ const collectGlobals = connections => {
         if (mod.id === 'pulse') {
             lines.push('MAX30105 pulseSensor;');
             lines.push('long pulseLastBeat = 0;');
+            lines.push('bool pulseReady = false;');
         }
         if (mod.id === 'stepper' && port && port.pins && port.pins.length >= 4) {
             lines.push(
@@ -127,13 +128,23 @@ const setupLinesForConnection = c => {
         ];
     }
     if (mod.id === 'pulse') {
+        // Library begin() calls Wire.begin() with no pins — re-assert SDA/SCL after.
+        // Use 100 kHz: HW-605 + RJ11 often fails at 400 kHz.
         return [
-            'if (!pulseSensor.begin(Wire, I2C_SPEED_FAST)) {',
-            '  Serial.println(F("HW-605 / MAX30102 not found"));',
-            '}',
-            'pulseSensor.setup();',
-            'pulseSensor.setPulseAmplitudeRed(0x0A);',
-            'pulseSensor.setPulseAmplitudeGreen(0);'
+            'delay(100);',
+            'Wire.begin(SDA_PIN, SCL_PIN);',
+            'Wire.setClock(100000);',
+            'pulseReady = pulseSensor.begin(Wire, I2C_SPEED_STANDARD, 0x57);',
+            'Wire.begin(SDA_PIN, SCL_PIN);',
+            'Wire.setClock(100000);',
+            'if (!pulseReady) {',
+            '  Serial.println(F("HW-605 / MAX30102 not found — check I2C cable (SDA21/SCL22) + 3.3V"));',
+            '} else {',
+            '  pulseSensor.setup();',
+            '  pulseSensor.setPulseAmplitudeRed(0x0A);',
+            '  pulseSensor.setPulseAmplitudeGreen(0);',
+            '  Serial.println(F("HW-605 ready"));',
+            '}'
         ];
     }
     if (mod.id === 'dc' || mod.id === 'l293d' || port.kind === 'motor') {
@@ -230,43 +241,61 @@ const emitLeaf = (block, connById, level) => {
     const port = conn ? portById(conn.portId) : null;
     const pin = port ? port.pin : '?';
     const p = block.params || {};
+    const modLabel = mod ? mod.name : (block.type || 'block');
+    const serialLabel = (msg, valueExpr) => {
+        if (valueExpr == null) {
+            lines.push(indent(level, `Serial.println(F("${String(msg).replace(/"/g, '\\"')}"));`));
+            return;
+        }
+        lines.push(indent(level, `Serial.print(F("${String(msg).replace(/"/g, '\\"')}"));`));
+        lines.push(indent(level, `Serial.println(${valueExpr});`));
+    };
 
     switch (block.type) {
     case 'set_on':
         lines.push(indent(level, `digitalWrite(${pin}, ${p.on === false ? 'LOW' : 'HIGH'});`));
+        serialLabel(`${modLabel}: `, p.on === false ? '"OFF"' : '"ON"');
         break;
     case 'turn_on': // legacy
         lines.push(indent(level, `digitalWrite(${pin}, HIGH);`));
+        serialLabel(`${modLabel}: ON`);
         break;
     case 'turn_off': // legacy
         lines.push(indent(level, `digitalWrite(${pin}, LOW);`));
+        serialLabel(`${modLabel}: OFF`);
         break;
     case 'blink':
         lines.push(indent(level, `digitalWrite(${pin}, HIGH);`));
         lines.push(indent(level, `delay(${Number(p.ms) || 500});`));
         lines.push(indent(level, `digitalWrite(${pin}, LOW);`));
         lines.push(indent(level, `delay(${Number(p.ms) || 500});`));
+        serialLabel(`${modLabel}: blink ${Number(p.ms) || 500}ms`);
         break;
     case 'play_tone':
         lines.push(indent(level, `tone(${pin}, ${Number(p.freq) || 1000});`));
+        serialLabel(`${modLabel}: tone `, String(Number(p.freq) || 1000));
         break;
     case 'stop_tone':
         lines.push(indent(level, `noTone(${pin});`));
+        serialLabel(`${modLabel}: tone off`);
         break;
     case 'show_text':
         lines.push(indent(level, 'display.clearDisplay();'));
         lines.push(indent(level, 'display.setCursor(0, 0);'));
         lines.push(indent(level, `display.println(F("${String(p.text || '').replace(/"/g, '\\"')}"));`));
         lines.push(indent(level, 'display.display();'));
+        serialLabel(`OLED: ${String(p.text || '').replace(/"/g, '\\"')}`);
         break;
     case 'show_number':
         lines.push(indent(level, 'display.clearDisplay();'));
         lines.push(indent(level, 'display.setCursor(0, 0);'));
         lines.push(indent(level, `display.println(${p.varName || 'value'});`));
         lines.push(indent(level, 'display.display();'));
+        serialLabel(`OLED ${p.varName || 'value'}=`, p.varName || 'value');
         break;
     case 'set_angle':
         lines.push(indent(level, `servo_${pin}.write(${Number(p.angle) || 90});`));
+        serialLabel(`${modLabel}: angle=`, String(Number(p.angle) || 90));
         break;
     case 'motor_speed': {
         const speedExpr = p.speedVar
@@ -284,8 +313,10 @@ const emitLeaf = (block, connById, level) => {
                 lines.push(indent(level, `analogWrite(${pin1}, ${speedExpr});`));
                 lines.push(indent(level, `analogWrite(${pin2}, 0);`));
             }
+            serialLabel(`Motor ${channel} ${reverse ? 'REV' : 'FWD'} spd=`, speedExpr);
         } else {
             lines.push(indent(level, `analogWrite(${pin}, ${speedExpr});`));
+            serialLabel(`${modLabel}: spd=`, speedExpr);
         }
         break;
     }
@@ -295,13 +326,16 @@ const emitLeaf = (block, connById, level) => {
             lines.push(indent(level, 'analogWrite(MOTOR_A2, 0);'));
             lines.push(indent(level, 'analogWrite(MOTOR_B1, 0);'));
             lines.push(indent(level, 'analogWrite(MOTOR_B2, 0);'));
+            serialLabel('Motors: STOP');
         } else {
             lines.push(indent(level, `analogWrite(${pin}, 0);`));
+            serialLabel(`${modLabel}: STOP`);
         }
         break;
     case 'stepper_move':
         lines.push(indent(level, `stepperMotor.setSpeed(${Number(p.rpm) || 12});`));
         lines.push(indent(level, `stepperMotor.step(${Number(p.steps) || 100});`));
+        serialLabel(`Stepper: ${Number(p.steps) || 100} steps @ ${Number(p.rpm) || 12} RPM`);
         break;
     case 'rfid_read':
         lines.push(indent(level, 'if (mfrc522.PICC_IsNewCardPresent() && mfrc522.PICC_ReadCardSerial()) {'));
@@ -311,6 +345,10 @@ const emitLeaf = (block, connById, level) => {
         lines.push(indent(level + 2, 'rfidUid += String(mfrc522.uid.uidByte[i], HEX);'));
         lines.push(indent(level + 1, '}'));
         lines.push(indent(level + 1, 'mfrc522.PICC_HaltA();'));
+        lines.push(indent(level + 1, 'Serial.print(F("RFID UID="));'));
+        lines.push(indent(level + 1, 'Serial.println(rfidUid);'));
+        lines.push(indent(level, '} else {'));
+        lines.push(indent(level + 1, 'Serial.println(F("RFID: no card"));'));
         lines.push(indent(level, '}'));
         break;
     case 'ble_advertise': {
@@ -319,6 +357,7 @@ const emitLeaf = (block, connById, level) => {
         lines.push(indent(level, 'if (bleReady) {'));
         lines.push(indent(level + 1, 'BLEDevice::getAdvertising()->stop();'));
         lines.push(indent(level + 1, 'BLEDevice::getAdvertising()->start();'));
+        lines.push(indent(level + 1, `Serial.println(F("BLE advertising: ${name}"));`));
         lines.push(indent(level, '}'));
         break;
     }
@@ -326,11 +365,12 @@ const emitLeaf = (block, connById, level) => {
         lines.push(indent(level, `if (bleReady && pBleCharacteristic) {`));
         lines.push(indent(level + 1, `pBleCharacteristic->setValue("${String(p.text || '').replace(/"/g, '\\"')}");`));
         lines.push(indent(level + 1, 'pBleCharacteristic->notify();'));
+        lines.push(indent(level + 1, `Serial.println(F("BLE send: ${String(p.text || '').replace(/"/g, '\\"')}"));`));
         lines.push(indent(level, '}'));
         break;
     case 'read_value':
         if (mod && mod.id === 'pulse') {
-            lines.push(indent(level, '{'));
+            lines.push(indent(level, 'if (pulseReady) {'));
             lines.push(indent(level + 1, 'long irValue = pulseSensor.getIR();'));
             lines.push(indent(level + 1, 'if (checkForBeat(irValue)) {'));
             lines.push(indent(level + 2, 'long delta = millis() - pulseLastBeat;'));
@@ -338,6 +378,12 @@ const emitLeaf = (block, connById, level) => {
             lines.push(indent(level + 2, 'if (delta > 0) heartRate = (int)(60000.0 / delta);'));
             lines.push(indent(level + 1, '}'));
             lines.push(indent(level + 1, 'if (irValue < 50000) heartRate = 0;'));
+            lines.push(indent(level + 1, 'Serial.print(F("HW-605 BPM="));'));
+            lines.push(indent(level + 1, 'Serial.println(heartRate);'));
+            lines.push(indent(level, '} else {'));
+            lines.push(indent(level + 1, 'heartRate = 0;'));
+            lines.push(indent(level + 1, 'Serial.println(F("HW-605 not ready"));'));
+            lines.push(indent(level + 1, 'delay(500);'));
             lines.push(indent(level, '}'));
             break;
         }
@@ -345,9 +391,11 @@ const emitLeaf = (block, connById, level) => {
             lines.push(indent(level, `// ${port.label} is ADC2 (GPIO ${pin}) — analogRead can fail if WiFi is on`));
         }
         lines.push(indent(level, `${(mod && mod.valueName) || 'value'} = analogRead(${pin});`));
+        serialLabel(`${modLabel}: `, (mod && mod.valueName) || 'value');
         break;
     case 'is_pressed':
         lines.push(indent(level, `${(mod && mod.valueName) || 'buttonState'} = digitalRead(${pin}) == LOW;`));
+        serialLabel(`${modLabel}: `, `${(mod && mod.valueName) || 'buttonState'} ? "PRESSED" : "open"`);
         break;
     case 'read_distance': {
         const ue = ultraPins(port);
@@ -358,16 +406,20 @@ const emitLeaf = (block, connById, level) => {
             lines.push(indent(level, '// HC-SR04 must use D5 (Trig IO26 + Echo IO25) — skipped'));
             lines.push(indent(level, `${(mod && mod.valueName) || 'distance'} = 0;`));
         }
+        serialLabel('HC-SR04 cm=', (mod && mod.valueName) || 'distance');
         break;
     }
     case 'read_temp':
         lines.push(indent(level, `temperature = dht_${pin}.readTemperature();`));
+        serialLabel('DHT11 tempC=', 'temperature');
         break;
     case 'read_humidity':
         lines.push(indent(level, `humidity = dht_${pin}.readHumidity();`));
+        serialLabel('DHT11 humidity%=', 'humidity');
         break;
     case 'is_motion':
         lines.push(indent(level, `${(mod && mod.valueName) || 'motionDetected'} = digitalRead(${pin});`));
+        serialLabel(`${modLabel}: `, (mod && mod.valueName) || 'motionDetected');
         break;
     case 'wait':
         lines.push(indent(level, `delay(${Math.round((Number(p.seconds) || 1) * 1000)});`));
@@ -439,7 +491,7 @@ const generateArduino = (connections, program) => {
             globals[idx] = `String bleDeviceName = "${safe}";`;
         }
     }
-    const setupBody = ['Serial.begin(9600);'];
+    const setupBody = ['Serial.begin(9600);', 'delay(200);', 'Serial.println(F("TinkerBit Beginner ready"));'];
     const needsWire = (connections || []).some(c => {
         const mod = moduleById(c.moduleId);
         return mod && (mod.i2c || mod.id === 'oled' || mod.id === 'pulse');
