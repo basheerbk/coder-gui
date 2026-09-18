@@ -161,7 +161,7 @@ const setupLinesForConnection = c => {
     if (mod.id === 'soil') {
         return [
             `analogSetPinAttenuation(${pin}, ADC_11db);`,
-            'Serial.println(F("Capacitive soil ready — dry=HIGH (~2800+) wet=LOW (~1500)"));'
+            'Serial.println(F("Capacitive soil ready — moisture 0–100% (dry=low %, wet=high %)"));'
         ];
     }
     if (mod.id === 'relay4') {
@@ -336,6 +336,16 @@ const analogAvgHelper = () => [
     '    delay(2);',
     '  }',
     '  return (int)(sum / samples);',
+    '}',
+    '',
+    '// Capacitive soil: dry ≈ high ADC, wet ≈ low ADC → 0–100% moisture',
+    'int soilRawToPercent(int raw) {',
+    '  const int dryRaw = 3000;',
+    '  const int wetRaw = 1400;',
+    '  int pct = map(constrain(raw, wetRaw, dryRaw), dryRaw, wetRaw, 0, 100);',
+    '  if (pct < 0) pct = 0;',
+    '  if (pct > 100) pct = 100;',
+    '  return pct;',
     '}'
 ];
 
@@ -506,11 +516,13 @@ const emitLeaf = (block, connById, level) => {
             lines.push(indent(level, `// ${port.label} GPIO ${pin} is ADC2 — keep WiFi/BLE off for stable reads`));
         }
         lines.push(indent(level, 'delay(300);'));
-        lines.push(indent(level, `soilMoisture = readAnalogAvg(${pin}, 16);`));
-        lines.push(indent(level, 'Serial.print(F("Soil="));'));
-        lines.push(indent(level, 'Serial.print(soilMoisture);'));
-        lines.push(indent(level, 'Serial.print(F(" "));'));
-        lines.push(indent(level, 'Serial.println(soilMoisture > 2500 ? F("DRY") : (soilMoisture < 1800 ? F("WET") : F("OK")));'));
+        lines.push(indent(level, `{`));
+        lines.push(indent(level + 1, `int soilRaw = readAnalogAvg(${pin}, 16);`));
+        lines.push(indent(level + 1, 'soilMoisture = soilRawToPercent(soilRaw);'));
+        lines.push(indent(level + 1, 'Serial.print(F("Soil moisture="));'));
+        lines.push(indent(level + 1, 'Serial.print(soilMoisture);'));
+        lines.push(indent(level + 1, 'Serial.println(F(" %"));'));
+        lines.push(indent(level, '}'));
         break;
     case 'read_value':
         if (mod && mod.id === 'pulse') {
@@ -531,10 +543,20 @@ const emitLeaf = (block, connById, level) => {
             lines.push(indent(level, '}'));
             break;
         }
+        if (mod && mod.id === 'soil') {
+            if (port && port.adc === 2) {
+                lines.push(indent(level, `// ${port.label} GPIO ${pin} is ADC2 — keep WiFi/BLE off for stable reads`));
+            }
+            lines.push(indent(level, `soilMoisture = soilRawToPercent(readAnalogAvg(${pin}, 16));`));
+            lines.push(indent(level, 'Serial.print(F("Soil moisture="));'));
+            lines.push(indent(level, 'Serial.print(soilMoisture);'));
+            lines.push(indent(level, 'Serial.println(F(" %"));'));
+            break;
+        }
         if (port && port.adc === 2) {
             lines.push(indent(level, `// ${port.label} GPIO ${pin} is ADC2 — keep WiFi/BLE off for stable reads`));
         }
-        if (mod && (mod.signal === 'analog' || mod.id === 'mq2' || mod.id === 'mic' || mod.id === 'soil' || mod.id === 'pot')) {
+        if (mod && (mod.signal === 'analog' || mod.id === 'mq2' || mod.id === 'mic' || mod.id === 'pot')) {
             lines.push(indent(level, `${mod.valueName || 'value'} = readAnalogAvg(${pin}, 12);`));
         } else {
             lines.push(indent(level, `${(mod && mod.valueName) || 'value'} = analogRead(${pin});`));

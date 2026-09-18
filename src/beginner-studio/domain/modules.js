@@ -180,7 +180,7 @@ const MODULES = [
         dir: 'in',
         category: 'sensor',
         color: K.green,
-        description: 'Capacitive probe — dry ≈ high ADC (~2800+), wet ≈ low (~1500). Plug into A1–A4.',
+        description: 'Capacitive probe — moisture 0–100% (dry≈0%, wet≈100%). Plug into A1–A4.',
         valueName: 'soilMoisture',
         valueType: 'int',
         actions: [

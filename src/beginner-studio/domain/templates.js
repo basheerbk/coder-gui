@@ -434,7 +434,7 @@ const programFor = (spec, m, act, blk) => {
  */
 const SENSOR_GATES = [
     {id: 'pot', label: 'Knob', noun: 'knob', op: '>', value: 2000, difficulty: 'Beginner'},
-    {id: 'soil', label: 'Soil', noun: 'soil', op: '>', value: 2500, difficulty: 'Beginner'},
+    {id: 'soil', label: 'Soil', noun: 'soil', op: '<', value: 40, difficulty: 'Beginner'},
     {id: 'mq2', label: 'Gas', noun: 'gas', op: '>', value: 700, difficulty: 'Beginner'},
     {id: 'mic', label: 'Mic', noun: 'sound', op: '>', value: 600, difficulty: 'Beginner'},
     {id: 'pulse', label: 'Pulse', noun: 'heartbeat', op: '>', value: 60, difficulty: 'Medium'},
@@ -457,7 +457,7 @@ const FEATURED_SPECS = [
     {id: 'relay-switch', name: 'Relay Switch', description: 'Button clicks the relay', difficulty: 'Beginner', modules: ['btn', 'relay'], pattern: 'button_burst'},
     {id: 'md-relay-ch1', name: 'MD Relay CH1', description: 'Button clicks 4-ch relay channel 1 on MD', difficulty: 'Beginner', modules: ['btn', 'relay4'], pattern: 'button_burst', channel: 1},
     {id: 'md-relay-sweep', name: 'MD Relay Sweep', description: 'Cycle 4-ch relay channel 1 on MD', difficulty: 'Beginner', modules: ['relay4'], pattern: 'relay4_seq', channel: 1},
-    {id: 'smart-garden', name: 'Smart Garden', description: 'Relay waters when capacitive soil is dry (high ADC)', difficulty: 'Beginner', modules: ['soil', 'relay'], pattern: 'relay_burst', op: '>', value: 2500},
+    {id: 'smart-garden', name: 'Smart Garden', description: 'Relay waters when soil moisture is below 40%', difficulty: 'Beginner', modules: ['soil', 'relay'], pattern: 'relay_burst', op: '<', value: 40},
     {id: 'temp-display', name: 'Temp Display', description: 'DHT11 temperature on OLED', difficulty: 'Beginner', modules: ['dht', 'oled'], pattern: 'display_temp'},
     {id: 'parking-sensor', name: 'Parking Sensor', description: 'HC-SR04 lights LED when close', difficulty: 'Medium', modules: ['ultra', 'led'], op: '<', value: 20, blink: true},
     {id: 'speed-fan', name: 'Speed Fan', description: 'Knob controls L293D motor', difficulty: 'Beginner', modules: ['pot', 'l293d'], pattern: 'pot_motor'},
@@ -533,8 +533,8 @@ const EXTRA_SPECS = [
     {id: 'hot-fan', name: 'Hot Fan', description: 'Fan when temperature is high', difficulty: 'Medium', modules: ['dht', 'l293d'], op: '>', value: 30, speed: 200},
     {id: 'hot-relay', name: 'Hot Relay', description: 'Relay when room is hot', difficulty: 'Medium', modules: ['dht', 'relay'], pattern: 'relay_burst', op: '>', value: 32},
     {id: 'cool-led', name: 'Cool LED', description: 'LED when temperature is low', difficulty: 'Medium', modules: ['dht', 'led'], op: '<', value: 20},
-    {id: 'soil-led', name: 'Dry Soil Lamp', description: 'LED when capacitive soil is dry', difficulty: 'Beginner', modules: ['soil', 'led'], op: '>', value: 2500},
-    {id: 'soil-servo', name: 'Soil Gate', description: 'Servo when capacitive soil is dry', difficulty: 'Medium', modules: ['soil', 'servo'], op: '>', value: 2500},
+    {id: 'soil-led', name: 'Dry Soil Lamp', description: 'LED when soil moisture is below 40%', difficulty: 'Beginner', modules: ['soil', 'led'], op: '<', value: 40},
+    {id: 'soil-servo', name: 'Soil Gate', description: 'Servo when soil moisture is below 40%', difficulty: 'Medium', modules: ['soil', 'servo'], op: '<', value: 40},
     {id: 'clap-lamp', name: 'Clap Lamp', description: 'Mic turns the LED on', difficulty: 'Beginner', modules: ['mic', 'led'], op: '>', value: 600},
     {id: 'clap-servo', name: 'Clap Servo', description: 'Loud sound swings servo', difficulty: 'Medium', modules: ['mic', 'servo'], op: '>', value: 650},
     {id: 'clap-motor', name: 'Clap Motor', description: 'Mic runs the L293D', difficulty: 'Medium', modules: ['mic', 'l293d'], op: '>', value: 640, speed: 210},
@@ -552,13 +552,13 @@ const EXTRA_SPECS = [
     {id: 'ble-desk', name: 'BLE Desk', description: 'BLE plus OLED status', difficulty: 'Advanced', modules: ['ble', 'oled'], pattern: 'ble_beacon', bleText: 'Desk OK'},
     {id: 'ble-led', name: 'BLE Lamp', description: 'Advertise BLE and blink LED', difficulty: 'Medium', modules: ['ble', 'led'], pattern: 'ble_beacon'},
     {id: 'stepper-spin', name: 'Stepper Spin', description: 'Button spins 400 steps', difficulty: 'Medium', modules: ['btn', 'stepper'], pattern: 'stepper_demo', steps: 400, rpm: 15},
-    {id: 'garden-meter', name: 'Garden Meter', description: 'Soil moisture on OLED', difficulty: 'Beginner', modules: ['soil', 'oled'], pattern: 'display'},
+    {id: 'garden-meter', name: 'Garden Meter', description: 'Soil moisture % on OLED', difficulty: 'Beginner', modules: ['soil', 'oled'], pattern: 'display'},
     {id: 'gas-panel', name: 'Gas Panel', description: 'MQ-2 level on OLED', difficulty: 'Medium', modules: ['mq2', 'oled'], pattern: 'display'},
     {id: 'mic-meter', name: 'Mic Meter', description: 'Show loudness on OLED', difficulty: 'Beginner', modules: ['mic', 'oled'], pattern: 'display'}
 ];
 
 const ADVANCED_SPECS = [
-    {id: 'adv-garden', name: 'Garden Station', description: 'Capacitive soil + DHT drive relay and OLED', difficulty: 'Advanced', modules: ['soil', 'dht', 'relay', 'oled', 'led'], pattern: 'advanced_scene', primary: 'soil', op: '>', value: 2500, burstRelay: true},
+    {id: 'adv-garden', name: 'Garden Station', description: 'Soil % + DHT drive relay and OLED', difficulty: 'Advanced', modules: ['soil', 'dht', 'relay', 'oled', 'led'], pattern: 'advanced_scene', primary: 'soil', op: '<', value: 40, burstRelay: true},
     {id: 'adv-parking', name: 'Parking Pro', description: 'HC-SR04 + mic + OLED coach', difficulty: 'Advanced', modules: ['ultra', 'mic', 'led', 'oled'], pattern: 'advanced_scene', primary: 'ultra', op: '<', value: 25, blink: true, thenText: 'STOP', elseText: 'CLEAR'},
     {id: 'adv-climate', name: 'Climate Lab', description: 'DHT fan with OLED and LED', difficulty: 'Advanced', modules: ['dht', 'l293d', 'led', 'oled'], pattern: 'advanced_scene', primary: 'dht', op: '>', value: 30, speed: 220},
     {id: 'adv-gas-lab', name: 'Gas Lab', description: 'MQ-2 + OLED + relay safety', difficulty: 'Advanced', modules: ['mq2', 'oled', 'relay', 'led'], pattern: 'advanced_scene', primary: 'mq2', op: '>', value: 700, thenText: 'GAS!', elseText: 'OK'},
@@ -567,9 +567,9 @@ const ADVANCED_SPECS = [
     {id: 'adv-pulse-lab', name: 'Pulse Lab', description: 'HW-605 + OLED + LED', difficulty: 'Advanced', modules: ['pulse', 'oled', 'led'], pattern: 'advanced_scene', primary: 'pulse', op: '>', value: 60, blink: true},
     {id: 'adv-step-rig', name: 'Stepper Rig', description: 'Button + stepper + LED feedback', difficulty: 'Advanced', modules: ['btn', 'stepper', 'led'], pattern: 'stepper_demo'},
     {id: 'adv-sound-stage', name: 'Sound Stage', description: 'Mic + pot + LED + servo show', difficulty: 'Advanced', modules: ['mic', 'pot', 'led', 'servo', 'oled'], pattern: 'advanced_scene', primary: 'mic', op: '>', value: 620, blink: true, thenText: 'LOUD', elseText: 'QUIET'},
-    {id: 'adv-soil-fan', name: 'Soil Fan Lab', description: 'Dry capacitive soil runs L293D + OLED', difficulty: 'Advanced', modules: ['soil', 'l293d', 'led', 'oled'], pattern: 'advanced_scene', primary: 'soil', op: '>', value: 2500, speed: 200},
+    {id: 'adv-soil-fan', name: 'Soil Fan Lab', description: 'Dry soil % runs L293D + OLED', difficulty: 'Advanced', modules: ['soil', 'l293d', 'led', 'oled'], pattern: 'advanced_scene', primary: 'soil', op: '<', value: 40, speed: 200},
     {id: 'adv-range-lock', name: 'Range Lock', description: 'HC-SR04 + RFID + servo door', difficulty: 'Advanced', modules: ['ultra', 'rfid', 'servo', 'led'], pattern: 'rfid_gate'},
-    {id: 'adv-ble-garden', name: 'BLE Garden', description: 'Capacitive soil relay with BLE beacon', difficulty: 'Advanced', modules: ['soil', 'relay', 'ble', 'oled'], pattern: 'advanced_scene', primary: 'soil', op: '>', value: 2500, burstRelay: true},
+    {id: 'adv-ble-garden', name: 'BLE Garden', description: 'Soil % relay with BLE beacon', difficulty: 'Advanced', modules: ['soil', 'relay', 'ble', 'oled'], pattern: 'advanced_scene', primary: 'soil', op: '<', value: 40, burstRelay: true},
     {id: 'adv-hot-gate', name: 'Hot Gate', description: 'Temp opens servo and lights LED', difficulty: 'Advanced', modules: ['dht', 'servo', 'led', 'oled'], pattern: 'advanced_scene', primary: 'dht', op: '>', value: 31, thenText: 'HOT', elseText: 'OK'},
     {id: 'adv-gas-step', name: 'Gas Stepper', description: 'MQ-2 + stepper vent demo', difficulty: 'Advanced', modules: ['mq2', 'stepper', 'led'], pattern: 'advanced_scene', primary: 'mq2', op: '>', value: 700, steps: 120},
     {id: 'adv-heart-stage', name: 'Heart Stage', description: 'Pulse + mic + OLED monitor', difficulty: 'Advanced', modules: ['pulse', 'mic', 'oled', 'led'], pattern: 'advanced_scene', primary: 'pulse', op: '>', value: 60, blink: true},
