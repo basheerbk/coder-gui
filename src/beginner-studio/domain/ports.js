@@ -18,7 +18,7 @@
  *   SCK=16, MOSI=23 on-board; SS/RST/MISO via 3D jack.
  * D13 and 3D both use IO33 — mutually exclusive.
  *
- * UART RX/TX has no GPIO numbers on the connector sheet — omitted here.
+ * UART (HC-05): RX=GPIO3 TX=GPIO1 — shared with USB serial @ 9600.
  */
 
 /** Shared GPIO conflict groups (jack ids). */
@@ -76,7 +76,19 @@ const PORTS = [
     {id: 'A1', label: 'A1', side: 'bottom', kind: 'analog', signal: 'analog', pin: '4', pins: ['4'], adc: 2, index: 0},
     {id: 'A4', label: 'A4', side: 'bottom', kind: 'analog', signal: 'analog', pin: '0', pins: ['0'], strapping: true, boot: true, adc: 2, index: 1},
     // Built-in ESP32 radios — no physical RJ11
-    {id: 'ONBOARD', label: 'ESP', side: 'left', kind: 'onboard', signal: 'onboard', pin: '-', pins: [], index: 0}
+    {id: 'ONBOARD', label: 'ESP', side: 'left', kind: 'onboard', signal: 'onboard', pin: '-', pins: [], index: 0},
+    // HC-05 Classic Bluetooth UART (shares USB Serial pins)
+    {
+        id: 'UART',
+        label: 'UART',
+        side: 'left',
+        kind: 'uart',
+        signal: 'uart',
+        pin: '3',
+        pins: ['3', '1'],
+        uart: {rx: '3', tx: '1'},
+        index: 1
+    }
 ];
 
 const ANALOG_ASSIGN = ['A1', 'A2', 'A3', 'A4'];
@@ -107,6 +119,9 @@ const neededKind = moduleDef => {
     }
     if (moduleDef.onboard || moduleDef.id === 'ble') {
         return 'onboard';
+    }
+    if (moduleDef.id === 'hc05') {
+        return 'uart';
     }
     if (moduleDef.i2c || moduleDef.id === 'oled' || moduleDef.id === 'pulse') {
         return 'i2c';
@@ -149,6 +164,9 @@ const isPortCompatible = (port, moduleDef, usedIds) => {
     const need = neededKind(moduleDef);
     if (need === 'onboard') {
         return port.kind === 'onboard';
+    }
+    if (need === 'uart') {
+        return port.kind === 'uart';
     }
     if (need === 'i2c') {
         return port.kind === 'i2c';
@@ -199,6 +217,9 @@ const compatibilityHint = (port, moduleDef) => {
         if (port.kind === 'onboard') {
             return 'Built-in ESP32 Bluetooth';
         }
+        if (port.kind === 'uart') {
+            return 'UART for HC-05 (RX=3 TX=1, USB-shared)';
+        }
         if (port.id === 'D5') {
             return 'D5 is HC-SR04 / digital (Echo IO25 + Trig IO26)';
         }
@@ -210,6 +231,9 @@ const compatibilityHint = (port, moduleDef) => {
     const need = neededKind(moduleDef);
     if (need === 'onboard') {
         return 'Bluetooth is built into the ESP32 — tap ESP';
+    }
+    if (need === 'uart') {
+        return 'Plug HC-05 into UART (RX=GPIO3 TX=GPIO1, shared with USB @ 9600)';
     }
     if (need === 'i2c') {
         return 'Plug into I2C (OLED / HW-605 share SDA 21 · SCL 22)';
@@ -247,6 +271,9 @@ const compatibilityHint = (port, moduleDef) => {
     if (port.kind === 'onboard') {
         return 'ESP is only for Bluetooth';
     }
+    if (port.kind === 'uart') {
+        return 'UART is only for the HC-05 module';
+    }
     if (port.id === 'D13' && PORT_CONFLICTS.D13) {
         return 'D13 shares IO33 with RFID on 3D — unplug RFID first';
     }
@@ -262,6 +289,9 @@ const pickPortForModule = (moduleDef, usedIds) => {
     const need = neededKind(moduleDef);
     if (need === 'onboard') {
         return take(['ONBOARD']);
+    }
+    if (need === 'uart') {
+        return take(['UART']);
     }
     if (need === 'i2c') {
         // Shared bus — OLED and HW-605 can both use I2C.

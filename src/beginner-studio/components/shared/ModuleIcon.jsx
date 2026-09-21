@@ -85,6 +85,12 @@ const glyphs = {
             <path d="M12 4v16M12 4l5 4-5 4 5 4-5 4M7 8l5 4M7 16l5-4" />
         </g>
     ),
+    hc05: c => (
+        <g stroke={c} {...stroke}>
+            <rect x="5" y="7" width="14" height="10" rx="2" />
+            <path d="M9 12h6M12 9v6" />
+        </g>
+    ),
     pump: c => (
         <g stroke={c} {...stroke}>
             <path d="M12 5s5 6 5 9a5 5 0 11-10 0c0-3 5-9 5-9z" />

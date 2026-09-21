@@ -17,6 +17,16 @@ function registerBlocks (Blockly) {
         ];
     };
 
+    const kitDigitalPortOptions = function () {
+        return [
+            [Blockly.Msg.MAKERESP32_PORT_D13, 'D13'],
+            [Blockly.Msg.MAKERESP32_PORT_A1, 'A1'],
+            [Blockly.Msg.MAKERESP32_PORT_A2, 'A2'],
+            [Blockly.Msg.MAKERESP32_PORT_A3, 'A3'],
+            [Blockly.Msg.MAKERESP32_PORT_A4, 'A4']
+        ];
+    };
+
     const analogPortOptions = function () {
         return [
             [Blockly.Msg.MAKERESP32_PORT_A1, 'A1'],
@@ -25,6 +35,13 @@ function registerBlocks (Blockly) {
             [Blockly.Msg.MAKERESP32_PORT_A4, 'A4']
         ];
     };
+
+    const kitColor = '#E9C46A';
+    const kitSecondary = '#B0892E';
+    const kitOutColor = '#F4A261';
+    const kitOutSecondary = '#C97A3A';
+    const kitRadioColor = '#2A9D8F';
+    const kitRadioSecondary = '#1F7A6E';
 
     const virtualPinOptions = [];
     for (let i = 0; i <= 31; i++) {
@@ -507,6 +524,442 @@ function registerBlocks (Blockly) {
                 colour: blynkColor,
                 secondaryColour: blynkSecondary,
                 extensions: ['shape_statement']
+            });
+        }
+    };
+
+    // --- Maker Kit sensors ---
+
+    Blockly.Blocks.makerEsp32_kitButtonPressed = {
+        init: function () {
+            this.jsonInit({
+                message0: Blockly.Msg.MAKERESP32_KIT_BUTTON_PRESSED,
+                args0: [{
+                    type: 'field_dropdown',
+                    name: 'PORT',
+                    options: kitDigitalPortOptions()
+                }],
+                colour: kitColor,
+                secondaryColour: kitSecondary,
+                extensions: ['output_boolean']
+            });
+        }
+    };
+
+    Blockly.Blocks.makerEsp32_kitReadPot = {
+        init: function () {
+            this.jsonInit({
+                message0: Blockly.Msg.MAKERESP32_KIT_READ_POT,
+                args0: [{
+                    type: 'field_dropdown',
+                    name: 'PORT',
+                    options: analogPortOptions()
+                }],
+                colour: kitColor,
+                secondaryColour: kitSecondary,
+                extensions: ['output_number']
+            });
+        }
+    };
+
+    Blockly.Blocks.makerEsp32_kitReadMq2 = {
+        init: function () {
+            this.jsonInit({
+                message0: Blockly.Msg.MAKERESP32_KIT_READ_MQ2,
+                args0: [{
+                    type: 'field_dropdown',
+                    name: 'PORT',
+                    options: analogPortOptions()
+                }],
+                colour: kitColor,
+                secondaryColour: kitSecondary,
+                extensions: ['output_number']
+            });
+        }
+    };
+
+    Blockly.Blocks.makerEsp32_kitPrintMq2 = {
+        init: function () {
+            this.jsonInit({
+                message0: Blockly.Msg.MAKERESP32_KIT_PRINT_MQ2,
+                args0: [{
+                    type: 'field_dropdown',
+                    name: 'PORT',
+                    options: analogPortOptions()
+                }],
+                colour: kitColor,
+                secondaryColour: kitSecondary,
+                extensions: ['shape_statement']
+            });
+        }
+    };
+
+    Blockly.Blocks.makerEsp32_kitReadMic = {
+        init: function () {
+            this.jsonInit({
+                message0: Blockly.Msg.MAKERESP32_KIT_READ_MIC,
+                args0: [{
+                    type: 'field_dropdown',
+                    name: 'PORT',
+                    options: analogPortOptions()
+                }],
+                colour: kitColor,
+                secondaryColour: kitSecondary,
+                extensions: ['output_number']
+            });
+        }
+    };
+
+    Blockly.Blocks.makerEsp32_kitReadSoil = {
+        init: function () {
+            this.jsonInit({
+                message0: Blockly.Msg.MAKERESP32_KIT_READ_SOIL,
+                args0: [{
+                    type: 'field_dropdown',
+                    name: 'PORT',
+                    options: analogPortOptions()
+                }],
+                colour: kitColor,
+                secondaryColour: kitSecondary,
+                extensions: ['output_number']
+            });
+        }
+    };
+
+    Blockly.Blocks.makerEsp32_kitPrintSoil = {
+        init: function () {
+            this.jsonInit({
+                message0: Blockly.Msg.MAKERESP32_KIT_PRINT_SOIL,
+                args0: [{
+                    type: 'field_dropdown',
+                    name: 'PORT',
+                    options: analogPortOptions()
+                }],
+                colour: kitColor,
+                secondaryColour: kitSecondary,
+                extensions: ['shape_statement']
+            });
+        }
+    };
+
+    Blockly.Blocks.makerEsp32_kitReadDhtTemp = {
+        init: function () {
+            this.jsonInit({
+                message0: Blockly.Msg.MAKERESP32_KIT_READ_DHT_TEMP,
+                args0: [{
+                    type: 'field_dropdown',
+                    name: 'PORT',
+                    options: kitDigitalPortOptions()
+                }],
+                colour: kitColor,
+                secondaryColour: kitSecondary,
+                extensions: ['output_number']
+            });
+        }
+    };
+
+    Blockly.Blocks.makerEsp32_kitReadDhtHumidity = {
+        init: function () {
+            this.jsonInit({
+                message0: Blockly.Msg.MAKERESP32_KIT_READ_DHT_HUMIDITY,
+                args0: [{
+                    type: 'field_dropdown',
+                    name: 'PORT',
+                    options: kitDigitalPortOptions()
+                }],
+                colour: kitColor,
+                secondaryColour: kitSecondary,
+                extensions: ['output_number']
+            });
+        }
+    };
+
+    Blockly.Blocks.makerEsp32_kitPrintDht = {
+        init: function () {
+            this.jsonInit({
+                message0: Blockly.Msg.MAKERESP32_KIT_PRINT_DHT,
+                args0: [{
+                    type: 'field_dropdown',
+                    name: 'PORT',
+                    options: kitDigitalPortOptions()
+                }],
+                colour: kitColor,
+                secondaryColour: kitSecondary,
+                extensions: ['shape_statement']
+            });
+        }
+    };
+
+    Blockly.Blocks.makerEsp32_kitReadDistance = {
+        init: function () {
+            this.jsonInit({
+                message0: Blockly.Msg.MAKERESP32_KIT_READ_DISTANCE,
+                args0: [],
+                colour: kitColor,
+                secondaryColour: kitSecondary,
+                extensions: ['output_number']
+            });
+        }
+    };
+
+    Blockly.Blocks.makerEsp32_kitReadRfid = {
+        init: function () {
+            this.jsonInit({
+                message0: Blockly.Msg.MAKERESP32_KIT_READ_RFID,
+                args0: [],
+                colour: kitColor,
+                secondaryColour: kitSecondary,
+                extensions: ['output_string']
+            });
+        }
+    };
+
+    Blockly.Blocks.makerEsp32_kitReadPulse = {
+        init: function () {
+            this.jsonInit({
+                message0: Blockly.Msg.MAKERESP32_KIT_READ_PULSE,
+                args0: [],
+                colour: kitColor,
+                secondaryColour: kitSecondary,
+                extensions: ['output_number']
+            });
+        }
+    };
+
+    // --- Maker Kit outputs ---
+
+    Blockly.Blocks.makerEsp32_kitLedSet = {
+        init: function () {
+            this.jsonInit({
+                message0: Blockly.Msg.MAKERESP32_KIT_LED_SET,
+                args0: [{
+                    type: 'field_dropdown',
+                    name: 'PORT',
+                    options: kitDigitalPortOptions()
+                }, {
+                    type: 'field_dropdown',
+                    name: 'STATE',
+                    options: [
+                        [Blockly.Msg.MAKERESP32_HIGH, 'HIGH'],
+                        [Blockly.Msg.MAKERESP32_LOW, 'LOW']
+                    ]
+                }],
+                colour: kitOutColor,
+                secondaryColour: kitOutSecondary,
+                extensions: ['shape_statement']
+            });
+        }
+    };
+
+    Blockly.Blocks.makerEsp32_kitLedBlink = {
+        init: function () {
+            this.jsonInit({
+                message0: Blockly.Msg.MAKERESP32_KIT_LED_BLINK,
+                args0: [{
+                    type: 'field_dropdown',
+                    name: 'PORT',
+                    options: kitDigitalPortOptions()
+                }, {
+                    type: 'input_value',
+                    name: 'MS'
+                }],
+                colour: kitOutColor,
+                secondaryColour: kitOutSecondary,
+                extensions: ['shape_statement']
+            });
+        }
+    };
+
+    Blockly.Blocks.makerEsp32_kitRelaySet = {
+        init: function () {
+            this.jsonInit({
+                message0: Blockly.Msg.MAKERESP32_KIT_RELAY_SET,
+                args0: [{
+                    type: 'field_dropdown',
+                    name: 'PORT',
+                    options: kitDigitalPortOptions()
+                }, {
+                    type: 'field_dropdown',
+                    name: 'STATE',
+                    options: [
+                        [Blockly.Msg.MAKERESP32_HIGH, 'HIGH'],
+                        [Blockly.Msg.MAKERESP32_LOW, 'LOW']
+                    ]
+                }],
+                colour: kitOutColor,
+                secondaryColour: kitOutSecondary,
+                extensions: ['shape_statement']
+            });
+        }
+    };
+
+    Blockly.Blocks.makerEsp32_kitServoAngle = {
+        init: function () {
+            this.jsonInit({
+                message0: Blockly.Msg.MAKERESP32_KIT_SERVO_ANGLE,
+                args0: [{
+                    type: 'field_dropdown',
+                    name: 'PORT',
+                    options: kitDigitalPortOptions()
+                }, {
+                    type: 'input_value',
+                    name: 'ANGLE'
+                }],
+                colour: kitOutColor,
+                secondaryColour: kitOutSecondary,
+                extensions: ['shape_statement']
+            });
+        }
+    };
+
+    Blockly.Blocks.makerEsp32_kitRelay4Channel = {
+        init: function () {
+            this.jsonInit({
+                message0: Blockly.Msg.MAKERESP32_KIT_RELAY4_CHANNEL,
+                args0: [{
+                    type: 'field_dropdown',
+                    name: 'CHANNEL',
+                    options: [
+                        ['1', '1'],
+                        ['2', '2'],
+                        ['3', '3'],
+                        ['4', '4']
+                    ]
+                }, {
+                    type: 'field_dropdown',
+                    name: 'STATE',
+                    options: [
+                        [Blockly.Msg.MAKERESP32_KIT_ON, 'ON'],
+                        [Blockly.Msg.MAKERESP32_KIT_OFF, 'OFF']
+                    ]
+                }],
+                colour: kitOutColor,
+                secondaryColour: kitOutSecondary,
+                extensions: ['shape_statement']
+            });
+        }
+    };
+
+    Blockly.Blocks.makerEsp32_kitRelay4All = {
+        init: function () {
+            this.jsonInit({
+                message0: Blockly.Msg.MAKERESP32_KIT_RELAY4_ALL,
+                args0: [{
+                    type: 'field_dropdown',
+                    name: 'STATE',
+                    options: [
+                        [Blockly.Msg.MAKERESP32_KIT_ON, 'ON'],
+                        [Blockly.Msg.MAKERESP32_KIT_OFF, 'OFF']
+                    ]
+                }],
+                colour: kitOutColor,
+                secondaryColour: kitOutSecondary,
+                extensions: ['shape_statement']
+            });
+        }
+    };
+
+    Blockly.Blocks.makerEsp32_kitOledText = {
+        init: function () {
+            this.jsonInit({
+                message0: Blockly.Msg.MAKERESP32_KIT_OLED_TEXT,
+                args0: [{
+                    type: 'field_input',
+                    name: 'TEXT',
+                    text: 'Hello'
+                }],
+                colour: kitOutColor,
+                secondaryColour: kitOutSecondary,
+                extensions: ['shape_statement']
+            });
+        }
+    };
+
+    Blockly.Blocks.makerEsp32_kitOledNumber = {
+        init: function () {
+            this.jsonInit({
+                message0: Blockly.Msg.MAKERESP32_KIT_OLED_NUMBER,
+                args0: [{
+                    type: 'input_value',
+                    name: 'VALUE'
+                }],
+                colour: kitOutColor,
+                secondaryColour: kitOutSecondary,
+                extensions: ['shape_statement']
+            });
+        }
+    };
+
+    // --- Maker Kit radio ---
+
+    Blockly.Blocks.makerEsp32_kitBleAdvertise = {
+        init: function () {
+            this.jsonInit({
+                message0: Blockly.Msg.MAKERESP32_KIT_BLE_ADVERTISE,
+                args0: [{
+                    type: 'field_input',
+                    name: 'NAME',
+                    text: 'TinkerBit'
+                }],
+                colour: kitRadioColor,
+                secondaryColour: kitRadioSecondary,
+                extensions: ['shape_statement']
+            });
+        }
+    };
+
+    Blockly.Blocks.makerEsp32_kitBleSend = {
+        init: function () {
+            this.jsonInit({
+                message0: Blockly.Msg.MAKERESP32_KIT_BLE_SEND,
+                args0: [{
+                    type: 'field_input',
+                    name: 'TEXT',
+                    text: 'Hello'
+                }],
+                colour: kitRadioColor,
+                secondaryColour: kitRadioSecondary,
+                extensions: ['shape_statement']
+            });
+        }
+    };
+
+    Blockly.Blocks.makerEsp32_kitHc05Send = {
+        init: function () {
+            this.jsonInit({
+                message0: Blockly.Msg.MAKERESP32_KIT_HC05_SEND,
+                args0: [{
+                    type: 'field_input',
+                    name: 'TEXT',
+                    text: 'Hello'
+                }],
+                colour: kitRadioColor,
+                secondaryColour: kitRadioSecondary,
+                extensions: ['shape_statement']
+            });
+        }
+    };
+
+    Blockly.Blocks.makerEsp32_kitHc05Available = {
+        init: function () {
+            this.jsonInit({
+                message0: Blockly.Msg.MAKERESP32_KIT_HC05_AVAILABLE,
+                args0: [],
+                colour: kitRadioColor,
+                secondaryColour: kitRadioSecondary,
+                extensions: ['output_boolean']
+            });
+        }
+    };
+
+    Blockly.Blocks.makerEsp32_kitHc05ReadLine = {
+        init: function () {
+            this.jsonInit({
+                message0: Blockly.Msg.MAKERESP32_KIT_HC05_READ_LINE,
+                args0: [],
+                colour: kitRadioColor,
+                secondaryColour: kitRadioSecondary,
+                extensions: ['output_string']
             });
         }
     };

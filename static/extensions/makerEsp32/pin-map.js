@@ -7,6 +7,7 @@
  * D5 RJ11 is one jack: pin2=IO25 Echo, pin3=IO26 Trig (HC-SR04; Echo = INPUT).
  * MD RJ11: pin2=IO17 pin3=IO5 (Motor A), pin4=IO18 pin5=IO19 (Motor B).
  * RC522 on 3D: SS=32 RST=33 MISO=34; SPI bus SCK=16 MOSI=23 (not D5).
+ * UART (HC-05): RX=GPIO3 (U0RXD), TX=GPIO1 (U0TXD) — shared with USB serial @ 9600.
  */
 (function (root) {
     const PINS = {
@@ -33,6 +34,8 @@
         RFID_MISO: 34,
         RFID_SCK: 16,
         RFID_MOSI: 23,
+        UART_RX: 3,
+        UART_TX: 1,
         SPARE1: 15,
         SPARE2: 2
     };
@@ -45,8 +48,10 @@
             D13: 'D13_PIN',
             T3D: 'T3D_PIN',
             '3D': 'T3D_PIN',
+            A1: 'A1_PIN',
             A2: 'A2_PIN',
             A3: 'A3_PIN',
+            A4: 'A4_PIN',
             SPARE1: 'A2_PIN',
             SPARE2: 'A3_PIN'
         },

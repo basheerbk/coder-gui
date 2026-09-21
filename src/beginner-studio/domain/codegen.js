@@ -214,6 +214,12 @@ const setupLinesForConnection = c => {
             'bleReady = true;'
         ];
     }
+    if (mod.id === 'hc05' || port.kind === 'uart') {
+        return [
+            '// HC-05 on UART0 RX=3 TX=1 (shared with USB Serial @ 9600)',
+            'Serial.println(F("HC-05 ready on UART RX=3 TX=1"));'
+        ];
+    }
     if (mod.onboard) {
         return [];
     }
@@ -501,6 +507,19 @@ const emitLeaf = (block, connById, level) => {
         lines.push(indent(level + 1, `pBleCharacteristic->setValue("${String(p.text || '').replace(/"/g, '\\"')}");`));
         lines.push(indent(level + 1, 'pBleCharacteristic->notify();'));
         lines.push(indent(level + 1, `Serial.println(F("BLE send: ${String(p.text || '').replace(/"/g, '\\"')}"));`));
+        lines.push(indent(level, '}'));
+        break;
+    case 'hc05_send':
+        lines.push(indent(level, `Serial.println(F("${String(p.text || '').replace(/"/g, '\\"')}"));`));
+        break;
+    case 'hc05_read':
+        lines.push(indent(level, 'if (Serial.available()) {'));
+        lines.push(indent(level + 1, `${(mod && mod.valueName) || 'hc05Line'} = Serial.readStringUntil('\\n');`));
+        lines.push(indent(level + 1, `${(mod && mod.valueName) || 'hc05Line'}.trim();`));
+        lines.push(indent(level + 1, 'Serial.print(F("HC-05 RX="));'));
+        lines.push(indent(level + 1, `Serial.println(${(mod && mod.valueName) || 'hc05Line'});`));
+        lines.push(indent(level, '} else {'));
+        lines.push(indent(level + 1, 'Serial.println(F("HC-05: no data"));'));
         lines.push(indent(level, '}'));
         break;
     case 'print_gas':

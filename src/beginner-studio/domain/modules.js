@@ -4,7 +4,7 @@ import {K} from './tokens';
  * Beginner kit catalog — only modules in the physical kit.
  * Jack rules (see ports.js):
  *   OLED / HW-605 (MAX30102) → I2C (shared bus) | L293D / 4-ch relay → MD | Stepper → ST | HC-SR04 → D5
- *   RFID → 3D (SPI) | BLE → onboard (no RJ11) | analogs → A1–A4
+ *   RFID → 3D (SPI) | BLE → onboard (no RJ11) | HC-05 → UART RX=3 TX=1 | analogs → A1–A4
  */
 const MODULES = [
     {
@@ -250,6 +250,21 @@ const MODULES = [
         actions: [
             {type: 'ble_advertise', label: 'Start advertising', params: {name: 'TinkerBit'}},
             {type: 'ble_send', label: 'Send text', params: {text: 'Hello'}}
+        ]
+    },
+    {
+        id: 'hc05',
+        name: 'HC-05 Bluetooth',
+        signal: 'uart',
+        dir: 'out',
+        category: 'output',
+        color: K.cyan,
+        description: 'Classic BT UART — RX=GPIO3 TX=GPIO1 (shared with USB serial @ 9600)',
+        valueName: 'hc05Line',
+        valueType: 'String',
+        actions: [
+            {type: 'hc05_send', label: 'Send text', params: {text: 'Hello'}},
+            {type: 'hc05_read', label: 'Read line'}
         ]
     }
 ];
