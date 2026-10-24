@@ -5,10 +5,11 @@ import {moduleById} from '../../domain/modules';
 import {BOARD, DEPTH, PORTS, cardCablePoint, isPortCompatible, portPosition} from '../../domain/ports';
 
 import ConnectedModuleCard from './ConnectedModuleCard.jsx';
+import ModuleArtNode, {artPlacement, hasModuleArt} from './ModuleArt.jsx';
 import Port from './Port.jsx';
 import Rj11Cable from './Rj11Cable.jsx';
 
-const SCENE = {x: -50, y: -90, w: 940, h: 640};
+const SCENE = {x: -50, y: -110, w: 940, h: 700};
 
 const centeredPan = (w, h) => ({
     x: ((w - SCENE.w) / 2) - SCENE.x,
@@ -632,9 +633,13 @@ const BoardCanvas = () => {
                         }
                         const pos = portPosition(port);
                         const live = dragModule && dragModule.id === conn.id;
-                        const cardX = pos.cardX + (live ? live.x : (conn.offsetX || 0));
-                        const cardY = pos.cardY + (live ? live.y : (conn.offsetY || 0));
-                        const attach = cardCablePoint(cardX, cardY, port.side);
+                        const offX = live ? live.x : (conn.offsetX || 0);
+                        const offY = live ? live.y : (conn.offsetY || 0);
+                        const cardX = pos.cardX + offX;
+                        const cardY = pos.cardY + offY;
+                        const withArt = hasModuleArt(conn.moduleId);
+                        const placement = withArt ? artPlacement(conn.moduleId, port, pos, offX, offY) : null;
+                        const attach = placement ? placement.jack : cardCablePoint(cardX, cardY, port.side);
                         const liveBend = dragBend && dragBend.id === conn.id;
                         const handleX = liveBend
                             ? liveBend.x
@@ -656,14 +661,26 @@ const BoardCanvas = () => {
                                     connectionId={conn.id}
                                     onBendStart={event => startBendDrag(event, conn, handleX, handleY)}
                                 />
-                                <ConnectedModuleCard
-                                    connection={conn}
-                                    x={cardX}
-                                    y={cardY}
-                                    dragging={Boolean(live)}
-                                    onDisconnect={disconnect}
-                                    onMoveStart={event => startModuleDrag(event, conn)}
-                                />
+                                {placement ? (
+                                    <ModuleArtNode
+                                        moduleId={conn.moduleId}
+                                        name={(moduleById(conn.moduleId) || {}).name}
+                                        placement={placement}
+                                        dragging={Boolean(live)}
+                                        onDisconnect={() => disconnect(conn.id)}
+                                        onMoveStart={event => startModuleDrag(event, conn)}
+                                        K={K}
+                                    />
+                                ) : (
+                                    <ConnectedModuleCard
+                                        connection={conn}
+                                        x={cardX}
+                                        y={cardY}
+                                        dragging={Boolean(live)}
+                                        onDisconnect={disconnect}
+                                        onMoveStart={event => startModuleDrag(event, conn)}
+                                    />
+                                )}
                             </g>
                         );
                     })}
