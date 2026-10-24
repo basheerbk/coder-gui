@@ -27,7 +27,8 @@ const PARAM_FIELDS = {
     serial_print: [{key: 'text', label: 'txt', type: 'text'}],
     show_number: [{key: 'varName', label: 'var', type: 'text'}],
     serial_var: [{key: 'varName', label: 'var', type: 'text'}],
-    blink: [{key: 'ms', label: 'ms', type: 'number'}]
+    blink: [{key: 'ms', label: 'ms', type: 'number'}],
+    set_brightness: [{key: 'brightness', label: '0–255', type: 'number'}]
 };
 
 const chipSelect = {

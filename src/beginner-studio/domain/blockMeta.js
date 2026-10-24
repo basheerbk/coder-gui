@@ -34,6 +34,10 @@ const blockMeta = (block, connections, K) => {
         if (block.type === 'set_on') {
             actionLabel = block.params && block.params.on === false ? 'Off' : 'On';
         }
+        if (block.type === 'set_brightness') {
+            const b = block.params && block.params.brightness != null ? block.params.brightness : 128;
+            actionLabel = `Brightness ${b}`;
+        }
         if (block.type === 'relay_channel') {
             const ch = (block.params && block.params.channel) || 1;
             const on = !(block.params && block.params.on === false);

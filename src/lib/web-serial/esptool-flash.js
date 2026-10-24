@@ -1,4 +1,4 @@
-import {ESPLoader, Transport} from 'esptool-js';
+import {ESPLoader, Transport, ClassicReset, UsbJtagSerialReset} from 'esptool-js';
 import CryptoJS from 'crypto-js';
 
 const ESP_IMAGE_MAGIC = 0xe9;
@@ -195,7 +195,83 @@ const normalizeFlashMode = mode => {
     return 'keep';
 };
 
-const flashOnce = async (port, images, baudRate, firmware, onProgress, onLog) => {
+/**
+ * Some laptop USB controllers (especially USB3 hubs / power management) need
+ * longer DTR/RTS timing than the esptool-js defaults to enter download mode.
+ */
+class LaptopClassicReset {
+    constructor (transport, resetDelay) {
+        this.transport = transport;
+        this.resetDelay = resetDelay;
+    }
+
+    async reset () {
+        await this.transport.setDTR(false);
+        await this.transport.setRTS(true);
+        await sleep(200);
+        await this.transport.setDTR(true);
+        await this.transport.setRTS(false);
+        await sleep(this.resetDelay);
+        await this.transport.setDTR(false);
+        await sleep(150);
+    }
+}
+
+const BOOT_STRATEGIES = [
+    {
+        id: 'classic',
+        label: 'auto-reset',
+        mode: 'default_reset',
+        resetConstructors: {
+            classicReset: (transport, delay) => new ClassicReset(transport, delay),
+            usbJTAGSerialReset: transport => new UsbJtagSerialReset(transport)
+        }
+    },
+    {
+        id: 'laptop',
+        label: 'slow auto-reset (laptop USB)',
+        mode: 'default_reset',
+        resetConstructors: {
+            // Force longer settle times: constructResetSequence uses 50 and 550.
+            classicReset: (transport, delay) =>
+                new LaptopClassicReset(transport, Math.max(delay || 50, 800)),
+            usbJTAGSerialReset: transport => new UsbJtagSerialReset(transport)
+        }
+    },
+    {
+        id: 'usb_jtag',
+        label: 'USB-JTAG reset',
+        mode: 'usb_reset',
+        resetConstructors: {
+            classicReset: (transport, delay) => new ClassicReset(transport, delay),
+            usbJTAGSerialReset: transport => new UsbJtagSerialReset(transport)
+        }
+    },
+    {
+        id: 'manual_boot',
+        label: 'manual BOOT (hold BOOT on the board)',
+        mode: 'default_reset',
+        holdBootHint: true,
+        resetConstructors: {
+            classicReset: (transport, delay) =>
+                new LaptopClassicReset(transport, Math.max(delay || 50, 1500)),
+            usbJTAGSerialReset: transport => new UsbJtagSerialReset(transport)
+        }
+    }
+];
+
+const ensurePortClosed = async port => {
+    try {
+        if (port.readable || port.writable) {
+            await port.close();
+        }
+    } catch (e) {
+        // already closed
+    }
+    await sleep(350);
+};
+
+const flashOnce = async (port, images, baudRate, firmware, onProgress, onLog, strategy) => {
     const terminal = {
         clean () {},
         writeLine (data) {
@@ -206,6 +282,16 @@ const flashOnce = async (port, images, baudRate, firmware, onProgress, onLog) =>
         }
     };
 
+    await ensurePortClosed(port);
+
+    if (strategy.holdBootHint) {
+        if (onProgress) onProgress('Hold BOOT on the board now…', 5);
+        if (onLog) {
+            onLog('>>> HOLD the BOOT button now (some laptops need this)…\r\n');
+        }
+        await sleep(2000);
+    }
+
     const transport = new Transport(port, false);
     const loader = new ESPLoader({
         transport,
@@ -213,17 +299,32 @@ const flashOnce = async (port, images, baudRate, firmware, onProgress, onLog) =>
         romBaudrate: ROM_BAUD,
         serialOptions: SERIAL_OPTIONS,
         terminal,
-        debugLogging: false
+        debugLogging: false,
+        resetConstructors: strategy.resetConstructors
     });
 
-    // Keep app binaries intact. esptool-js only rewrites flash params on the
-    // bootloader offset; 'keep' avoids any accidental header edits.
     const flashMode = 'keep';
     const flashFreq = 'keep';
     const flashSize = firmware.flashSize ? String(firmware.flashSize) : 'keep';
 
     try {
-        const chip = await loader.main();
+        if (onProgress) onProgress(`Bootloader: ${strategy.label}…`, 6);
+        if (onLog) onLog(`Connecting (${strategy.label})…\r\n`);
+
+        const connectTimeoutMs = strategy.holdBootHint ? 60000 : 35000;
+        const chip = await Promise.race([
+            loader.main(strategy.mode),
+            sleep(connectTimeoutMs).then(() => {
+                throw new Error(
+                    `Timed out with ${strategy.label}. ` +
+                    'On some laptops hold BOOT during Upload, use a USB2 port, or try another cable.'
+                );
+            })
+        ]);
+
+        if (strategy.holdBootHint && onLog) {
+            onLog('Connected — you can release BOOT.\r\n');
+        }
         if (onLog) {
             onLog(`Connected to ${chip}\r\n`);
             onLog(
@@ -276,25 +377,41 @@ const flashEspImagesOnPort = async (port, firmware, onProgress, onLog) => {
     const images = prepareImages(firmware, onLog);
 
     let lastError = null;
-    for (let i = 0; i < FLASH_BAUD_RATES.length; i++) {
-        const baudRate = FLASH_BAUD_RATES[i];
-        if (onLog) onLog(`Flashing at ${baudRate} baud…\r\n`);
-        if (onProgress) onProgress(`Opening ESP32 bootloader (${baudRate})…`, 5);
-        try {
-            await flashOnce(port, images, baudRate, firmware, onProgress, onLog);
-            return;
-        } catch (err) {
-            lastError = err;
-            if (onLog) onLog(`${err.message}\r\n`);
-            const canRetry = isRecoverableFlashError(err) && i < FLASH_BAUD_RATES.length - 1;
-            if (!canRetry) {
-                throw err;
+    for (let s = 0; s < BOOT_STRATEGIES.length; s++) {
+        const strategy = BOOT_STRATEGIES[s];
+        for (let i = 0; i < FLASH_BAUD_RATES.length; i++) {
+            const baudRate = FLASH_BAUD_RATES[i];
+            if (onLog) {
+                onLog(
+                    `Flash attempt ${s + 1}/${BOOT_STRATEGIES.length}: ` +
+                    `${strategy.label} @ ${baudRate}\r\n`
+                );
             }
-            if (onLog) onLog('Serial noise at this baud. Retrying slower…\r\n');
-            await sleep(400);
+            if (onProgress) {
+                onProgress(`Opening bootloader (${strategy.label})…`, 5);
+            }
+            try {
+                await flashOnce(
+                    port, images, baudRate, firmware, onProgress, onLog, strategy
+                );
+                return;
+            } catch (err) {
+                lastError = err;
+                if (onLog) onLog(`${err.message}\r\n`);
+                const msg = String((err && err.message) || err);
+                const canRetry = isRecoverableFlashError(err) ||
+                    /timed out|failed to connect|failed to open serial|wrong boot mode/i.test(msg);
+                if (!canRetry) {
+                    throw err;
+                }
+                await sleep(500);
+            }
         }
     }
-    throw lastError;
+    throw new Error(
+        'Could not enter ESP32 download mode on this USB port. ' +
+        'Close other serial apps, try a USB2 port or different cable, then Upload while holding BOOT.'
+    );
 };
 
 export {

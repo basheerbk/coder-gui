@@ -541,23 +541,32 @@ function registerGenerators (Blockly) {
 
     const ensureUltraHelper = () => {
         ensurePinDefines();
+        ensureKitSerial();
         if (!Blockly.Arduino.definitions_.makerEsp32_ultra) {
+            // Proven HC-SR04 helper: Trig=D5_PIN(26), Echo=D4_PIN(25); -1 = no/invalid echo.
             Blockly.Arduino.definitions_.makerEsp32_ultra = [
                 'long getDistanceTrigEcho(int trigPin, int echoPin) {',
                 '  pinMode(trigPin, OUTPUT);',
                 '  pinMode(echoPin, INPUT);',
                 '  digitalWrite(trigPin, LOW);',
-                '  delayMicroseconds(2);',
+                '  delayMicroseconds(3);',
                 '  digitalWrite(trigPin, HIGH);',
                 '  delayMicroseconds(10);',
                 '  digitalWrite(trigPin, LOW);',
                 '  long duration = pulseIn(echoPin, HIGH, 30000);',
-                '  return duration * 0.034 / 2;',
+                '  if (duration == 0) return -1;',
+                '  long distanceCM = duration * 0.0343 / 2;',
+                '  if (distanceCM < 2 || distanceCM > 400) return -1;',
+                '  return distanceCM;',
                 '}'
             ].join('\n');
         }
-        Blockly.Arduino.setups_.makerEsp32_ultra =
-            'pinMode(D5_PIN, OUTPUT);\ndigitalWrite(D5_PIN, LOW);\npinMode(D4_PIN, INPUT);';
+        Blockly.Arduino.setups_.makerEsp32_ultra = [
+            'pinMode(D5_PIN, OUTPUT);',
+            'digitalWrite(D5_PIN, LOW);',
+            'pinMode(D4_PIN, INPUT);',
+            'delay(500);'
+        ].join('\n');
     };
 
     const ensureRfid = () => {

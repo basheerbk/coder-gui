@@ -219,6 +219,11 @@ const LiveCodePanel = () => {
                                 ? `Ready · ${upload.portLabel || 'Maker ESP32'}`
                                 : 'Connect your Maker ESP32, then Upload.'))}
                 </div>
+                {upload.phase === 'uploading' || upload.phase === 'error' ? (
+                    <div style={{fontSize: 10, color: K.muted, lineHeight: 1.35, marginTop: 2}}>
+                        Some laptops need you to hold BOOT during Upload (then release). Prefer a USB2 port if auto-reset fails.
+                    </div>
+                ) : null}
                 {upload.log ? (
                     <pre
                         style={{

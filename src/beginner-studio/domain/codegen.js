@@ -115,7 +115,8 @@ const setupLinesForConnection = c => {
                 `// HC-SR04 on D5: Trig=${trig} OUTPUT, Echo=${echo} INPUT (never drive Echo)`,
                 `pinMode(${trig}, OUTPUT);`,
                 `digitalWrite(${trig}, LOW);`,
-                `pinMode(${echo}, INPUT);`
+                `pinMode(${echo}, INPUT);`,
+                'delay(500);'
             ];
         }
         return ['// HC-SR04 needs D5 (Trig+Echo) — no dual pins on this jack'];
@@ -259,12 +260,15 @@ const dualDistanceHelper = () => [
     '  pinMode(trigPin, OUTPUT);',
     '  pinMode(echoPin, INPUT);',
     '  digitalWrite(trigPin, LOW);',
-    '  delayMicroseconds(2);',
+    '  delayMicroseconds(3);',
     '  digitalWrite(trigPin, HIGH);',
     '  delayMicroseconds(10);',
     '  digitalWrite(trigPin, LOW);',
     '  long duration = pulseIn(echoPin, HIGH, 30000);',
-    '  return duration * 0.034 / 2;',
+    '  if (duration == 0) return -1;',
+    '  long distanceCM = duration * 0.0343 / 2;',
+    '  if (distanceCM < 2 || distanceCM > 400) return -1;',
+    '  return distanceCM;',
     '}'
 ];
 
@@ -394,6 +398,15 @@ const emitLeaf = (block, connById, level) => {
         lines.push(indent(level, `delay(${Number(p.ms) || 500});`));
         serialLabel(`${modLabel}: blink ${Number(p.ms) || 500}ms`);
         break;
+    case 'set_brightness': {
+        // ESP32 PWM via analogWrite — 0 = off, 255 = full (same jack as On/Off).
+        const brightnessExpr = p.brightnessVar
+            ? `map(constrain((int)${p.brightnessVar}, 0, 4095), 0, 4095, 0, 255)`
+            : String(Math.max(0, Math.min(255, Number(p.brightness) != null ? Number(p.brightness) : 128)));
+        lines.push(indent(level, `analogWrite(${pin}, ${brightnessExpr});`));
+        serialLabel(`${modLabel}: brightness=`, brightnessExpr);
+        break;
+    }
     case 'play_tone':
         lines.push(indent(level, `tone(${pin}, ${Number(p.freq) || 1000});`));
         serialLabel(`${modLabel}: tone `, String(Number(p.freq) || 1000));
@@ -614,14 +627,21 @@ const emitLeaf = (block, connById, level) => {
         break;
     case 'read_distance': {
         const ue = ultraPins(port);
+        const distVar = (mod && mod.valueName) || 'distance';
         if (ue) {
             lines.push(indent(level,
-                `${(mod && mod.valueName) || 'distance'} = getDistanceTrigEcho(${ue.trig}, ${ue.echo});`));
+                `${distVar} = getDistanceTrigEcho(${ue.trig}, ${ue.echo});`));
         } else {
             lines.push(indent(level, '// HC-SR04 must use D5 (Trig IO26 + Echo IO25) — skipped'));
-            lines.push(indent(level, `${(mod && mod.valueName) || 'distance'} = 0;`));
+            lines.push(indent(level, `${distVar} = -1;`));
         }
-        serialLabel('HC-SR04 cm=', (mod && mod.valueName) || 'distance');
+        lines.push(indent(level, `if (${distVar} < 0) {`));
+        lines.push(indent(level + 1, 'Serial.println(F("HC-SR04: No valid echo"));'));
+        lines.push(indent(level, '} else {'));
+        lines.push(indent(level + 1, 'Serial.print(F("HC-SR04 cm="));'));
+        lines.push(indent(level + 1, `Serial.println(${distVar});`));
+        lines.push(indent(level, '}'));
+        lines.push(indent(level, 'delay(100);'));
         break;
     }
     case 'read_temp':

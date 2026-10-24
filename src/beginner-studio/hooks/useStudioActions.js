@@ -241,7 +241,7 @@ const useStudioActions = (state, setState) => {
             selectedModule: null,
             addTarget: null,
             showProjectLibrary: false,
-            view: 'code'
+            view: 'build'
         }));
     }, [setState]);
 

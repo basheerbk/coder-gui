@@ -17,13 +17,14 @@ const DEVICE_PROFILES = {
     arduinoEsp32: {
         fqbn: 'esp32:esp32:esp32',
         protocol: 'esptool',
-        monitorBaud: 115200,
+        // Match Beginner Studio + Maker Kit Serial.begin(9600). Blynk sketches use 115200 — pick that in the console dropdown.
+        monitorBaud: 9600,
         connectBaud: 115200
     },
     arduinoEsp32S3: {
         fqbn: 'esp32:esp32:esp32s3',
         protocol: 'esptool',
-        monitorBaud: 115200,
+        monitorBaud: 9600,
         connectBaud: 115200
     }
 };

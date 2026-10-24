@@ -56,10 +56,26 @@ const flashUno = async (hex, onProgress, onLog) => {
 const flashEsp32 = async (firmware, onProgress, onLog) => {
     throwIfAborted();
     if (onLog) onLog('Resetting into ESP32 download mode…\r\n');
+    // Fully release Web Serial locks (monitor / prior flash) before esptool opens.
+    try {
+        await notifyFlashStarting();
+    } catch (e) {
+        // already stopped
+    }
     await closePort({forget: false});
+    // Windows USB-serial needs time after close before the next open.
+    await new Promise(r => setTimeout(r, 500));
     const port = getPort();
     if (!port) {
         throw new Error('Connect your board first (Web Serial).');
+    }
+    if (port.readable || port.writable) {
+        try {
+            await port.close();
+        } catch (e) {
+            // ignore
+        }
+        await new Promise(r => setTimeout(r, 400));
     }
     await flashEspImagesOnPort(port, firmware, onProgress, onLog);
 };

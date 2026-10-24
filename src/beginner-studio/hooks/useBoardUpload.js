@@ -40,6 +40,15 @@ const useBoardUpload = () => {
         setMessage('Pick your Maker ESP32…');
         setLog('');
         try {
+            // Release any Beginner serial-monitor locks before opening the port.
+            try {
+                const mon = await import('../../lib/web-serial/serial-monitor');
+                if (mon.isSerialMonitoring()) {
+                    await mon.stopSerialMonitor();
+                }
+            } catch (e) {
+                // ignore
+            }
             const portMod = await import('../../lib/web-serial/web-serial-port');
             await portMod.requestAndOpenPort(115200);
             await refreshConnection();
@@ -80,7 +89,7 @@ const useBoardUpload = () => {
         }
 
         setPhase('uploading');
-        setMessage('Compiling on server…');
+        setMessage('Compiling… then hold BOOT if progress stalls near 5%');
         setLog('');
 
         try {

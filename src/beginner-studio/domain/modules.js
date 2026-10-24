@@ -43,9 +43,10 @@ const MODULES = [
         dir: 'out',
         category: 'output',
         color: K.purple,
-        description: 'Turn a light on, off, or blink',
+        description: 'Turn a light on, off, blink, or set brightness (PWM 0–255)',
         actions: [
             {type: 'set_on', label: 'On / Off', params: {on: true}},
+            {type: 'set_brightness', label: 'Brightness', params: {brightness: 128}},
             {type: 'blink', label: 'Blink', params: {ms: 500}}
         ]
     },

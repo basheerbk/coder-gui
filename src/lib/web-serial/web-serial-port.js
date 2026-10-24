@@ -48,6 +48,37 @@ const attachDisconnectListener = port => {
     navigator.serial.addEventListener('disconnect', disconnectHandler);
 };
 
+const delay = ms => new Promise(r => setTimeout(r, ms));
+
+const safeClose = async port => {
+    if (!port) {
+        return;
+    }
+    try {
+        if (port.readable || port.writable) {
+            await port.close();
+        }
+    } catch (e) {
+        // already closed / still locked
+    }
+};
+
+const openWithRetry = async (port, baudRate, attempts = 3) => {
+    let lastErr = null;
+    for (let i = 0; i < attempts; i++) {
+        await safeClose(port);
+        // Windows USB-serial often needs a beat after close before reopen.
+        await delay(i === 0 ? 150 : 400 * i);
+        try {
+            await port.open(serialOpenOptions(baudRate));
+            return port;
+        } catch (err) {
+            lastErr = err;
+        }
+    }
+    throw new Error(normalizeWebSerialError(lastErr));
+};
+
 const requestAndOpenPort = async (baudRate = 115200) => {
     if (!isWebSerialSupported()) {
         throw new Error('Web Serial is not supported in this browser. Use Chrome or Edge on a computer.');
@@ -59,11 +90,7 @@ const requestAndOpenPort = async (baudRate = 115200) => {
     } catch (err) {
         throw new Error(normalizeWebSerialError(err));
     }
-    try {
-        await port.open(serialOpenOptions(baudRate));
-    } catch (err) {
-        throw new Error(normalizeWebSerialError(err));
-    }
+    await openWithRetry(port, baudRate);
     activePort = port;
     activeLabel = formatPortLabel(port);
     attachDisconnectListener(port);
@@ -75,11 +102,7 @@ const openExistingPort = async (baudRate = 115200) => {
         throw new Error('No Web Serial port selected.');
     }
     if (!activePort.readable) {
-        try {
-            await activePort.open(serialOpenOptions(baudRate));
-        } catch (err) {
-            throw new Error(normalizeWebSerialError(err));
-        }
+        await openWithRetry(activePort, baudRate);
     }
     return activePort;
 };
@@ -88,32 +111,14 @@ const reopenPort = async (baudRate = 115200) => {
     if (!activePort) {
         throw new Error('No Web Serial port selected.');
     }
-    try {
-        if (activePort.readable || activePort.writable) {
-            await activePort.close();
-        }
-    } catch (e) {
-        // already closed
-    }
-    await new Promise(r => setTimeout(r, 100));
-    try {
-        await activePort.open(serialOpenOptions(baudRate));
-    } catch (err) {
-        throw new Error(normalizeWebSerialError(err));
-    }
+    await openWithRetry(activePort, baudRate);
     return activePort;
 };
 
 const closePort = async (options = {}) => {
     const forget = options.forget !== false;
     if (!activePort) return;
-    try {
-        if (activePort.readable || activePort.writable) {
-            await activePort.close();
-        }
-    } catch (e) {
-        // Port may already be closed after flash.
-    }
+    await safeClose(activePort);
     if (forget) {
         activePort = null;
         activeLabel = null;
