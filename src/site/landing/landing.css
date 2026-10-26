@@ -23,8 +23,25 @@
   box-sizing: border-box;
 }
 
+/* Opt out of forced/auto dark modes (Chrome Android, Samsung Internet) that invert text. */
+:root {
+  color-scheme: only light;
+}
+
 html {
   scroll-behavior: smooth;
+  background-color: #FFFBF5;
+  color: #2B2B2B;
+}
+
+/* Keep section titles clear of the sticky header after a menu/hash jump. */
+section[id],
+#notify {
+  scroll-margin-top: calc(var(--nav-h) + 1rem);
+}
+
+picture {
+  display: block;
 }
 
 body {
@@ -211,17 +228,25 @@ p {
   position: relative;
   min-height: calc(100svh - var(--nav-h));
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   align-items: center;
   justify-items: start;
   overflow: hidden;
   color: var(--text);
-  background: #3d4a2e;
+  /* Shown until the hero image loads, so the copy is readable from the first paint. */
+  background-color: var(--bg);
+  background-image: linear-gradient(120deg, #FFFBF5 0%, #FFF1E6 55%, #FFE4CC 100%);
 }
 
 .hero-bg {
   position: absolute;
   inset: 0;
   z-index: 0;
+}
+
+.hero-bg picture {
+  width: 100%;
+  height: 100%;
 }
 
 .hero-bg img {
@@ -288,7 +313,13 @@ p {
 .hero-sub {
   font-size: clamp(1.05rem, 2vw, 1.2rem);
   color: var(--text-muted);
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.hero-availability {
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 1.25rem;
 }
 
 .hero-cta-wrap {
@@ -421,42 +452,6 @@ p {
   }
 }
 
-.rj11-demo {
-  margin-top: 3rem;
-  display: grid;
-  gap: 1.25rem;
-  align-items: center;
-}
-
-@media (min-width: 800px) {
-  .rj11-demo {
-    grid-template-columns: 1.1fr 0.9fr;
-  }
-}
-
-.rj11-demo-copy h3 {
-  font-size: 1.35rem;
-}
-
-.rj11-demo-copy p {
-  color: var(--text-muted);
-}
-
-.rj11-frame {
-  border-radius: var(--radius);
-  background: var(--white);
-  box-shadow: var(--shadow-soft);
-  overflow: hidden;
-  aspect-ratio: 1 / 1;
-}
-
-.rj11-frame img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-}
-
 /* Gallery */
 
 .gallery-grid {
@@ -484,6 +479,11 @@ p {
   background: rgba(0, 168, 150, 0.12);
 }
 
+.gallery-frame picture {
+  width: 100%;
+  height: 100%;
+}
+
 .gallery-frame img {
   width: 100%;
   height: 100%;
@@ -502,7 +502,7 @@ p {
   font-size: 0.95rem;
 }
 
-/* Why RJ11 / Trust / Schools / About */
+/* Modules / Trust / Schools / About */
 
 .split {
   display: grid;
@@ -518,29 +518,64 @@ p {
   }
 }
 
+@media (min-width: 800px) {
+  .split--center {
+    align-items: center;
+  }
+}
+
 .point-list {
   list-style: none;
   padding: 0;
-  margin: 1.25rem 0 0;
+  margin: 0;
   display: grid;
   gap: 0.85rem;
 }
 
 .point-list li {
-  padding-left: 1.4rem;
-  position: relative;
-  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  padding: 0.9rem 1.1rem;
+  background: var(--white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-soft);
+  color: var(--text);
+  font-weight: 600;
+  line-height: 1.45;
+  transition: transform 0.2s ease;
 }
 
-.point-list li::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 0.55rem;
-  width: 0.55rem;
-  height: 0.55rem;
-  border-radius: 50%;
+.point-list li:hover {
+  transform: translateY(-2px);
+}
+
+.point-icon {
+  flex: none;
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 0.8rem;
+  display: grid;
+  place-items: center;
+  color: var(--white);
+}
+
+.point-icon svg {
+  width: 1.35rem;
+  height: 1.35rem;
+}
+
+.point-icon--orange {
+  background: var(--primary);
+}
+
+.point-icon--teal {
   background: var(--secondary);
+}
+
+.point-icon--yellow {
+  background: var(--accent);
+  color: var(--text);
 }
 
 .trust-grid {
@@ -586,17 +621,12 @@ p {
   font-size: 1.05rem;
 }
 
-/* Waitlist (mobile) */
+/* Waitlist */
 
 .waitlist {
   margin-top: 0.5rem;
-  display: none;
   width: 100%;
-  max-width: 22rem;
-}
-
-.waitlist.is-visible {
-  display: block;
+  max-width: 24rem;
 }
 
 .waitlist label {
@@ -618,6 +648,12 @@ p {
   border-radius: var(--radius-pill);
   padding: 0.7rem 1rem;
   font: inherit;
+  background: var(--white);
+  color: var(--text);
+}
+
+.waitlist input[aria-invalid="true"] {
+  border-color: #C2410C;
 }
 
 .waitlist button {
@@ -629,11 +665,54 @@ p {
   font-weight: 700;
   padding: 0.7rem 1rem;
   cursor: pointer;
+  white-space: nowrap;
 }
 
-.waitlist-msg {
+.waitlist button:disabled,
+.waitlist input:disabled {
+  opacity: 0.65;
+  cursor: progress;
+}
+
+.waitlist-error {
   font-size: 0.85rem;
+  font-weight: 700;
+  color: #C2410C;
   margin: 0.45rem 0 0;
+}
+
+.waitlist-error:empty {
+  display: none;
+}
+
+.waitlist-privacy {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin: 0.45rem 0 0;
+}
+
+.waitlist-privacy a {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.waitlist-success {
+  font-weight: 700;
+  color: var(--text);
+  background: rgba(0, 168, 150, 0.12);
+  border: 2px solid var(--secondary);
+  border-radius: var(--radius);
+  padding: 0.75rem 1rem;
+  margin: 0;
+}
+
+/* Honeypot: off-screen, not display:none, so simple bots still fill it in. */
+.waitlist-hp {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
 }
 
 /* Footer */
@@ -668,7 +747,10 @@ p {
   max-width: 18rem;
 }
 
-.footer-col h2 {
+.footer-heading {
+  font-family: var(--font-display);
+  font-weight: 700;
+  line-height: 1.2;
   font-size: 0.95rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -765,26 +847,13 @@ p {
     width: 100%;
     margin-top: 0.5rem;
   }
-
-  .hero-cta-desktop {
-    display: none !important;
-  }
-
-  .waitlist.is-mobile-default {
-    display: block;
-  }
-}
-
-@media (min-width: 800px) {
-  .hero-cta-mobile {
-    display: none !important;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   .hero-copy,
-  .btn-primary:hover {
+  .btn-primary:hover,
+  .point-list li:hover {
     animation: none;
     transition: none;
     transform: none;

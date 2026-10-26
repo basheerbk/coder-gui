@@ -1,5 +1,11 @@
 import React, {useEffect, useState} from 'react';
 
+import {SiteFooter, SiteHeader} from './chrome.jsx';
+import IMAGES from './images';
+import Picture from './Picture.jsx';
+import {SITE_CONFIG} from './site-config';
+import WaitlistForm from './WaitlistForm.jsx';
+
 import './landing.css';
 
 const detectMobileLike = () => {
@@ -8,49 +14,40 @@ const detectMobileLike = () => {
     return isNarrow || (isCoarsePointer && window.innerWidth < 1024);
 };
 
+const MODULE_POINTS = [
+    {
+        tone: 'orange',
+        text: 'Color-labeled modules so kids grab the right part without a wiring chart.',
+        icon: (
+            <React.Fragment>
+                <path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9z" />
+                <circle
+                    cx="7.5"
+                    cy="7.5"
+                    r="1.5"
+                />
+            </React.Fragment>
+        )
+    },
+    {
+        tone: 'teal',
+        text: 'Firm click-in ports, so builds stay together through the whole experiment.',
+        icon: <path d="M9 2v6M15 2v6M6 8h12v4a6 6 0 0 1-12 0V8zM12 18v4" />
+    },
+    {
+        tone: 'yellow',
+        text: 'Swap a light for a sensor in seconds when curiosity takes a new turn.',
+        icon: <path d="M7 4L3 8l4 4M3 8h14M17 12l4 4-4 4M21 16H7" />
+    }
+];
+
 const App = () => {
-    const [navOpen, setNavOpen] = useState(false);
-    const [scrolled, setScrolled] = useState(false);
-    const [isMobileLike, setIsMobileLike] = useState(false);
-    const [showBrowserNote, setShowBrowserNote] = useState(false);
     const [showSerialNote, setShowSerialNote] = useState(false);
-    const [waitlistEmail, setWaitlistEmail] = useState('');
-    const [waitlistMsg, setWaitlistMsg] = useState('');
-    const year = new Date().getFullYear();
 
     useEffect(() => {
-        const mobile = detectMobileLike();
         const hasSerial = typeof navigator !== 'undefined' && 'serial' in navigator;
-        setIsMobileLike(mobile);
-        setShowBrowserNote(mobile);
-        setShowSerialNote(!mobile && !hasSerial);
-
-        const onScroll = () => setScrolled(window.scrollY > 8);
-        onScroll();
-        window.addEventListener('scroll', onScroll, {passive: true});
-        return () => window.removeEventListener('scroll', onScroll);
+        setShowSerialNote(!detectMobileLike() && !hasSerial);
     }, []);
-
-    const ideHref = isMobileLike ? '#how-it-works' : '/choose';
-
-    const closeNav = () => setNavOpen(false);
-
-    const handleWaitlist = event => {
-        event.preventDefault();
-        const email = waitlistEmail.trim();
-        if (!email) return;
-        try {
-            const list = JSON.parse(localStorage.getItem('tinkerbit-waitlist') || '[]');
-            if (list.indexOf(email) === -1) {
-                list.push(email);
-                localStorage.setItem('tinkerbit-waitlist', JSON.stringify(list));
-            }
-        } catch (err) {
-            // Ignore storage failures; still show success.
-        }
-        setWaitlistMsg('Got it — we’ll nudge you when desktop coding is the next step.');
-        setWaitlistEmail('');
-    };
 
     return (
         <React.Fragment>
@@ -59,64 +56,7 @@ const App = () => {
                 href="#main"
             >Skip to content</a>
 
-            <header
-                className={`site-header${scrolled ? ' is-scrolled' : ''}`}
-            >
-                <div className="container nav-inner">
-                    <a
-                        className="brand"
-                        href="/"
-                    >
-                        <span
-                            className="brand-mark"
-                            aria-hidden="true"
-                        >TB</span>
-                        <span>TinkerBit</span>
-                    </a>
-                    <button
-                        className="nav-toggle"
-                        type="button"
-                        aria-label={navOpen ? 'Close menu' : 'Open menu'}
-                        aria-expanded={navOpen ? 'true' : 'false'}
-                        aria-controls="navMenu"
-                        onClick={() => setNavOpen(!navOpen)}
-                    >
-                        <span /><span /><span />
-                    </button>
-                    <nav
-                        className={`nav-links${navOpen ? ' is-open' : ''}`}
-                        id="navMenu"
-                        aria-label="Primary"
-                    >
-                        <a
-                            href="#how-it-works"
-                            onClick={closeNav}
-                        >How it works</a>
-                        <a
-                            href="#gallery"
-                            onClick={closeNav}
-                        >Gallery</a>
-                        <a
-                            href="#schools"
-                            onClick={closeNav}
-                        >Schools</a>
-                        <a
-                            href="#about"
-                            onClick={closeNav}
-                        >About</a>
-                        <a
-                            className="btn btn-primary btn-pill-nav hero-cta-desktop"
-                            href={ideHref}
-                            onClick={closeNav}
-                        >Open IDE</a>
-                        <a
-                            className="btn btn-primary btn-pill-nav hero-cta-mobile"
-                            href="#how-it-works"
-                            onClick={closeNav}
-                        >Learn more</a>
-                    </nav>
-                </div>
-            </header>
+            <SiteHeader onHome />
 
             <main id="main">
                 <section
@@ -124,11 +64,8 @@ const App = () => {
                     aria-labelledby="hero-title"
                 >
                     <div className="hero-bg">
-                        <img
-                            src="/static/landing/hero.png"
-                            width="1376"
-                            height="768"
-                            alt="A young maker coding a glowing TinkerBit robot on a laptop with colorful blocks"
+                        <Picture
+                            image={IMAGES.hero}
                             fetchpriority="high"
                         />
                     </div>
@@ -137,52 +74,23 @@ const App = () => {
                             <p className="hero-brand">TinkerBit</p>
                             <h1 id="hero-title">Block coding meets real circuits</h1>
                             <p className="hero-sub">
-                                Plug something in. Stack a few blocks. Watch the table come alive — lights, sound,
-                                motion. No soldering. No breadboard chaos.
+                                Plug something in. Stack a few blocks. Watch your desk come alive with lights, sound
+                                and motion. No soldering. No breadboard chaos.
+                            </p>
+                            <p className="hero-availability">
+                                First kits ship {SITE_CONFIG.shipDate}. Get a note when they’re ready.
                             </p>
                             <div className="hero-cta-wrap">
                                 <a
-                                    className="btn btn-primary hero-cta-desktop"
-                                    href={ideHref}
-                                >Start Coding</a>
-                                <a
-                                    className="btn btn-primary hero-cta-mobile"
+                                    className="btn btn-primary"
                                     href="#how-it-works"
                                 >See how it works</a>
-                                {showBrowserNote ? (
-                                    <p className="hero-note">
-                                        Best on a desktop computer with Chrome or Edge — that’s where the board connects through the browser.
-                                    </p>
-                                ) : null}
+                                <WaitlistForm />
                                 {showSerialNote ? (
                                     <p className="hero-note">
                                         This browser can’t talk to USB boards yet. Try Chrome or Edge on a desktop to upload your builds.
                                     </p>
                                 ) : null}
-                                <form
-                                    className="waitlist is-mobile-default"
-                                    onSubmit={handleWaitlist}
-                                >
-                                    <label htmlFor="waitlistEmail">Get a note when you’re ready to code on desktop</label>
-                                    <div className="waitlist-row">
-                                        <input
-                                            id="waitlistEmail"
-                                            name="email"
-                                            type="email"
-                                            autoComplete="email"
-                                            placeholder="you@email.com"
-                                            required
-                                            value={waitlistEmail}
-                                            onChange={event => setWaitlistEmail(event.target.value)}
-                                        />
-                                        <button type="submit">Notify me</button>
-                                    </div>
-                                    <p
-                                        className="waitlist-msg"
-                                        role="status"
-                                        aria-live="polite"
-                                    >{waitlistMsg}</p>
-                                </form>
                             </div>
                         </div>
                     </div>
@@ -215,7 +123,7 @@ const App = () => {
                                     aria-hidden="true"
                                 >1</span>
                                 <h3>Plug a module into the board</h3>
-                                <p>Modules click into the board — firm, obvious, and kid-friendly.</p>
+                                <p>Modules click into the board. Firm, obvious and kid-friendly.</p>
                             </article>
                             <article className="step">
                                 <span
@@ -230,29 +138,9 @@ const App = () => {
                                     className="step-num"
                                     aria-hidden="true"
                                 >3</span>
-                                <h3>Watch it react instantly</h3>
-                                <p>Upload from the browser and the board answers — light, sound, motion, right on the table.</p>
+                                <h3>Watch it come alive</h3>
+                                <p>Upload from the browser and the board answers with light, sound and motion, right on the table.</p>
                             </article>
-                        </div>
-                        <div className="rj11-demo">
-                            <div className="rj11-demo-copy">
-                                <h3>That click-in jack, explained</h3>
-                                <p>
-                                    RJ11 is the same style of connector you might remember from a landline phone —
-                                    a small rectangular plug with a clip. On TinkerBit, each module (light, buzzer, sensor, motor)
-                                    ends in that plug. Line it up with a port on the board, push until it clicks, and the circuit
-                                    is ready. Pull the clip to unplug. No jumper wires to mix up.
-                                </p>
-                            </div>
-                            <div className="rj11-frame">
-                                <img
-                                    src="/static/landing/rj11-click.png"
-                                    width="1024"
-                                    height="1024"
-                                    loading="lazy"
-                                    alt="Hand plugging an orange light sensor module into a TinkerBit board next to button, buzzer, and motion modules"
-                                />
-                            </div>
                         </div>
                     </div>
                 </section>
@@ -265,16 +153,13 @@ const App = () => {
                     <div className="container">
                         <p className="section-kicker">Build gallery</p>
                         <h2 id="gallery-title">Things kids actually make</h2>
-                        <p className="section-lead">Starter builds that click together in minutes — and feel real on the table.</p>
+                        <p className="section-lead">Starter builds that click together in minutes and feel real on the table.</p>
                         <div className="gallery-grid">
                             <article className="gallery-item">
                                 <div className="gallery-frame">
-                                    <img
-                                        src="/static/landing/gallery-nightlight.png"
-                                        width="1024"
-                                        height="1024"
-                                        loading="lazy"
-                                        alt="TinkerBit board with a glowing owl nightlight and warm maker desk props"
+                                    <Picture
+                                        image={IMAGES.galleryNightlight}
+                                        lazy
                                     />
                                 </div>
                                 <h3>Night Owl Nightlight</h3>
@@ -282,25 +167,19 @@ const App = () => {
                             </article>
                             <article className="gallery-item">
                                 <div className="gallery-frame">
-                                    <img
-                                        src="/static/landing/gallery-doorbell.png"
-                                        width="1024"
-                                        height="1024"
-                                        loading="lazy"
-                                        alt="Child pressing a blue button module connected to a TinkerBit board and speaker"
+                                    <Picture
+                                        image={IMAGES.galleryDoorbell}
+                                        lazy
                                     />
                                 </div>
                                 <h3>Door Beep Doorbell</h3>
-                                <p>Press the button, hear a cheerful buzz — classic first win.</p>
+                                <p>Press the button, hear a cheerful buzz. A classic first win.</p>
                             </article>
                             <article className="gallery-item">
                                 <div className="gallery-frame">
-                                    <img
-                                        src="/static/landing/gallery-bot.png"
-                                        width="1024"
-                                        height="1024"
-                                        loading="lazy"
-                                        alt="TinkerBit desk rover with ultrasonic eyes beside a laptop showing block code"
+                                    <Picture
+                                        image={IMAGES.galleryBot}
+                                        lazy
                                     />
                                 </div>
                                 <h3>Desk Rover</h3>
@@ -317,20 +196,37 @@ const App = () => {
                 >
                     <div className="container">
                         <p className="section-kicker">Snap-in modules</p>
-                        <h2 id="why-title">Lights, buzzers, sensors — click and go</h2>
-                        <div className="split">
+                        <h2 id="why-title">Lights, buzzers, sensors. Click and go.</h2>
+                        <div className="split split--center">
                             <p
                                 className="section-lead"
                                 style={{margin: 0}}
                             >
                                 Every piece has a job you can see. Plug in a light, a button, or a sensor, stack a few
-                                blocks, and the table answers back. When the idea changes, swap the module — the board
+                                blocks, and the table answers back. When the idea changes, swap the module. The board
                                 stays put.
                             </p>
                             <ul className="point-list">
-                                <li>Color-labeled modules so kids grab the right part without a wiring chart.</li>
-                                <li>Firm click-in ports — builds stay together through the whole experiment.</li>
-                                <li>Swap a light for a sensor in seconds when curiosity takes a new turn.</li>
+                                {MODULE_POINTS.map(point => (
+                                    <li key={point.tone}>
+                                        <span
+                                            className={`point-icon point-icon--${point.tone}`}
+                                            aria-hidden="true"
+                                        >
+                                            <svg
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                strokeWidth="2"
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                            >
+                                                {point.icon}
+                                            </svg>
+                                        </span>
+                                        <span>{point.text}</span>
+                                    </li>
+                                ))}
                             </ul>
                         </div>
                     </div>
@@ -347,15 +243,15 @@ const App = () => {
                         <div className="trust-grid">
                             <article className="trust-item">
                                 <h3>Ages 8+ · low voltage</h3>
-                                <p>Designed for kids with adult nearby as needed. The kit runs at kid-friendly low voltage — no mains wiring on the modules.</p>
+                                <p>Designed for kids with adult nearby as needed. The kit runs at kid-friendly low voltage, with no mains wiring on the modules.</p>
                             </article>
                             <article className="trust-item">
                                 <h3>What’s in the box</h3>
-                                <p>A main board, a starter set of RJ11 modules (lights, sound, sensors), USB cable, and a quick-start card that points to the online IDE.</p>
+                                <p>A main board, a starter set of plug-in modules (lights, sound, sensors), USB cable, and a quick-start card that points to the online IDE.</p>
                             </article>
                             <article className="trust-item">
                                 <h3>Room to grow</h3>
-                                <p>Start with blink-and-beep builds, then layer sensors and motion as confidence grows — same board, more ambitious ideas.</p>
+                                <p>Start with blink-and-beep builds, then layer sensors and motion as confidence grows. Same board, more ambitious ideas.</p>
                             </article>
                         </div>
                     </div>
@@ -392,7 +288,7 @@ const App = () => {
                         <h2 id="about-title">Made by people who still get excited when an LED turns on</h2>
                         <div className="about-panel">
                             <p>
-                                We’ve spent years running hands-on STEM spaces — the kind where kids spill parts on tables
+                                We’ve spent years running hands-on STEM spaces, the kind where kids spill parts on tables
                                 and leave grinning because something they built actually worked. TinkerBit grew out of that
                                 mess and magic: fewer loose wires, clearer first wins, and a coding screen that feels as
                                 tactile as the board on the desk.
@@ -402,44 +298,7 @@ const App = () => {
                 </section>
             </main>
 
-            <footer className="site-footer">
-                <div className="container footer-grid">
-                    <div>
-                        <div className="footer-brand">TinkerBit</div>
-                        <p className="footer-tagline">Click it in. Code it. Watch it come alive.</p>
-                    </div>
-                    <div className="footer-col">
-                        <h2>Explore</h2>
-                        <ul>
-                            <li><a href="#how-it-works">How it works</a></li>
-                            <li><a href="#gallery">Gallery</a></li>
-                            <li><a href="#schools">Schools</a></li>
-                            <li><a href="#about">About</a></li>
-                            <li>
-                                <a
-                                    className="hero-cta-desktop"
-                                    href={ideHref}
-                                >Open IDE</a>
-                            </li>
-                        </ul>
-                    </div>
-                    <div className="footer-col">
-                        <h2>Connect</h2>
-                        <ul>
-                            <li><a href="mailto:hello@tinkerbit.io">hello@tinkerbit.io</a></li>
-                            <li>
-                                <a
-                                    href="https://tinkerbit.io/"
-                                    rel="noopener noreferrer"
-                                >tinkerbit.io</a>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-                <div className="container footer-bottom">
-                    <p>© {year} TinkerBit. Built for makers at every age.</p>
-                </div>
-            </footer>
+            <SiteFooter onHome />
         </React.Fragment>
     );
 };

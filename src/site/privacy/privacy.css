@@ -1,0 +1,31 @@
+.privacy-body {
+  max-width: 44rem;
+}
+
+.privacy-body h1 {
+  font-size: clamp(1.85rem, 4.2vw, 2.6rem);
+  letter-spacing: -0.03em;
+  margin-bottom: 1rem;
+}
+
+.privacy-body h2 {
+  font-size: 1.3rem;
+  margin-top: 2.25rem;
+}
+
+.privacy-body p {
+  color: var(--text-muted);
+}
+
+.privacy-body a:not(.btn) {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.privacy-updated {
+  font-size: 0.9rem;
+}
+
+.privacy-back {
+  margin-top: 2.5rem;
+}

@@ -87,6 +87,10 @@ const App = () => {
                     <span>TinkerBit</span>
                 </a>
                 <h1 id="login-title">Sign in</h1>
+                <p className="early-access">
+                    TinkerBit IDE is in early access.{' '}
+                    <a href="/#notify">Join the waitlist on the homepage</a>.
+                </p>
                 {errorText ? (
                     <p className="error">{errorText}</p>
                 ) : null}
@@ -123,7 +127,7 @@ const App = () => {
                 <a
                     className="back"
                     href="/"
-                >Back</a>
+                >Back to home</a>
             </section>
         </main>
     );

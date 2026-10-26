@@ -103,6 +103,14 @@
       "destination": "/beginner.html"
     },
     {
+      "source": "/privacy",
+      "destination": "/privacy.html"
+    },
+    {
+      "source": "/privacy/",
+      "destination": "/privacy.html"
+    },
+    {
       "source": "/ide",
       "destination": "/ide.html"
     },

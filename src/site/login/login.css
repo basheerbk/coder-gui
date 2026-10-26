@@ -70,10 +70,25 @@ body {
 }
 
 h1 {
-  margin: 0 0 1.25rem;
+  margin: 0 0 0.75rem;
   font-family: var(--font-display);
   font-size: 1.55rem;
   line-height: 1.25;
+}
+
+.early-access {
+  margin: 0 0 1.25rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 0.65rem;
+  background: rgba(255, 107, 53, 0.08);
+  color: var(--text-muted);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.early-access a {
+  color: var(--primary);
+  font-weight: 700;
 }
 
 .error {
