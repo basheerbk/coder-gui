@@ -6,6 +6,7 @@ var webpack = require('webpack');
 var CopyWebpackPlugin = require('copy-webpack-plugin');
 var HtmlWebpackPlugin = require('html-webpack-plugin');
 var UglifyJsPlugin = require('uglifyjs-webpack-plugin');
+var TerserPlugin = require('terser-webpack-plugin');
 const MonacoWebpackPlugin = require('monaco-editor-webpack-plugin');
 
 // PostCss
@@ -102,6 +103,28 @@ const base = {
                         messagesDir: './translations/messages/'
                     }]],
                 presets: ['@babel/preset-env', '@babel/preset-react']
+            }
+        },
+        {
+            // three.js ships ES2022 (static blocks, ?.); webpack 4's parser stops at ES2019.
+            test: /\.js$/,
+            include: /node_modules[\\/]three[\\/]/,
+            loader: 'babel-loader',
+            options: {
+                babelrc: false,
+                configFile: false,
+                compact: true,
+                cacheDirectory: true,
+                plugins: [
+                    '@babel/plugin-proposal-class-static-block',
+                    '@babel/plugin-proposal-class-properties',
+                    '@babel/plugin-proposal-private-methods',
+                    '@babel/plugin-proposal-private-property-in-object',
+                    '@babel/plugin-proposal-optional-chaining',
+                    '@babel/plugin-proposal-nullish-coalescing-operator',
+                    '@babel/plugin-proposal-logical-assignment-operators',
+                    '@babel/plugin-proposal-numeric-separator'
+                ]
             }
         },
         {
@@ -298,7 +321,10 @@ module.exports = [
         // Assign after defaultsDeep so IDE splitChunks/runtimeChunk never leak in.
         // Lazy upload/esptool must stay out of the initial site-vendor chunk.
         site.optimization = {
-            minimizer: (base.optimization && base.optimization.minimizer) || [],
+            minimizer: ((base.optimization && base.optimization.minimizer) || []).concat([
+                // The lazy three.js chunk is ~2 MB unminified; Uglify can't parse its ES2015+ output
+                new TerserPlugin({include: /board3d-gl/, parallel: true, sourceMap: true})
+            ]),
             runtimeChunk: false,
             splitChunks: {
                 chunks: 'initial',

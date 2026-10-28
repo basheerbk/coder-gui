@@ -21,6 +21,8 @@
  * UART (HC-05): RX=GPIO3 TX=GPIO1 — shared with USB serial @ 9600.
  */
 
+import {moduleById} from './modules';
+
 /** Shared GPIO conflict groups (jack ids). */
 const PORT_CONFLICTS = {
     D13: ['3D'],
@@ -401,6 +403,69 @@ const cardCablePoint = (cardX, cardY, side) => {
     return {x: cardX, y: cardY + (CARD.h / 2)};
 };
 
+const sharesI2cBus = (port, moduleDef) => Boolean(
+    moduleDef &&
+    port.kind === 'i2c' &&
+    (moduleDef.i2c || moduleDef.id === 'oled' || moduleDef.id === 'pulse')
+);
+
+/** How a jack should look while `selectedDef` (or nothing) is picked in the shelf. */
+const portUiState = (port, usedPorts, selectedDef) => {
+    const conn = usedPorts[port.id];
+    const shareI2c = sharesI2cBus(port, selectedDef);
+    const fits = Boolean(selectedDef) && isPortCompatible(port, selectedDef, usedPorts);
+    const compatible = fits && (!conn || shareI2c);
+    return {
+        occupied: Boolean(conn) && !shareI2c,
+        compatible,
+        dimmed: Boolean(selectedDef) && !fits,
+        shareI2c
+    };
+};
+
+const usedPortMap = connections => {
+    const map = {};
+    connections.forEach(c => {
+        map[c.portId] = c;
+    });
+    return map;
+};
+
+/** portId → {dir, color} for every plugged jack; drives trace pulses and the activity LED. */
+const portLinks = (connections, K) => {
+    const map = {};
+    connections.forEach(c => {
+        const port = portById(c.portId);
+        const def = moduleById(c.moduleId);
+        if (port) {
+            map[port.id] = {
+                dir: def && def.dir === 'in' ? 'in' : 'out',
+                color: port.signal === 'analog' ? K.analog : K.digital
+            };
+        }
+    });
+    return map;
+};
+
+const portColor = (port, K) => {
+    if (port.kind === 'analog') {
+        return K.analog;
+    }
+    if (port.kind === 'i2c' || port.kind === 'onboard') {
+        return K.cyan;
+    }
+    if (port.kind === 'motor') {
+        return K.orange;
+    }
+    if (port.kind === 'stepper') {
+        return K.dim;
+    }
+    if (port.kind === 'spi') {
+        return K.purple;
+    }
+    return K.digital;
+};
+
 export {
     PORTS,
     PORT_CONFLICTS,
@@ -419,5 +484,9 @@ export {
     compatibilityHint,
     pickPortForModule,
     portPosition,
-    cardCablePoint
+    cardCablePoint,
+    portUiState,
+    usedPortMap,
+    portLinks,
+    portColor
 };

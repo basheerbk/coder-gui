@@ -31,13 +31,11 @@ const hasModuleArt = moduleId => Boolean(MODULE_ART[moduleId]);
 const ROTATION_BY_SIDE = {top: -90, bottom: 90, right: 0, left: 180};
 
 /**
- * Places the artwork so its socket faces the board jack, then applies the user's drag offset.
- * Returns the art centre, rotation, rotated bounding box and the world point of the socket.
+ * Places a module of w × h world units, socket on its left edge at jackY, so the socket faces
+ * the board jack, then applies the user's drag offset.
+ * Returns the centre, rotation, rotated bounding box and the world point of the socket.
  */
-const artPlacement = (moduleId, port, pos, offsetX = 0, offsetY = 0) => {
-    const art = MODULE_ART[moduleId];
-    const w = art.w * ART_SCALE;
-    const h = art.h * ART_SCALE;
+const placeModule = ({w, h, jackY: socketY}, port, pos, offsetX = 0, offsetY = 0) => {
     const rotation = ROTATION_BY_SIDE[port.side] || 0;
     const reach = STUB + (w / 2);
     let cx = pos.cableX;
@@ -55,7 +53,7 @@ const artPlacement = (moduleId, port, pos, offsetX = 0, offsetY = 0) => {
     cy += offsetY;
 
     const localX = -w / 2;
-    const localY = (art.jackY * ART_SCALE) - (h / 2);
+    const localY = socketY - (h / 2);
     const rad = rotation * (Math.PI / 180);
     const jackX = cx + (localX * Math.cos(rad)) - (localY * Math.sin(rad));
     const jackY = cy + (localX * Math.sin(rad)) + (localY * Math.cos(rad));
@@ -71,6 +69,47 @@ const artPlacement = (moduleId, port, pos, offsetX = 0, offsetY = 0) => {
         jack: {x: jackX, y: jackY}
     };
 };
+
+const artPlacement = (moduleId, port, pos, offsetX = 0, offsetY = 0) => {
+    const art = MODULE_ART[moduleId];
+    return placeModule(
+        {w: art.w * ART_SCALE, h: art.h * ART_SCALE, jackY: art.jackY * ART_SCALE},
+        port,
+        pos,
+        offsetX,
+        offsetY
+    );
+};
+
+const UnplugButton = ({x, y, dragging, onDisconnect, K}) => (
+    <g
+        style={{cursor: 'pointer'}}
+        onPointerDown={e => e.stopPropagation()}
+        onClick={e => {
+            e.stopPropagation();
+            onDisconnect();
+        }}
+    >
+        <circle
+            cx={x}
+            cy={y}
+            r={9}
+            fill={K.red}
+            opacity={dragging ? 0.35 : 1}
+            filter="url(#plugPop)"
+        />
+        <text
+            x={x}
+            y={y + 4}
+            textAnchor="middle"
+            fill="#fff"
+            fontSize={11}
+            fontWeight={800}
+        >
+            ×
+        </text>
+    </g>
+);
 
 const ModuleArtNode = ({moduleId, name, placement, dragging, onMoveStart, onDisconnect, K}) => {
     const art = MODULE_ART[moduleId];
@@ -105,36 +144,16 @@ const ModuleArtNode = ({moduleId, name, placement, dragging, onMoveStart, onDisc
                     <Art />
                 </g>
             </g>
-            <g
-                style={{cursor: 'pointer'}}
-                onPointerDown={e => e.stopPropagation()}
-                onClick={e => {
-                    e.stopPropagation();
-                    onDisconnect();
-                }}
-            >
-                <circle
-                    cx={closeX}
-                    cy={closeY}
-                    r={9}
-                    fill={K.red}
-                    opacity={dragging ? 0.35 : 1}
-                    filter="url(#plugPop)"
-                />
-                <text
-                    x={closeX}
-                    y={closeY + 4}
-                    textAnchor="middle"
-                    fill="#fff"
-                    fontSize={11}
-                    fontWeight={800}
-                >
-                    ×
-                </text>
-            </g>
+            <UnplugButton
+                x={closeX}
+                y={closeY}
+                dragging={dragging}
+                onDisconnect={onDisconnect}
+                K={K}
+            />
         </g>
     );
 };
 
-export {MODULE_ART, hasModuleArt, artPlacement};
+export {MODULE_ART, hasModuleArt, artPlacement, placeModule, UnplugButton};
 export default ModuleArtNode;
