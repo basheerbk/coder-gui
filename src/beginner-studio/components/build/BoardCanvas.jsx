@@ -2,17 +2,23 @@ import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
 import {useStudio} from '../../context/StudioContext.jsx';
 import {moduleById} from '../../domain/modules';
-import {PORTS, portLinks, portPosition, portUiState, usedPortMap} from '../../domain/ports';
+import {PORTS, SPARE_JACKS, portLinks, portPosition, portUiState, usedPortMap} from '../../domain/ports';
 import {SCENE} from '../../domain/boardLayout';
 
 import BoardArt from './BoardArt.jsx';
 import ConnectionsLayer, {SceneDefs} from './ConnectionsLayer.jsx';
-import Port from './Port.jsx';
+import Port, {SpareJack} from './Port.jsx';
 
-const centeredPan = (w, h) => ({
-    x: ((w - SCENE.w) / 2) - SCENE.x,
-    y: ((h - SCENE.h) / 2) - SCENE.y
-});
+/** Screen pixels per world unit: the scene fills the canvas, within limits. */
+const fitScale = (w, h) => Math.max(0.7, Math.min(1.8, Math.min(w / SCENE.w, h / SCENE.h)));
+
+const centeredPan = (w, h) => {
+    const s = fitScale(w, h);
+    return {
+        x: (((w / s) - SCENE.w) / 2) - SCENE.x,
+        y: (((h / s) - SCENE.h) / 2) - SCENE.y
+    };
+};
 
 const clientToSvg = (svg, clientX, clientY) => {
     if (!svg) {
@@ -57,6 +63,7 @@ const BoardCanvas = () => {
     const [dragBend, setDragBend] = useState(null);
 
     const selectedDef = selectedModule ? moduleById(selectedModule) : null;
+    const scale = fitScale(size.w, size.h);
     const usedPorts = useMemo(() => usedPortMap(connections), [connections]);
     const liveLinks = useMemo(() => portLinks(connections, K), [connections, K]);
 
@@ -263,7 +270,7 @@ const BoardCanvas = () => {
             ) : null}
             <svg
                 ref={svgRef}
-                viewBox={`0 0 ${size.w} ${size.h}`}
+                viewBox={`0 0 ${size.w / scale} ${size.h / scale}`}
                 preserveAspectRatio="none"
                 style={{width: '100%', height: '100%', display: 'block'}}
                 onPointerDown={onPointerDown}
@@ -275,16 +282,15 @@ const BoardCanvas = () => {
 
                 <g transform={`translate(${pan.x}, ${pan.y})`}>
                     <BoardArt connected={liveLinks} />
+                    {SPARE_JACKS.map(jack => <SpareJack key={jack.id} jack={jack} />)}
 
                     {PORTS.map(port => {
-                        const pos = portPosition(port);
                         const state = portUiState(port, usedPorts, selectedDef);
                         return (
                             <Port
                                 key={port.id}
                                 port={port}
-                                x={pos.x}
-                                y={pos.y}
+                                pos={portPosition(port)}
                                 occupied={state.occupied}
                                 compatible={state.compatible}
                                 dimmed={state.dimmed}

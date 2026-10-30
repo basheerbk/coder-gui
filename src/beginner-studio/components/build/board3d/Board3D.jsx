@@ -6,22 +6,19 @@ import {moduleById} from '../../../domain/modules';
 import {
     BOARD,
     PORTS,
-    portById,
+    SPARE_JACKS,
     portColor,
     portLinks,
     portPosition,
     portUiState,
     usedPortMap
 } from '../../../domain/ports';
-import {BoardDefs, BoardSurface} from '../BoardArt.jsx';
+import {BoardTop, PCB_EDGE} from '../BoardArt.jsx';
 import ConnectionsLayer, {SceneDefs} from '../ConnectionsLayer.jsx';
-import {UnplugButton, placeModule} from '../ModuleArt.jsx';
-import {PortLabel} from '../Port.jsx';
+import {PortLabel, labelCenter} from '../Port.jsx';
 
 import {Box, FaceSvg} from './Box.jsx';
-import Jack3D from './Jack3D.jsx';
-import Module3D, {MODULE_3D} from './Module3D.jsx';
-import Parts3D, {ChipLegs} from './Parts3D.jsx';
+import Jack3D, {JACK_H, SpareJack3D} from './Jack3D.jsx';
 import StageControls from './StageControls.jsx';
 import {
     CENTER,
@@ -38,7 +35,25 @@ import {
 
 const SLAB_T = 7;
 
-const edge = dir => `linear-gradient(${dir}, #f2f2ee 0 14%, #d7cca4 14% 86%, #f0f0ec 86%)`;
+const edge = dir => `linear-gradient(${dir}, #6b3fa3 0 14%, ${PCB_EDGE} 14% 86%, #5a2f8f 86%)`;
+
+/** A flat SVG layer spanning SCENE at height z (board units). */
+const SceneLayer = ({z, children}) => (
+    <div
+        className="tb3d-layer"
+        style={{
+            left: `calc(${SCENE.x} * var(--u))`,
+            top: `calc(${SCENE.y} * var(--u))`,
+            width: `calc(${SCENE.w} * var(--u))`,
+            height: `calc(${SCENE.h} * var(--u))`,
+            transform: `translateZ(calc(${z} * var(--u)))`
+        }}
+    >
+        <svg viewBox={`${SCENE.x} ${SCENE.y} ${SCENE.w} ${SCENE.h}`}>
+            {children}
+        </svg>
+    </div>
+);
 
 /** CSS 3D board: the fallback when WebGL isn't available. */
 const Board3D = () => {
@@ -80,21 +95,6 @@ const Board3D = () => {
     const selectedDef = selectedModule ? moduleById(selectedModule) : null;
     const usedPorts = useMemo(() => usedPortMap(connections), [connections]);
     const liveLinks = useMemo(() => portLinks(connections, K), [connections, K]);
-    const modelled = useMemo(() => connections
-        .filter(conn => MODULE_3D[conn.moduleId] && portById(conn.portId))
-        .map(conn => {
-            const port = portById(conn.portId);
-            return {
-                conn,
-                placement: placeModule(
-                    MODULE_3D[conn.moduleId],
-                    port,
-                    portPosition(port),
-                    conn.offsetX || 0,
-                    conn.offsetY || 0
-                )
-            };
-        }), [connections]);
 
     const fit = useCallback(() => {
         const stage = stageRef.current;
@@ -369,7 +369,7 @@ const Board3D = () => {
                             width: `calc(${BOARD.w} * var(--u))`,
                             height: `calc(${BOARD.h} * var(--u))`,
                             background: 'rgba(0,0,0,0.34)',
-                            borderRadius: 'calc(20 * var(--u))',
+                            borderRadius: 'calc(6 * var(--u))',
                             filter: 'blur(calc(14 * var(--u)))',
                             transform: `translateZ(calc(${-SLAB_T - 1.5} * var(--u)))`,
                             pointerEvents: 'none'
@@ -384,12 +384,10 @@ const Board3D = () => {
                         z={-SLAB_T}
                         faces={{
                             t: {
-                                radius: 'calc(10 * var(--u))',
+                                radius: 'calc(3 * var(--u))',
                                 content: (
                                     <FaceSvg w={BOARD.w} h={BOARD.h}>
-                                        <BoardDefs />
-                                        <BoardSurface connected={liveLinks} />
-                                        <ChipLegs />
+                                        <BoardTop connected={liveLinks} />
                                     </FaceSvg>
                                 )
                             },
@@ -397,12 +395,12 @@ const Board3D = () => {
                             n: {bg: edge('0deg')},
                             e: {bg: edge('90deg')},
                             w: {bg: edge('270deg')},
-                            b: {bg: '#e9e9e4'}
+                            b: {bg: '#2a1146'}
                         }}
                     />
-                    <Parts3D connected={liveLinks} />
                 </div>
 
+                {SPARE_JACKS.map(jack => <SpareJack3D key={jack.id} jack={jack} />)}
                 {PORTS.map(port => (
                     <Jack3D
                         key={port.id}
@@ -413,78 +411,35 @@ const Board3D = () => {
                     />
                 ))}
 
-                {/* Labels, cables and modules lie flat at board-top height */}
-                <div
-                    className="tb3d-layer"
-                    style={{
-                        left: `calc(${SCENE.x} * var(--u))`,
-                        top: `calc(${SCENE.y} * var(--u))`,
-                        width: `calc(${SCENE.w} * var(--u))`,
-                        height: `calc(${SCENE.h} * var(--u))`,
-                        transform: 'translateZ(calc(0.6 * var(--u)))'
-                    }}
-                >
-                    <svg viewBox={`${SCENE.x} ${SCENE.y} ${SCENE.w} ${SCENE.h}`}>
-                        <SceneDefs />
-                        {PORTS.map(port => {
-                            const pos = portPosition(port);
-                            const state = portUiState(port, usedPorts, selectedDef);
-                            return (
-                                <PortLabel
-                                    key={port.id}
-                                    port={port}
-                                    x={pos.x}
-                                    y={pos.y}
-                                    color={portColor(port, K)}
-                                    K={K}
-                                    opacity={state.dimmed ? 0.3 : 1}
-                                />
-                            );
-                        })}
-                        <ConnectionsLayer
-                            connections={connections}
-                            disconnect={disconnect}
-                            K={K}
-                            models={MODULE_3D}
-                        />
-                    </svg>
-                </div>
-
-                {modelled.map(({conn, placement}) => (
-                    <Module3D
-                        key={conn.id}
-                        moduleId={conn.moduleId}
-                        placement={placement}
-                        name={(moduleById(conn.moduleId) || {}).name}
-                        floorZ={-SLAB_T - 1.5}
+                {/* Cables and modules lie flat at board-top height */}
+                <SceneLayer z={0.6}>
+                    <SceneDefs />
+                    <ConnectionsLayer
+                        connections={connections}
+                        disconnect={disconnect}
+                        K={K}
                     />
-                ))}
+                </SceneLayer>
 
-                {/* Unplug badges float above the 3D modules so the parts never hide them */}
-                <div
-                    className="tb3d-layer"
-                    style={{
-                        left: `calc(${SCENE.x} * var(--u))`,
-                        top: `calc(${SCENE.y} * var(--u))`,
-                        width: `calc(${SCENE.w} * var(--u))`,
-                        height: `calc(${SCENE.h} * var(--u))`,
-                        transform: 'translateZ(calc(20 * var(--u)))'
-                    }}
-                >
-                    <svg viewBox={`${SCENE.x} ${SCENE.y} ${SCENE.w} ${SCENE.h}`}>
-                        <g style={{pointerEvents: 'auto'}}>
-                            {modelled.map(({conn, placement}) => (
-                                <UnplugButton
-                                    key={conn.id}
-                                    x={placement.cx + (placement.boxW / 2)}
-                                    y={placement.cy - (placement.boxH / 2)}
-                                    onDisconnect={() => disconnect(conn.id)}
-                                    K={K}
-                                />
-                            ))}
-                        </g>
-                    </svg>
-                </div>
+                {/* Port names sit on top of the jacks */}
+                <SceneLayer z={JACK_H + 0.3}>
+                    <SceneDefs />
+                    {PORTS.map(port => {
+                        const state = portUiState(port, usedPorts, selectedDef);
+                        const {cx, cy} = labelCenter(port, portPosition(port));
+                        return (
+                            <PortLabel
+                                key={port.id}
+                                port={port}
+                                cx={cx}
+                                cy={cy}
+                                color={portColor(port, K)}
+                                K={K}
+                                opacity={state.dimmed ? 0.3 : 1}
+                            />
+                        );
+                    })}
+                </SceneLayer>
             </div>
 
             <StageControls

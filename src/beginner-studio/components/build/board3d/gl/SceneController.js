@@ -19,7 +19,7 @@ import {
 } from 'three';
 import {RoomEnvironment} from 'three/examples/jsm/environments/RoomEnvironment.js';
 
-import {SCENE} from '../../../../domain/boardLayout';
+import {SCENE, TRACE_POINTS} from '../../../../domain/boardLayout';
 import {PORTS, portUiState} from '../../../../domain/ports';
 import {portTitle} from '../../Port.jsx';
 import {
@@ -35,11 +35,8 @@ import {
     unitScale
 } from '../view';
 
-import {TABLE_Z, TRACE_POINTS, buildBoard, buildPorts, glowTexture} from './boardModel';
-import buildCable from './cables';
-import Kit, {disposeTree} from './kit';
-import {buildConnection} from './moduleModels';
-import TextureBank from './textures';
+import {Kit, TextureBank, buildCable, disposeTree, glowTexture} from './hubKit';
+import {TABLE_Z, buildBoard, buildConnection, buildPorts, buildSpareJacks} from './hubModel';
 
 const DEG = Math.PI / 180;
 const TAU = Math.PI * 2;
@@ -356,6 +353,7 @@ class SceneController {
         this.kit.dropMaterials(m => gone.has(m.map));
         this.ports = buildPorts(this.kit, K);
         this.ports.forEach(p => this.portsGroup.add(p.jack, p.label));
+        this.portsGroup.add(buildSpareJacks(this.kit));
         this.shadowCatcher.material.opacity = luminance(K.canvas) < 0.35 ? 0.5 : 0.24;
         this.buildTraces({}, true);
     }
@@ -369,9 +367,11 @@ class SceneController {
         if (built.group) {
             group.add(built.group);
         }
-        const color = built.port.signal === 'analog' ? this.K.analog : this.K.digital;
-        const handle = conn.bendX == null ? null : {x: conn.bendX, y: conn.bendY};
-        group.add(buildCable(this.kit, {from: built.from, to: built.to, handle, color}));
+        if (built.from) {
+            const color = built.port.signal === 'analog' ? this.K.analog : this.K.digital;
+            const handle = conn.bendX == null ? null : {x: conn.bendX, y: conn.bendY};
+            group.add(buildCable(this.kit, {from: built.from, to: built.to, handle, color}));
+        }
         this.connGroup.add(group);
         this.conns.set(conn.id, {key, group, badge: built.badge, name: built.name, pickable: built.group});
     }
@@ -394,13 +394,9 @@ class SceneController {
         disposeTree(this.tracesGroup);
         this.tracesGroup.clear();
         this.pulses = [];
-        Object.keys(links).forEach(portId => {
-            const pts = TRACE_POINTS[portId];
-            if (!pts) {
-                return;
-            }
+        Object.keys(links).forEach(portId => (TRACE_POINTS[portId] || []).forEach(pts => {
             const link = links[portId];
-            const tint = new Mesh(Kit.ribbon(pts, 2.4, 0.06), this.kit.basic({color: link.color, opacity: 0.5, doubleSide: true}));
+            const tint = new Mesh(Kit.ribbon(pts, 1.6, 0.06), this.kit.basic({color: link.color, opacity: 0.55, doubleSide: true}));
             tint.renderOrder = 1;
             this.tracesGroup.add(tint);
 
@@ -422,7 +418,7 @@ class SceneController {
                         toneMapped: false
                     })
                 );
-                const s = 11 - (k * 2);
+                const s = 8 - (k * 1.5);
                 m.scale.set(s, s, 1);
                 m.renderOrder = 3;
                 m.visible = false;
@@ -430,7 +426,7 @@ class SceneController {
                 return m;
             });
             this.pulses.push({path, lengths, total: lengths[lengths.length - 1], dots});
-        });
+        }));
     }
 
     // ---- DOM overlays -----------------------------------------------------
@@ -795,7 +791,7 @@ class SceneController {
             if (p.dim !== dim) {
                 p.dim = dim;
                 p.jack.traverse(obj => {
-                    if (obj.isMesh && obj !== p.ring && obj !== p.glow) {
+                    if (obj.isMesh && obj !== p.ring && obj !== p.glow && !obj.userData.hitOnly) {
                         (Array.isArray(obj.material) ? obj.material : [obj.material]).forEach(m => {
                             m.transparent = dim < 1;
                             m.opacity = dim;

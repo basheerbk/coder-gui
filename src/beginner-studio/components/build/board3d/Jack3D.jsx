@@ -1,13 +1,13 @@
 import React from 'react';
 
-import {JACK, portColor, portPosition} from '../../../domain/ports';
+import {ESP, portColor, portPosition} from '../../../domain/ports';
 import {portTitle} from '../Port.jsx';
 
 import {Box, FaceSvg} from './Box.jsx';
 
-/** Housing height in board units (the flat view's jack is 30 deep × 36 across). */
+/** Housing height in board units. */
 const JACK_H = 16;
-const OPEN = {left: 'W', right: 'E', top: 'N', bottom: 'S'};
+const SPARE_COLOR = '#6b7280';
 
 /** Top of the housing, mouth at x = 0, D deep and Wd across. Matches the flat Port drawing. */
 const JackTop = ({D, Wd, color}) => (
@@ -103,17 +103,6 @@ const JackFront = ({Wd, H}) => (
     </g>
 );
 
-/** Footprint of a jack in world units; top/bottom jacks are the flat jack turned 90°. */
-const jackFootprint = port => {
-    const pos = portPosition(port);
-    if (port.side === 'top' || port.side === 'bottom') {
-        const cx = pos.x + (JACK.w / 2);
-        const cy = pos.y + (JACK.h / 2);
-        return {x: cx - (JACK.h / 2), y: cy - (JACK.w / 2), w: JACK.h, d: JACK.w};
-    }
-    return {x: pos.x, y: pos.y, w: JACK.w, d: JACK.h};
-};
-
 const hlClass = ({compatible, occupied}, flashing) => {
     if (flashing) {
         return 'tb3d-hl tb3d-flash';
@@ -190,30 +179,62 @@ const JackBox = ({x, y, w, d, z = 0, open, color, overlay, ...rest}) => {
     );
 };
 
+/** A board jack, or for ONBOARD a see-through tap target over the ESP32 module. */
 const Jack3D = ({port, state, flashing, K}) => {
-    const fp = jackFootprint(port);
+    const pos = portPosition(port);
+    const fp = pos.footprint;
     const color = portColor(port, K);
     const hl = hlClass(state, flashing);
     const ring = flashing || state.compatible
         ? `0 0 0 calc(1.6 * var(--u)) ${color}, 0 0 calc(12 * var(--u)) calc(3 * var(--u)) ${color}88`
         : `0 0 0 calc(1.2 * var(--u)) ${color}`;
+    const overlay = hl ? <div className={hl} style={{boxShadow: ring}} /> : null;
+    const common = {
+        'className': state.dimmed ? 'tb3d-jack tb3d-dim' : 'tb3d-jack',
+        'data-port': port.id,
+        'role': 'button',
+        'aria-label': `${port.label} port`,
+        'title': portTitle(port, state)
+    };
+    if (port.kind === 'onboard') {
+        return (
+            <Box
+                x={fp.x - 3}
+                y={fp.y - 3}
+                w={fp.w + 6}
+                d={fp.d + 6}
+                h={ESP.h + 0.5}
+                faces={{t: {radius: 'calc(5 * var(--u))', content: overlay}}}
+                {...common}
+            />
+        );
+    }
     return (
         <JackBox
             x={fp.x}
             y={fp.y}
             w={fp.w}
             d={fp.d}
-            open={OPEN[port.side] || 'W'}
+            open={pos.open}
             color={color}
-            overlay={hl ? <div className={hl} style={{boxShadow: ring}} /> : null}
-            className={state.dimmed ? 'tb3d-jack tb3d-dim' : 'tb3d-jack'}
-            data-port={port.id}
-            role="button"
-            aria-label={`${port.label} port`}
-            title={portTitle(port, state)}
+            overlay={overlay}
+            {...common}
         />
     );
 };
 
-export {JACK_H, OPEN, JackBox, JackFront, JackTop, jackFootprint};
+/** A hub jack with no studio port. */
+const SpareJack3D = ({jack}) => (
+    <JackBox
+        x={jack.footprint.x}
+        y={jack.footprint.y}
+        w={jack.footprint.w}
+        d={jack.footprint.d}
+        open={jack.open}
+        color={SPARE_COLOR}
+        style={{pointerEvents: 'none'}}
+    />
+);
+
+export {JACK_H, JackBox, JackFront, JackTop, SpareJack3D};
 export default Jack3D;

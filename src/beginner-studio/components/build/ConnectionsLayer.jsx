@@ -4,7 +4,7 @@ import {moduleById} from '../../domain/modules';
 import {PORTS, cardCablePoint, portPosition} from '../../domain/ports';
 
 import ConnectedModuleCard from './ConnectedModuleCard.jsx';
-import ModuleArtNode, {artPlacement, hasModuleArt, placeModule} from './ModuleArt.jsx';
+import ModuleArtNode, {artPlacement, hasModuleArt} from './ModuleArt.jsx';
 import Rj11Cable from './Rj11Cable.jsx';
 
 const noop = () => {};
@@ -36,8 +36,7 @@ const SceneDefs = () => (
 
 /**
  * Cables and plugged-in modules. Drag callbacks are optional so the 3D view can
- * show the same layout read-only (× still unplugs). Modules listed in `models`
- * are drawn elsewhere (as 3D boxes); only their cable is drawn here.
+ * show the same layout read-only (× still unplugs). Built-in parts (ONBOARD) get no cable.
  */
 const ConnectionsLayer = ({
     connections,
@@ -46,8 +45,7 @@ const ConnectionsLayer = ({
     dragModule = null,
     dragBend = null,
     onBendStart,
-    onModuleMoveStart,
-    models = null
+    onModuleMoveStart
 }) => connections.map(conn => {
     const port = PORTS.find(p => p.id === conn.portId);
     if (!port) {
@@ -59,13 +57,8 @@ const ConnectionsLayer = ({
     const offY = live ? live.y : (conn.offsetY || 0);
     const cardX = pos.cardX + offX;
     const cardY = pos.cardY + offY;
-    const model = models && models[conn.moduleId];
-    const withArt = !model && hasModuleArt(conn.moduleId);
-    const placement = withArt ? artPlacement(conn.moduleId, port, pos, offX, offY) : null;
-    let attach = placement ? placement.jack : cardCablePoint(cardX, cardY, port.side);
-    if (model) {
-        attach = placeModule(model, port, pos, offX, offY).jack;
-    }
+    const placement = hasModuleArt(conn.moduleId) ? artPlacement(conn.moduleId, port, pos, offX, offY) : null;
+    const attach = placement ? placement.jack : cardCablePoint(cardX, cardY, port.side);
     const liveBend = dragBend && dragBend.id === conn.id;
     const handleX = liveBend
         ? liveBend.x
@@ -76,19 +69,21 @@ const ConnectionsLayer = ({
     const moveStart = onModuleMoveStart ? event => onModuleMoveStart(event, conn) : noop;
     return (
         <g key={conn.id}>
-            <Rj11Cable
-                x1={pos.cableX}
-                y1={pos.cableY}
-                x2={attach.x}
-                y2={attach.y}
-                handleX={handleX}
-                handleY={handleY}
-                dragging={Boolean(liveBend)}
-                color={port.signal === 'analog' ? K.analog : K.digital}
-                connectionId={conn.id}
-                onBendStart={onBendStart ? event => onBendStart(event, conn, handleX, handleY) : noop}
-            />
-            {model ? null : <g style={{pointerEvents: 'auto'}}>
+            {port.kind === 'onboard' ? null : (
+                <Rj11Cable
+                    x1={pos.cableX}
+                    y1={pos.cableY}
+                    x2={attach.x}
+                    y2={attach.y}
+                    handleX={handleX}
+                    handleY={handleY}
+                    dragging={Boolean(liveBend)}
+                    color={port.signal === 'analog' ? K.analog : K.digital}
+                    connectionId={conn.id}
+                    onBendStart={onBendStart ? event => onBendStart(event, conn, handleX, handleY) : noop}
+                />
+            )}
+            <g style={{pointerEvents: 'auto'}}>
                 {placement ? (
                     <ModuleArtNode
                         moduleId={conn.moduleId}
@@ -109,7 +104,7 @@ const ConnectionsLayer = ({
                         onMoveStart={moveStart}
                     />
                 )}
-            </g>}
+            </g>
         </g>
     );
 });

@@ -1,30 +1,7 @@
 import React from 'react';
 
-import {STUB} from '../../domain/ports';
-
-const ART_SCALE = 4;
-
-const LedArt = () => (
-    <g>
-        <rect width="26" height="12" rx="1" fill="#36673B" />
-        <path d="M18.1871 3V1.10277H18.5308V2.71189H19.3664V3H18.1871ZM19.6647 3V1.10277H20.8987V1.39087H20.0084V1.90594H20.8347V2.19405H20.0084V2.71189H20.9061V3H19.6647ZM21.8922 3H21.2493V1.10277H21.9052C22.0935 1.10277 22.2553 1.14075 22.3906 1.21671C22.5265 1.29206 22.6308 1.40044 22.7037 1.54187C22.7766 1.6833 22.813 1.85252 22.813 2.04953C22.813 2.24716 22.7763 2.417 22.7028 2.55904C22.6299 2.70109 22.5246 2.81009 22.3869 2.88605C22.2498 2.96202 22.0849 3 21.8922 3ZM21.593 2.70263H21.8755C22.0077 2.70263 22.1179 2.67854 22.2062 2.63037C22.2946 2.58158 22.3609 2.50902 22.4054 2.41267C22.4499 2.31571 22.4721 2.19466 22.4721 2.04953C22.4721 1.9044 22.4499 1.78397 22.4054 1.68824C22.3609 1.5919 22.2952 1.51995 22.2081 1.47239C22.1216 1.42422 22.0142 1.40014 21.8857 1.40014H21.593V2.70263Z" fill="white" />
-        <path d="M0 1.5H13.5C13.7761 1.5 14 1.72386 14 2V10C14 10.2761 13.7761 10.5 13.5 10.5H0V1.5Z" fill="black" />
-        <rect y="1.5" width="2" height="9" fill="#1D1D1D" />
-        <rect y="3.5" width="2" height="5" fill="black" />
-        <path d="M2 3.4H14M2 4.4H14M2 5.4H14M2 6.4H14M2 7.4H14M2 8.4H14" strokeWidth="0.2" stroke="white" />
-        <rect x="2" y="2.5" width="1" height="7" fill="black" fillOpacity="0.78" />
-        <path d="M1 10.5V11M1 1.5V1" strokeWidth="0.3" stroke="black" />
-        <circle cx="20.5" cy="7.5" r="2.5" fill="#D9D9D9" fillOpacity="0.2" />
-        <circle cx="20.5" cy="7.5" r="1.5" fill="#FFE100" fillOpacity="0.2" />
-        <rect x="15" y="5" width="1" height="2.33333" rx="0.1" transform="rotate(-90 15 5)" fill="#D9D9D9" />
-        <rect x="15.3333" y="5" width="1" height="1.66667" transform="rotate(-90 15.3333 5)" fill="black" />
-    </g>
-);
-
-/** Artwork in its own units; the RJ11 socket opening sits on the left edge at (0, jackY). */
-const MODULE_ART = {
-    led: {w: 26, h: 12, jackY: 6, Art: LedArt}
-};
+import {MODULE_ART} from '../../assets/hub';
+import {CARD, STUB, portById, portPosition} from '../../domain/ports';
 
 const hasModuleArt = moduleId => Boolean(MODULE_ART[moduleId]);
 
@@ -70,16 +47,72 @@ const placeModule = ({w, h, jackY: socketY}, port, pos, offsetX = 0, offsetY = 0
     };
 };
 
-const artPlacement = (moduleId, port, pos, offsetX = 0, offsetY = 0) => {
-    const art = MODULE_ART[moduleId];
-    return placeModule(
-        {w: art.w * ART_SCALE, h: art.h * ART_SCALE, jackY: art.jackY * ART_SCALE},
-        port,
-        pos,
-        offsetX,
-        offsetY
-    );
+const artPlacement = (moduleId, port, pos, offsetX = 0, offsetY = 0) => placeModule(
+    MODULE_ART[moduleId],
+    port,
+    pos,
+    offsetX,
+    offsetY
+);
+
+/** World-space box {x, y, w, h} a plugged module (art or card) covers at the given drag offset. */
+const connectionBox = (conn, offsetX = 0, offsetY = 0) => {
+    const port = portById(conn.portId);
+    if (!port) {
+        return null;
+    }
+    const pos = portPosition(port);
+    if (hasModuleArt(conn.moduleId)) {
+        const {cx, cy, boxW, boxH} = artPlacement(conn.moduleId, port, pos, offsetX, offsetY);
+        return {x: cx - (boxW / 2), y: cy - (boxH / 2), w: boxW, h: boxH};
+    }
+    return {x: pos.cardX + offsetX, y: pos.cardY + offsetY, w: CARD.w, h: CARD.h};
 };
+
+const GAP = 6;
+const STEP = 8;
+const MAX_SHIFT = 240;
+
+const overlaps = (a, b) => (
+    a.x < b.x + b.w + GAP && b.x < a.x + a.w + GAP &&
+    a.y < b.y + b.h + GAP && b.y < a.y + a.h + GAP
+);
+
+/**
+ * Smallest drag offset that keeps `conn` clear of the `placed` connections: slides along the
+ * board edge first (either way), then away from it. Falls back to no offset.
+ */
+const clearOffset = (conn, placed) => {
+    const port = portById(conn.portId);
+    const boxes = placed.map(c => connectionBox(c, c.offsetX || 0, c.offsetY || 0)).filter(Boolean);
+    if (!port || !boxes.length) {
+        return {offsetX: 0, offsetY: 0};
+    }
+    const alongX = port.side === 'top' || port.side === 'bottom';
+    const outward = {top: [0, -1], bottom: [0, 1], left: [-1, 0], right: [1, 0]}[port.side] || [0, 0];
+    const fits = (x, y) => {
+        const box = connectionBox(conn, x, y);
+        return box && !boxes.some(b => overlaps(box, b));
+    };
+    for (let d = 0; d <= MAX_SHIFT; d += STEP) {
+        const tries = [
+            alongX ? [-d, 0] : [0, -d],
+            alongX ? [d, 0] : [0, d],
+            [outward[0] * d, outward[1] * d]
+        ];
+        const hit = tries.find(([x, y]) => fits(x, y));
+        if (hit) {
+            return {offsetX: hit[0], offsetY: hit[1]};
+        }
+    }
+    return {offsetX: 0, offsetY: 0};
+};
+
+/** Gives every connection without a saved offset a spot clear of the ones before it. */
+const spreadConnections = connections => connections.reduce((placed, conn) => {
+    const fixed = Object.assign({}, conn, conn.offsetX || conn.offsetY ? {} : clearOffset(conn, placed));
+    return placed.concat([fixed]);
+}, []);
 
 const UnplugButton = ({x, y, dragging, onDisconnect, K}) => (
     <g
@@ -116,8 +149,8 @@ const ModuleArtNode = ({moduleId, name, placement, dragging, onMoveStart, onDisc
     if (!art) {
         return null;
     }
-    const {cx, cy, w, h, rotation, boxW, boxH} = placement;
-    const {Art} = art;
+    const {cx, cy, rotation, boxW, boxH} = placement;
+    const [bx, by, bw, bh] = art.box;
     const closeX = cx + (boxW / 2);
     const closeY = cy - (boxH / 2);
     return (
@@ -137,12 +170,17 @@ const ModuleArtNode = ({moduleId, name, placement, dragging, onMoveStart, onDisc
         >
             <title>{name} — drag to move, press × to unplug</title>
             <g
-                transform={`translate(${cx}, ${cy}) rotate(${rotation}) translate(${-w / 2}, ${-h / 2})`}
+                transform={`translate(${cx}, ${cy}) rotate(${rotation})`}
                 filter="url(#cardShadow)"
             >
-                <g transform={`scale(${ART_SCALE})`}>
-                    <Art />
-                </g>
+                <image
+                    xlinkHref={art.src}
+                    x={bx}
+                    y={by}
+                    width={bw}
+                    height={bh}
+                    preserveAspectRatio="none"
+                />
             </g>
             <UnplugButton
                 x={closeX}
@@ -155,5 +193,5 @@ const ModuleArtNode = ({moduleId, name, placement, dragging, onMoveStart, onDisc
     );
 };
 
-export {MODULE_ART, hasModuleArt, artPlacement, placeModule, UnplugButton};
+export {MODULE_ART, hasModuleArt, artPlacement, clearOffset, connectionBox, placeModule, spreadConnections, UnplugButton};
 export default ModuleArtNode;

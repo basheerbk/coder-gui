@@ -12,7 +12,7 @@ const ZMAX = 4;
 const MAX_TILT = 82;
 const CENTER = {x: BOARD.x + (BOARD.w / 2), y: BOARD.y + (BOARD.h / 2)};
 /** World units that fill the stage at 100% zoom. */
-const FIT = {w: 780, h: 560};
+const FIT = {w: 640, h: 520};
 const IDLE_MS = 3500;
 /** Viewer distance in world units (the CSS view's perspective). */
 const PERSPECTIVE = 2600;

@@ -1,5 +1,7 @@
 import {useCallback} from 'react';
 
+import {clearOffset, spreadConnections} from '../components/build/ModuleArt.jsx';
+
 import {defaultIfParams} from '../domain/condition';
 import {uid} from '../domain/ids';
 import {moduleById} from '../domain/modules';
@@ -32,16 +34,8 @@ const useStudioActions = (state, setState) => {
                     });
                 }
                 const port = portById('ONBOARD');
-                const conn = {
-                    id: uid('conn'),
-                    moduleId: mod.id,
-                    portId: 'ONBOARD',
-                    pin: port ? port.pin : '-',
-                    offsetX: 0,
-                    offsetY: 0,
-                    bendX: null,
-                    bendY: null
-                };
+                const plug = {id: uid('conn'), moduleId: mod.id, portId: 'ONBOARD', pin: port ? port.pin : '-'};
+                const conn = Object.assign(plug, clearOffset(plug, prev.connections), {bendX: null, bendY: null});
                 const first = mod.actions && mod.actions[0];
                 let program = prev.program;
                 if (first) {
@@ -116,16 +110,8 @@ const useStudioActions = (state, setState) => {
                     wireHint: `${mod.name} is already on the board`
                 });
             }
-            const conn = {
-                id: uid('conn'),
-                moduleId: mod.id,
-                portId: port.id,
-                pin: port.pin,
-                offsetX: 0,
-                offsetY: shareI2c ? samePort.length * 46 : 0,
-                bendX: null,
-                bendY: null
-            };
+            const plug = {id: uid('conn'), moduleId: mod.id, portId: port.id, pin: port.pin};
+            const conn = Object.assign(plug, clearOffset(plug, prev.connections), {bendX: null, bendY: null});
             const first = mod.actions && mod.actions[0];
             let program = prev.program;
             if (first) {
@@ -234,7 +220,7 @@ const useStudioActions = (state, setState) => {
         }
         playConnect();
         setState(prev => Object.assign({}, prev, {
-            connections: tpl.connections.map(c => Object.assign({}, c)),
+            connections: spreadConnections(tpl.connections),
             program: JSON.parse(JSON.stringify(tpl.program)),
             projectName: tpl.name,
             activeTemplateId: tpl.id,

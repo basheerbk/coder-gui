@@ -19,8 +19,14 @@
  * D13 and 3D both use IO33 — mutually exclusive.
  *
  * UART (HC-05): RX=GPIO3 TX=GPIO1 — shared with USB serial @ 9600.
+ *
+ * On screen the ports sit on the RJ11 Hub's jacks (see hubJacks.js); `side` is the edge the
+ * plug enters from.
  */
 
+import {ESP_MODULE, HUB, HUB_PORTS, HUB_SCALE} from '../../../module-test/components/hub-layout.js';
+
+import {HUB_JACK} from './hubJacks';
 import {moduleById} from './modules';
 
 /** Shared GPIO conflict groups (jack ids). */
@@ -29,25 +35,19 @@ const PORT_CONFLICTS = {
     '3D': ['D13']
 };
 
+const HUB_PORT_BY_ID = HUB_PORTS.reduce((all, p) => Object.assign(all, {[p.id]: p}), {});
+
+/** Hub jack record and plug side for a studio port id. */
+const onHub = id => {
+    const hub = HUB_PORT_BY_ID[HUB_JACK[id]];
+    return {hub: hub.id, side: hub.side};
+};
+
 const PORTS = [
-    {id: 'STEPPER', label: 'ST', side: 'top', kind: 'stepper', signal: 'stepper', pin: '12', pins: ['12', '13', '14', '27'], strapping: true, index: 0},
-    {id: 'D13', label: 'D13', side: 'top', kind: 'digital', signal: 'digital', pin: '33', pins: ['33'], index: 1},
-    {
-        id: '3D',
-        label: '3D',
-        side: 'top',
-        kind: 'spi',
-        signal: 'digital',
-        pin: '32',
-        pins: ['32', '33', '34'],
-        inputOnly: ['34'],
-        spi: {ss: '32', rst: '33', miso: '34', sck: '16', mosi: '23'},
-        index: 2
-    },
+    {id: 'A4', label: 'A4', kind: 'analog', signal: 'analog', pin: '0', pins: ['0'], strapping: true, boot: true, adc: 2, ...onHub('A4')},
     {
         id: 'D5',
         label: 'D5',
-        side: 'top',
         kind: 'digital',
         signal: 'digital',
         pin: '25',
@@ -55,12 +55,16 @@ const PORTS = [
         // HC-SR04 kit cable: RJ pin2 → Echo, RJ pin3 → Trig (swapped vs silk order).
         // Echo must never be OUTPUT — driving it heats the module.
         ultra: {trig: '26', echo: '25'},
-        index: 3
+        ...onHub('D5')
     },
+    {id: 'STEPPER', label: 'ST', kind: 'stepper', signal: 'stepper', pin: '12', pins: ['12', '13', '14', '27'], strapping: true, ...onHub('STEPPER')},
+    {id: 'A1', label: 'A1', kind: 'analog', signal: 'analog', pin: '4', pins: ['4'], adc: 2, ...onHub('A1')},
+    {id: 'D13', label: 'D13', kind: 'digital', signal: 'digital', pin: '33', pins: ['33'], ...onHub('D13')},
+    {id: 'I2C', label: 'I2C', kind: 'i2c', signal: 'i2c', pin: '21', pins: ['21', '22'], ...onHub('I2C')},
+    {id: 'I2C1', label: 'I2C1', kind: 'i2c', signal: 'i2c', pin: '21', pins: ['21', '22'], ...onHub('I2C1')},
     {
         id: 'MD',
         label: 'MD',
-        side: 'right',
         kind: 'motor',
         signal: 'motor',
         pin: '17',
@@ -70,35 +74,51 @@ const PORTS = [
             A: {in1: '17', in2: '5'},
             B: {in1: '18', in2: '19'}
         },
-        index: 0
+        ...onHub('MD')
     },
-    {id: 'I2C', label: 'I2C', side: 'right', kind: 'i2c', signal: 'i2c', pin: '21', pins: ['21', '22'], index: 1},
-    {id: 'A3', label: 'A3', side: 'right', kind: 'analog', signal: 'analog', pin: '2', pins: ['2'], strapping: true, adc: 2, index: 2},
-    {id: 'A2', label: 'A2', side: 'right', kind: 'analog', signal: 'analog', pin: '15', pins: ['15'], strapping: true, adc: 2, index: 3},
-    {id: 'A1', label: 'A1', side: 'bottom', kind: 'analog', signal: 'analog', pin: '4', pins: ['4'], adc: 2, index: 0},
-    {id: 'A4', label: 'A4', side: 'bottom', kind: 'analog', signal: 'analog', pin: '0', pins: ['0'], strapping: true, boot: true, adc: 2, index: 1},
-    // Built-in ESP32 radios — no physical RJ11
-    {id: 'ONBOARD', label: 'ESP', side: 'left', kind: 'onboard', signal: 'onboard', pin: '-', pins: [], index: 0},
+    {id: 'A3', label: 'A3', kind: 'analog', signal: 'analog', pin: '2', pins: ['2'], strapping: true, adc: 2, ...onHub('A3')},
+    {id: 'A2', label: 'A2', kind: 'analog', signal: 'analog', pin: '15', pins: ['15'], strapping: true, adc: 2, ...onHub('A2')},
     // HC-05 Classic Bluetooth UART (shares USB Serial pins)
     {
         id: 'UART',
         label: 'UART',
-        side: 'left',
         kind: 'uart',
         signal: 'uart',
         pin: '3',
         pins: ['3', '1'],
         uart: {rx: '3', tx: '1'},
-        index: 1
-    }
+        ...onHub('UART')
+    },
+    {
+        id: '3D',
+        label: '3D',
+        kind: 'spi',
+        signal: 'digital',
+        pin: '32',
+        pins: ['32', '33', '34'],
+        inputOnly: ['34'],
+        spi: {ss: '32', rst: '33', miso: '34', sck: '16', mosi: '23'},
+        ...onHub('3D')
+    },
+    // Built-in ESP32 radios — tap the ESP32 module itself; its card sits below the board
+    {id: 'ONBOARD', label: 'ESP', side: 'bottom', kind: 'onboard', signal: 'onboard', pin: '-', pins: [], hub: null}
 ];
 
 const ANALOG_ASSIGN = ['A1', 'A2', 'A3', 'A4'];
 const DIGITAL_ASSIGN = ['D5', 'D13', 'A1', 'A2', 'A3', 'A4'];
 
-/** Landscape controller — room for 4 top / 4 right / 2 bottom jacks. */
-const BOARD = {x: 150, y: 105, w: 480, h: 300};
+/** The RJ11 Hub's outline in world units; jacks overhang its edges. */
+const BOARD = {x: 0, y: 0, w: HUB.w * HUB_SCALE, h: HUB.h * HUB_SCALE};
+/** A module's RJ11 socket (and the old flat jack): 30 deep × 36 across. */
 const JACK = {w: 30, h: 36};
+/** The ESP32 module on the hub: ONBOARD's tap target. */
+const ESP = {
+    x: BOARD.x + (ESP_MODULE.x * HUB_SCALE),
+    y: BOARD.y + (ESP_MODULE.y * HUB_SCALE),
+    w: ESP_MODULE.w * HUB_SCALE,
+    d: ESP_MODULE.d * HUB_SCALE,
+    h: ESP_MODULE.h * HUB_SCALE
+};
 const CARD = {w: 112, h: 38};
 const STUB = 56;
 const DEPTH = {x: 3, y: 10};
@@ -232,13 +252,13 @@ const compatibilityHint = (port, moduleDef) => {
     }
     const need = neededKind(moduleDef);
     if (need === 'onboard') {
-        return 'Bluetooth is built into the ESP32 — tap ESP';
+        return 'Bluetooth is built into the ESP32 — tap the ESP32 chip';
     }
     if (need === 'uart') {
         return 'Plug HC-05 into UART (RX=GPIO3 TX=GPIO1, shared with USB @ 9600)';
     }
     if (need === 'i2c') {
-        return 'Plug into I2C (OLED / HW-605 share SDA 21 · SCL 22)';
+        return 'Plug into I2C or I2C1 (one bus: OLED / HW-605 share SDA 21 · SCL 22)';
     }
     if (need === 'motor') {
         return 'Plug into MD — L293D motors or 4-ch relay (IO17/5/18/19)';
@@ -296,9 +316,9 @@ const pickPortForModule = (moduleDef, usedIds) => {
         return take(['UART']);
     }
     if (need === 'i2c') {
-        // Shared bus — OLED and HW-605 can both use I2C.
+        // One shared bus: take a free I2C jack, else share I2C.
         const port = portById('I2C');
-        return port && isPortCompatible(port, moduleDef, used) ? 'I2C' : null;
+        return take(['I2C', 'I2C1']) || (port && isPortCompatible(port, moduleDef, used) ? 'I2C' : null);
     }
     if (need === 'motor') {
         return take(['MD']);
@@ -323,71 +343,65 @@ const pickPortForModule = (moduleDef, usedIds) => {
     return take(['D13', 'A1', 'A2', 'A3', 'A4']);
 };
 
-const topBottomX = (index, count) => {
-    const margin = 48;
-    const span = BOARD.w - (margin * 2) - JACK.w;
-    const step = count <= 1 ? 0 : span / (count - 1);
-    return BOARD.x + margin + (index * step);
+/** Where a card for a plug leaving (x, y) towards `side` goes. */
+const cardSpot = (x, y, side) => {
+    if (side === 'top') {
+        return {cardX: x - (CARD.w / 2), cardY: y - STUB - CARD.h};
+    }
+    if (side === 'bottom') {
+        return {cardX: x - (CARD.w / 2), cardY: y + STUB};
+    }
+    if (side === 'left') {
+        return {cardX: x - STUB - CARD.w, cardY: y - (CARD.h / 2)};
+    }
+    return {cardX: x + STUB, cardY: y - (CARD.h / 2)};
 };
 
-const portPosition = port => {
-    if (port.side === 'top') {
-        const count = PORTS.filter(p => p.side === 'top').length;
-        const x = topBottomX(port.index, count);
-        const y = BOARD.y - JACK.h + 5;
-        const cableX = x + (JACK.w / 2);
-        const cableY = y;
-        return {
-            x,
-            y,
-            cableX,
-            cableY,
-            cardX: cableX - (CARD.w / 2),
-            cardY: y - STUB - CARD.h
-        };
+const positionOf = port => {
+    const hub = HUB_PORT_BY_ID[port.hub];
+    if (!hub) {
+        // ONBOARD: the ESP32 module; its card hangs below the board, wireless
+        const footprint = {x: ESP.x, y: ESP.y, w: ESP.w, d: ESP.d};
+        const cableX = ESP.x + (ESP.w / 2);
+        const cableY = BOARD.y + BOARD.h;
+        return {x: ESP.x, y: ESP.y, footprint, D: ESP.d, Wd: ESP.w, cableX, cableY, ...cardSpot(cableX, cableY, 'bottom')};
     }
-    if (port.side === 'bottom') {
-        const count = PORTS.filter(p => p.side === 'bottom').length;
-        const x = topBottomX(port.index, count);
-        const y = BOARD.y + BOARD.h - 5;
-        const cableX = x + (JACK.w / 2);
-        const cableY = y + JACK.h;
-        return {
-            x,
-            y,
-            cableX,
-            cableY,
-            cardX: cableX - (CARD.w / 2),
-            cardY: cableY + STUB
-        };
-    }
-    if (port.side === 'left') {
-        const y = BOARD.y + 60 + (port.index * 70);
-        const x = BOARD.x - JACK.w + 5;
-        const cableY = y + (JACK.h / 2);
-        return {
-            x,
-            y,
-            cableX: x,
-            cableY,
-            cardX: x - STUB - CARD.w,
-            cardY: cableY - (CARD.h / 2)
-        };
-    }
-    const count = PORTS.filter(p => p.side === 'right').length;
-    const step = count <= 1 ? 0 : 58;
-    const y = BOARD.y + 42 + (port.index * step);
-    const x = BOARD.x + BOARD.w - 5;
-    const cableY = y + (JACK.h / 2);
+    const fp = hub.footprint;
+    const footprint = {x: BOARD.x + fp.x, y: BOARD.y + fp.y, w: fp.w, d: fp.d};
+    const cableX = BOARD.x + hub.pos.x;
+    const cableY = BOARD.y + hub.pos.y;
     return {
-        x,
-        y,
-        cableX: x + JACK.w,
+        x: footprint.x,
+        y: footprint.y,
+        footprint,
+        D: hub.jack.D,
+        Wd: hub.jack.Wd,
+        open: hub.open,
+        cableX,
         cableY,
-        cardX: x + JACK.w + STUB,
-        cardY: cableY - (CARD.h / 2)
+        ...cardSpot(cableX, cableY, port.side)
     };
 };
+
+const POSITIONS = PORTS.reduce((all, port) => Object.assign(all, {[port.id]: positionOf(port)}), {});
+
+/**
+ * Jack geometry in world units: footprint {x, y, w, d} (x, y repeat its corner), D deep × Wd
+ * across, open (W/E/N/S), the mouth cableX/Y where cables plug in and the default card corner.
+ */
+const portPosition = port => POSITIONS[port.id];
+
+/** Hub jacks with no studio port (drawn, never used). */
+const SPARE_JACKS = HUB_PORTS
+    .filter(hub => !PORTS.some(port => port.hub === hub.id))
+    .map(hub => ({
+        id: hub.id,
+        side: hub.side,
+        open: hub.open,
+        footprint: {x: BOARD.x + hub.footprint.x, y: BOARD.y + hub.footprint.y, w: hub.footprint.w, d: hub.footprint.d},
+        D: hub.jack.D,
+        Wd: hub.jack.Wd
+    }));
 
 /** Cable attach point on a module card at (cardX, cardY) for a given port side. */
 const cardCablePoint = (cardX, cardY, side) => {
@@ -471,6 +485,8 @@ export {
     PORT_CONFLICTS,
     BOARD,
     JACK,
+    ESP,
+    SPARE_JACKS,
     CARD,
     STUB,
     DEPTH,
