@@ -1,0 +1,66 @@
+/* eslint-disable max-len */
+import {GOLD, INK, PURPLE, svgArt} from './svg';
+
+const StepWatch = svgArt(
+    ['svg', {'viewBox': '0 0 300 196', 'role': 'img', 'aria-label': 'The main board with an LED module and a buzzer module plugged into its ports. The LED glows and the buzzer sends out sound waves.', 'className': 'tb-illo'},
+        ['g', {fill: 'none', strokeLinecap: 'round', strokeLinejoin: 'round'},
+            ['path', {d: 'M63 22 a14 14 0 0 1 20 0 M67 27 a8 8 0 0 1 12 0', stroke: '#ffffff', strokeWidth: '2'}],
+            ['g', {stroke: '#ffffff', strokeWidth: '1.3', opacity: '0.5'},
+                ['path', {d: 'M106 76 H124 V82 H140'}],
+                ['path', {d: 'M106 120 H124 V152 H140'}],
+                ['path', {d: 'M40 84 H32 V80 H28'}],
+                ['path', {d: 'M40 126 H32 V134 H28'}],
+                ['path', {d: 'M82 134 V172'}]
+            ],
+            ['g', {fill: '#ffffff', opacity: '0.6', stroke: 'none'},
+                ['circle', {cx: '124', cy: '82', r: '2.5'}],
+                ['circle', {cx: '124', cy: '152', r: '2.5'}],
+                ['circle', {cx: '32', cy: '80', r: '2.5'}],
+                ['circle', {cx: '32', cy: '134', r: '2.5'}]
+            ],
+            ['rect', {x: '12', y: '30', width: '140', height: '150', rx: '12', stroke: '#ffffff', strokeWidth: '2.4'}],
+            ['circle', {cx: '24', cy: '42', r: '4', stroke: '#ffffff', strokeWidth: '1.6'}],
+            ['circle', {cx: '140', cy: '42', r: '4', stroke: '#ffffff', strokeWidth: '1.6'}],
+            ['circle', {cx: '24', cy: '168', r: '4', stroke: '#ffffff', strokeWidth: '1.6'}],
+            ['text', {x: '128', y: '172', textAnchor: 'end', style: {fontFamily: '\'JetBrains Mono\', monospace', fontSize: '8px', fontWeight: '600', letterSpacing: '1px'}, fill: '#ffffff', stroke: 'none'}, 'TB-01'],
+            ['rect', {x: '40', y: '56', width: '66', height: '78', rx: '4', stroke: '#ffffff', strokeWidth: '2'}],
+            ['polyline', {points: '48,74 48,62 58,62 58,72 68,72 68,62 78,62 78,72 88,72 88,62 98,62 98,74', stroke: '#ffffff', strokeWidth: '1.6'}],
+            ['rect', {x: '48', y: '80', width: '50', height: '46', rx: '3', stroke: '#ffffff', strokeWidth: '1.6', fill: '#ffffff', fillOpacity: '0.12'}],
+            ['text', {x: '73', y: '106', textAnchor: 'middle', style: {fontFamily: '\'JetBrains Mono\', monospace', fontSize: '9px', fontWeight: '600'}, fill: '#ffffff', stroke: 'none'}, 'ESP32'],
+            ['path', {d: 'M36 90 H40 M36 98 H40 M36 106 H40 M36 114 H40 M36 122 H40 M106 90 H110 M106 98 H110 M106 106 H110 M106 114 H110 M106 122 H110', stroke: '#ffffff', strokeWidth: '1.4'}],
+            ['circle', {cx: '124', cy: '58', r: '4', fill: GOLD, stroke: INK, strokeWidth: '1.4'}],
+            ['path', {d: 'M124 48 V45 M132 52 L134 50 M116 52 L114 50', stroke: GOLD, strokeWidth: '1.6'}],
+            ['rect', {x: '36', y: '146', width: '11', height: '11', rx: '2', stroke: '#ffffff', strokeWidth: '1.5'}],
+            ['rect', {x: '54', y: '146', width: '11', height: '11', rx: '2', stroke: '#ffffff', strokeWidth: '1.5'}],
+            ['rect', {x: '64', y: '172', width: '36', height: '14', rx: '7', stroke: '#ffffff', strokeWidth: '2', fill: PURPLE}],
+            ['rect', {x: '72', y: '177', width: '20', height: '4', rx: '2', stroke: '#ffffff', strokeWidth: '1.2'}],
+            ['rect', {x: '4', y: '64', width: '24', height: '34', rx: '3', stroke: '#ffffff', strokeWidth: '1.8', fill: PURPLE}],
+            ['path', {d: 'M10 70 V80 M15 70 V80 M20 70 V80', stroke: '#ffffff', strokeWidth: '1.3'}],
+            ['rect', {x: '4', y: '118', width: '24', height: '34', rx: '3', stroke: '#ffffff', strokeWidth: '1.8', fill: PURPLE}],
+            ['path', {d: 'M10 124 V134 M15 124 V134 M20 124 V134', stroke: '#ffffff', strokeWidth: '1.3'}],
+            ['rect', {x: '166', y: '46', width: '122', height: '74', rx: '8', stroke: '#ffffff', strokeWidth: '2.4', fill: '#ffffff', fillOpacity: '0.08'}],
+            ['circle', {cx: '278', cy: '56', r: '3', stroke: '#ffffff', strokeWidth: '1.4'}],
+            ['circle', {cx: '232', cy: '80', r: '34', fill: GOLD, fillOpacity: '0.16', stroke: 'none'}],
+            ['circle', {cx: '232', cy: '80', r: '22', fill: GOLD, fillOpacity: '0.3', stroke: 'none'}],
+            ['path', {d: 'M220 96 v-20 a12 12 0 0 1 24 0 v20 z', fill: GOLD, stroke: INK, strokeWidth: '2'}],
+            ['path', {d: 'M226 74 a6 6 0 0 1 6 -6', stroke: '#ffffff', strokeWidth: '1.6'}],
+            ['rect', {x: '216', y: '96', width: '32', height: '5', rx: '1.5', fill: GOLD, stroke: INK, strokeWidth: '1.6'}],
+            ['path', {d: 'M226 101 V112 M238 101 V108', stroke: '#ffffff', strokeWidth: '1.6'}],
+            ['rect', {x: '188', y: '94', width: '16', height: '7', rx: '2', stroke: '#ffffff', strokeWidth: '1.4'}],
+            ['path', {d: 'M192 94 V101 M197 94 V101', stroke: '#ffffff', strokeWidth: '1'}],
+            ['text', {x: '178', y: '114', style: {fontFamily: '\'JetBrains Mono\', monospace', fontSize: '7px', fontWeight: '600', letterSpacing: '0.8px'}, fill: '#ffffff', stroke: 'none'}, 'MOD-LED'],
+            ['path', {d: 'M232 40 V32 M258 50 L264 44 M206 50 L200 44 M270 80 H282', stroke: GOLD, strokeWidth: '2.6'}],
+            ['rect', {x: '166', y: '128', width: '122', height: '56', rx: '8', stroke: '#ffffff', strokeWidth: '2.4', fill: '#ffffff', fillOpacity: '0.08'}],
+            ['circle', {cx: '212', cy: '154', r: '14', stroke: '#ffffff', strokeWidth: '2', fill: INK}],
+            ['circle', {cx: '212', cy: '154', r: '3.5', fill: '#ffffff', stroke: 'none'}],
+            ['path', {d: 'M234 146 a10 10 0 0 1 0 16 M242 140 a18 18 0 0 1 0 28 M250 134 a26 26 0 0 1 0 40', stroke: GOLD, strokeWidth: '2.2'}],
+            ['text', {x: '176', y: '178', style: {fontFamily: '\'JetBrains Mono\', monospace', fontSize: '7px', fontWeight: '600', letterSpacing: '0.8px'}, fill: '#ffffff', stroke: 'none'}, 'BUZZER'],
+            ['rect', {x: '140', y: '62', width: '30', height: '40', rx: '4', stroke: INK, strokeWidth: '2', fill: GOLD}],
+            ['path', {d: 'M148 72 V88 M155 72 V88 M162 72 V88', stroke: INK, strokeWidth: '1.4'}],
+            ['rect', {x: '140', y: '134', width: '30', height: '40', rx: '4', stroke: INK, strokeWidth: '2', fill: GOLD}],
+            ['path', {d: 'M148 144 V160 M155 144 V160 M162 144 V160', stroke: INK, strokeWidth: '1.4'}]
+        ]
+    ]
+);
+
+export default StepWatch;

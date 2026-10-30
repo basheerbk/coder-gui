@@ -3,7 +3,8 @@ import React from 'react';
 import {SiteFooter, SiteHeader} from '../landing/chrome.jsx';
 import {SITE_CONFIG} from '../landing/site-config';
 
-import '../landing/landing.css';
+import '../tokens.css';
+import '../site.css';
 import './privacy.css';
 
 const email = SITE_CONFIG.contactEmail;
@@ -11,7 +12,7 @@ const email = SITE_CONFIG.contactEmail;
 const App = () => (
     <React.Fragment>
         <a
-            className="sr-only"
+            className="sr-only tb-skip"
             href="#main"
         >Skip to content</a>
 
@@ -19,12 +20,12 @@ const App = () => (
 
         <main
             id="main"
-            className="section privacy"
+            className="privacy grid-light"
         >
-            <div className="container privacy-body">
-                <p className="section-kicker">Privacy</p>
+            <div className="tb-container privacy-body">
+                <p className="tb-eyebrow">PRIVACY</p>
                 <h1>Your privacy, in plain words</h1>
-                <p className="section-lead">
+                <p className="privacy-lead">
                     In short: if you ask to hear when kits ship, we keep your email address. We also look at how
                     people use this website so we can make it better. Ask us any time and we’ll delete your details.
                 </p>
@@ -84,7 +85,7 @@ const App = () => (
 
                 <p className="privacy-back">
                     <a
-                        className="btn btn-primary"
+                        className="tb-btn"
                         href="/"
                     >Back to home</a>
                 </p>

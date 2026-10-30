@@ -1,31 +1,59 @@
+.privacy {
+  border-bottom: 2px solid var(--tb-ink);
+}
+
 .privacy-body {
-  max-width: 44rem;
+  max-width: calc(44rem + 48px);
+  margin: 0 auto;
+  padding-top: 72px;
+  padding-bottom: 96px;
 }
 
 .privacy-body h1 {
-  font-size: clamp(1.85rem, 4.2vw, 2.6rem);
+  margin: 14px 0 1rem;
+  font-family: var(--tb-font-display);
+  font-size: clamp(32px, 4.2vw, 48px);
+  line-height: 1.05;
   letter-spacing: -0.03em;
-  margin-bottom: 1rem;
 }
 
 .privacy-body h2 {
+  margin: 2.25rem 0 0.5rem;
+  font-family: var(--tb-font-display);
   font-size: 1.3rem;
-  margin-top: 2.25rem;
+  letter-spacing: -0.01em;
 }
 
 .privacy-body p {
-  color: var(--text-muted);
+  color: var(--tb-body);
+  font-size: 17px;
+  line-height: 1.6;
 }
 
-.privacy-body a:not(.btn) {
-  color: var(--text);
+.privacy-body .tb-eyebrow {
+  margin: 0;
+  font-size: 13px;
+  color: var(--tb-purple);
+}
+
+.privacy-body .privacy-lead {
+  font-size: 19px;
+}
+
+.privacy-body a:not(.tb-btn) {
+  color: var(--tb-link);
   font-weight: 700;
 }
 
-.privacy-updated {
-  font-size: 0.9rem;
+.privacy-body .privacy-updated {
+  font-family: var(--tb-font-mono);
+  font-size: 13px;
 }
 
 .privacy-back {
   margin-top: 2.5rem;
+}
+
+.privacy-back .tb-btn {
+  min-height: 54px;
 }

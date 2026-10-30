@@ -27,6 +27,12 @@ const SITE_DIR = path.resolve(__dirname, 'src/site');
 // Apex tinkerbit.io 308-redirects here, so every canonical/share URL uses www.
 const SITE_ORIGIN = 'https://www.tinkerbit.io';
 const OG_IMAGE_ALT = 'TinkerBit: block coding with snap-in electronics modules';
+const SITE_DESCRIPTION = 'TinkerBit: click-in modules, block coding in the browser, and room to grow into IoT ' +
+    'and edge AI. First kits ship December 2026.';
+// Matches --tb-purple in src/site/tokens.css; meta tags can't read CSS variables.
+const SITE_THEME_COLOR = '#5B2BD1';
+const SITE_FONTS_HREF = 'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700' +
+    '&family=JetBrains+Mono:wght@400;600&family=DM+Sans:wght@400;500;700&display=swap';
 
 const postCssPlugins = function () {
     return [
@@ -87,6 +93,9 @@ const base = {
             loader: 'babel-loader',
             include: [
                 path.resolve(__dirname, 'src'),
+                // The 3D kit the studio's build views share (vendor/ stays out; the studio uses node_modules/three)
+                path.resolve(__dirname, 'module-test/lib'),
+                path.resolve(__dirname, 'module-test/components'),
                 /node_modules[\\/]scratch-[^\\/]+[\\/]src/,
                 /node_modules[\\/]pify/,
                 /node_modules[\\/]@vernier[\\/]godirect/
@@ -318,6 +327,18 @@ module.exports = [
             }
         });
         delete site.output.library;
+        site.module = {
+            rules: base.module.rules.concat([{
+                // Beginner Studio board and module artwork (module-test/tools/export-studio-art.mjs)
+                test: /\.svg$/,
+                include: path.resolve(__dirname, 'src/beginner-studio/assets'),
+                loader: 'file-loader',
+                options: {
+                    outputPath: 'static/beginner/',
+                    name: '[name].[hash:8].[ext]'
+                }
+            }])
+        };
         // Assign after defaultsDeep so IDE splitChunks/runtimeChunk never leak in.
         // Lazy upload/esptool must stay out of the initial site-vendor chunk.
         site.optimization = {
@@ -356,14 +377,16 @@ module.exports = [
                 template: 'src/site/site.ejs',
                 filename: 'index.html',
                 title: 'TinkerBit: Block Coding Meets Real Circuits | Fun STEM Kits',
-                description: 'Drag-and-drop coding meets snap-in electronics. No wires, no soldering. Just click, code, and watch it come alive. Perfect for kids and classrooms.',
+                description: SITE_DESCRIPTION,
                 canonical: `${SITE_ORIGIN}/`,
                 colorScheme: 'only light',
+                themeColor: SITE_THEME_COLOR,
+                fontsHref: SITE_FONTS_HREF,
                 extraHead: [
                     '<meta property="og:type" content="website">',
                     '<meta property="og:site_name" content="TinkerBit">',
                     '<meta property="og:title" content="TinkerBit: Block Coding Meets Real Circuits">',
-                    '<meta property="og:description" content="Drag-and-drop coding meets snap-in electronics. No wires, no soldering. Just click, code, and watch it come alive.">',
+                    `<meta property="og:description" content="${SITE_DESCRIPTION}">`,
                     `<meta property="og:url" content="${SITE_ORIGIN}/">`,
                     `<meta property="og:image" content="${SITE_ORIGIN}/static/landing/og-image.png">`,
                     '<meta property="og:image:type" content="image/png">',
@@ -372,7 +395,7 @@ module.exports = [
                     `<meta property="og:image:alt" content="${OG_IMAGE_ALT}">`,
                     '<meta name="twitter:card" content="summary_large_image">',
                     '<meta name="twitter:title" content="TinkerBit: Block Coding Meets Real Circuits">',
-                    '<meta name="twitter:description" content="Drag-and-drop coding meets snap-in electronics. No wires, no soldering. Just click, code, and watch it come alive.">',
+                    `<meta name="twitter:description" content="${SITE_DESCRIPTION}">`,
                     `<meta name="twitter:image" content="${SITE_ORIGIN}/static/landing/og-image.png">`,
                     `<meta name="twitter:image:alt" content="${OG_IMAGE_ALT}">`,
                     `<script type="application/ld+json">${JSON.stringify({
@@ -396,7 +419,9 @@ module.exports = [
                 title: 'Privacy | TinkerBit',
                 description: 'What TinkerBit collects on tinkerbit.io, why, and how to ask for deletion.',
                 canonical: `${SITE_ORIGIN}/privacy`,
-                colorScheme: 'only light'
+                colorScheme: 'only light',
+                themeColor: SITE_THEME_COLOR,
+                fontsHref: SITE_FONTS_HREF
             }),
             new HtmlWebpackPlugin({
                 chunks: ['site-vendor', 'login'],

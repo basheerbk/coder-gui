@@ -1,0 +1,34 @@
+/* TinkerBit brand tokens. The only place brand hex values live; use var(--tb-*) everywhere else. */
+:root {
+  --tb-purple: #5B2BD1;
+  --tb-ink: #1D1140;
+  --tb-gold: #F2B33D;
+  --tb-lilac: #F4F0FF;
+  --tb-grid-bg: #FBF9FF;
+  --tb-grid-line: #ECE5FF;
+  --tb-line-soft: #D9CFFA;
+  --tb-body: #4A4560;
+  --tb-on-dark: #E9E1FF;
+  --tb-white: #FFFFFF;
+
+  /* Supporting shades from the reference design */
+  --tb-link: #4B22B0;
+  --tb-link-hover: #2E1270;
+  --tb-muted: #5C5675;
+  --tb-muted-on-dark: #CFC4F2;
+  --tb-dash: #B9A6F5;
+  --tb-dash-soft: #C9B9F7;
+  --tb-illo-border: #E3DAFF;
+  --tb-error: #B42318;
+
+  --tb-font-display: 'Space Grotesk', system-ui, sans-serif;
+  --tb-font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --tb-font-body: 'DM Sans', system-ui, sans-serif;
+
+  --tb-max-width: 1200px;
+  --tb-radius-btn: 10px;
+  --tb-radius-card: 18px;
+  --tb-shadow-btn: 4px 4px 0 var(--tb-ink);
+  --tb-shadow-gold: 8px 8px 0 var(--tb-gold);
+  --tb-shadow-hero: 10px 10px 0 var(--tb-ink);
+}

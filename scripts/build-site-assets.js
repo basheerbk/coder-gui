@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
  * Generates landing/site assets into .generated/site-assets (copied to the build root by webpack):
- *   static/landing/<slot>.webp + .png  from src/landing/media/<slot>.(png|jpg|jpeg)
- *   static/landing/og-image.png        cropped to 1200x630
+ *   static/landing/og-image.png        from src/landing/media/og-image.(png|jpg|jpeg), cropped to 1200x630
+ *   static/landing/<photo>.webp + .jpg from src/landing/media/<photo>.(png|jpg|jpeg), see PHOTO_MAX_WIDTH
  *   favicon.ico, static/favicon.ico, apple-touch-icon.png, icon-192.png, icon-512.png,
  *   static/brand/logo-512.png           from src/site/brand/logo-mark.svg
  */
@@ -16,17 +16,14 @@ const LOGO_SVG = path.join(ROOT, 'src/site/brand/logo-mark.svg');
 const OUT_DIR = path.join(ROOT, '.generated/site-assets');
 const LANDING_OUT = path.join(OUT_DIR, 'static/landing');
 
-const SLOT_MAX_WIDTH = {
-    'hero': 1920,
-    'gallery-nightlight': 1200,
-    'gallery-doorbell': 1200,
-    'gallery-bot': 1200
-};
 const SOURCE_EXTS = ['.png', '.jpg', '.jpeg'];
+const PHOTO_MAX_WIDTH = {
+    makerspace: 1200
+};
 
 const ensureDir = dir => fs.mkdirSync(dir, {recursive: true});
 
-/** Newest source file for a slot, so a dropped-in hero.jpg wins over an older hero.png. */
+/** Newest source file for a slot, so a dropped-in og-image.jpg wins over an older og-image.png. */
 const findSource = slot => {
     const candidates = SOURCE_EXTS
         .map(ext => path.join(MEDIA_DIR, `${slot}${ext}`))
@@ -37,32 +34,28 @@ const findSource = slot => {
     return candidates.sort((a, b) => fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs)[0];
 };
 
-const buildSlot = async (slot, maxWidth) => {
-    const source = findSource(slot);
-    if (!source) {
-        throw new Error(`Missing landing image: src/landing/media/${slot}.png (or .jpg)`);
-    }
-    const base = () => sharp(source).rotate()
-        .resize({width: maxWidth, withoutEnlargement: true});
-    await base().webp({quality: 80})
-        .toFile(path.join(LANDING_OUT, `${slot}.webp`));
-    const pngOut = path.join(LANDING_OUT, `${slot}.png`);
-    const meta = await sharp(source).metadata();
-    if (path.extname(source).toLowerCase() === '.png' && meta.width <= maxWidth) {
-        fs.copyFileSync(source, pngOut);
-        return;
-    }
-    // Palette PNG keeps the fallback far smaller than truecolor (~10x) for photos.
-    await base().png({palette: true, quality: 85, compressionLevel: 9})
-        .toFile(pngOut);
-};
-
 const buildOgImage = async () => {
-    const source = findSource('og-image') || findSource('hero');
+    const source = findSource('og-image');
+    if (!source) {
+        throw new Error('Missing link-preview image: src/landing/media/og-image.png (or .jpg)');
+    }
     await sharp(source).rotate()
         .resize(1200, 630, {fit: 'cover', position: 'centre'})
         .png({palette: true, quality: 85, compressionLevel: 9})
         .toFile(path.join(LANDING_OUT, 'og-image.png'));
+};
+
+const buildPhoto = async (name, maxWidth) => {
+    const source = findSource(name);
+    if (!source) {
+        throw new Error(`Missing landing photo: src/landing/media/${name}.png (or .jpg)`);
+    }
+    const base = () => sharp(source).rotate()
+        .resize({width: maxWidth, withoutEnlargement: true});
+    await base().webp({quality: 80})
+        .toFile(path.join(LANDING_OUT, `${name}.webp`));
+    await base().jpeg({quality: 82, mozjpeg: true})
+        .toFile(path.join(LANDING_OUT, `${name}.jpg`));
 };
 
 /** ICO container holding PNG images (supported by all current browsers). */
@@ -114,8 +107,8 @@ const buildIcons = async () => {
 const main = async () => {
     fs.rmSync(OUT_DIR, {recursive: true, force: true});
     ensureDir(LANDING_OUT);
-    await Promise.all(Object.keys(SLOT_MAX_WIDTH).map(slot => buildSlot(slot, SLOT_MAX_WIDTH[slot])));
     await buildOgImage();
+    await Promise.all(Object.keys(PHOTO_MAX_WIDTH).map(name => buildPhoto(name, PHOTO_MAX_WIDTH[name])));
     await buildIcons();
     console.log(`Site assets written to ${path.relative(ROOT, OUT_DIR)}`);
 };
