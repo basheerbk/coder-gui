@@ -158,6 +158,17 @@ describe('Cloud firmware codegen', () => {
         expect(noRead).not.toContain('(double)distance');
     });
 
+    test('always sends a heartbeat so boards without sensors stay online', () => {
+        const noRead = generateArduino(connections, program.slice(1), {cloud: CLOUD});
+        expect(noRead).not.toContain('nothing measured');
+        expect(noRead).toContain('(void)withReadings;');
+        expect(noRead).toContain('cloudSendTelemetry(cloudLoopDone);');
+        expect(noRead).toContain('#define CLOUD_FW "studio-2"');
+        expect(noRead).toContain('WiFi.setSleep(false);');
+        const withRead = generateArduino(connections, program, {cloud: CLOUD});
+        expect(withRead).toContain('  if (withReadings) {');
+    });
+
     test('wires setup, loop, controls and alert blocks', () => {
         const code = generateArduino(connections, program, {cloud: CLOUD});
         expect(code).toContain('  cloudSetup();');

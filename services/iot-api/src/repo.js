@@ -185,6 +185,22 @@ export class Repo {
                 offline_since = ? WHERE id = ? AND status != 'never'`).run(now, id);
     }
 
+    /**
+     * Any message from the board proves it is connected. Brings a stale-swept row back online.
+     * @returns {boolean} true when the row was offline and is now online
+     */
+    touch (id, now) {
+        const row = this.stmt('SELECT status FROM devices WHERE id = ?').get(id);
+        if (!row) {
+            return false;
+        }
+        this.stmt(`UPDATE devices SET last_seen = ?, offline_alerted = 0,
+                online_since = CASE WHEN status IN ('never', 'offline') THEN ? ELSE online_since END,
+                status = CASE WHEN status IN ('never', 'offline') THEN 'online' ELSE status END
+            WHERE id = ?`).run(now, now, id);
+        return row.status === 'never' || row.status === 'offline';
+    }
+
     offlineAwaitingAlert (before) {
         return this.stmt(`SELECT * FROM devices WHERE status = 'offline' AND offline_alerted = 0
             AND offline_since IS NOT NULL AND offline_since <= ? AND deleted_at IS NULL`).all(before);
@@ -451,10 +467,16 @@ export class Repo {
     }
 }
 
+/** Firmware that only sends telemetry when it has readings; quiet boards rely on the broker's LWT. */
+const NO_HEARTBEAT_FW = new Set(['studio-1']);
+
 /** Status shown to users. "online" with no traffic for 3 intervals (min 90 s) is stale. */
 export function effectiveStatus (row, now = Date.now()) {
     if (row.status !== 'online') {
         return row.status;
+    }
+    if (NO_HEARTBEAT_FW.has(row.fw)) {
+        return 'online';
     }
     const staleAfter = Math.max(row.interval_sec * 3 * 1000, 90 * 1000);
     if (row.last_seen && now - row.last_seen > staleAfter) {

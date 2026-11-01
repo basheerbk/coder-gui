@@ -76,6 +76,10 @@ test('telemetry: accepts numbers/booleans, drops NaN/strings/bad keys, rejects j
     assert.equal(parseTelemetry(buf({v: {switch1: 1}})).error, 'no_valid_values', 'control keys cannot be spoofed as readings');
     assert.equal(parseTelemetry(buf('{"v":{"__proto__":1}}')).error, 'no_valid_values');
     assert.equal(parseTelemetry(buf('{"v":{"a":1e400}}')).error, 'no_valid_values');
+    const beat = parseTelemetry(buf({seq: 4, boot: 'ab12', v: {}}));
+    assert.ok(beat.ok, 'empty v is a heartbeat');
+    assert.deepEqual(beat.value.values, []);
+    assert.equal(parseTelemetry(buf({seq: 4})).error, 'bad_values');
 });
 
 test('status, ack and alert payloads', () => {

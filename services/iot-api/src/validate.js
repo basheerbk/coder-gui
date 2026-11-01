@@ -65,6 +65,7 @@ const toFiniteNumber = value => {
 /**
  * Device telemetry: {"seq":12,"v":{"distance":34,"heartRate":72}}
  * Non-finite or non-numeric values are dropped and counted, never stored.
+ * An empty "v" is a heartbeat from a board with nothing to measure: valid, zero values.
  */
 export function parseTelemetry (payload) {
     if (payload && payload.length > MAX_PAYLOAD_BYTES) {
@@ -86,6 +87,9 @@ export function parseTelemetry (payload) {
     const keys = Object.keys(v);
     if (keys.length > MAX_READING_KEYS) {
         return fail('too_many_keys');
+    }
+    if (!keys.length) {
+        return ok({seq, boot, values: [], dropped: 0});
     }
     const values = [];
     let dropped = 0;

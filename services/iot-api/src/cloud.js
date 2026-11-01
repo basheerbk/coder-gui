@@ -298,13 +298,16 @@ export class Cloud {
             return;
         }
         this.stats.accepted++;
+        if (device.status !== 'online') {
+            this.live.publish(device.owner_sub, {type: 'status', deviceId: device.id, status: 'online'});
+        }
+        if (!values.length) {
+            return;
+        }
         const v = {};
         values.forEach(([key, value]) => {
             v[key] = value;
         });
-        if (device.status !== 'online') {
-            this.live.publish(device.owner_sub, {type: 'status', deviceId: device.id, status: 'online'});
-        }
         this.live.publish(device.owner_sub, {type: 'reading', deviceId: device.id, ts: now, v});
         values.forEach(([key, value]) => this.evaluateRules(device, key, value, now));
     }
@@ -364,12 +367,22 @@ export class Cloud {
         }
     }
 
+    markSeen (device) {
+        if (device.status === 'disabled') {
+            return;
+        }
+        if (this.repo.touch(device.id, this.now())) {
+            this.live.publish(device.owner_sub, {type: 'status', deviceId: device.id, status: 'online'});
+        }
+    }
+
     onAck (device, payload) {
         const parsed = parseAck(payload);
         if (!parsed.ok) {
             this.stats.rejected++;
             return;
         }
+        this.markSeen(device);
         if (this.repo.ackControl(device.id, parsed.value.key, parsed.value.ver)) {
             const control = serializeControl(this.repo.getControl(device.id, parsed.value.key));
             this.live.publish(device.owner_sub, {type: 'control', deviceId: device.id, control});
@@ -382,6 +395,7 @@ export class Cloud {
             this.stats.rejected++;
             return;
         }
+        this.markSeen(device);
         const now = this.now();
         if (this.repo.hasRecentAlert(device.id, 'device', parsed.value, now - DEVICE_ALERT_DEDUPE_MS)) {
             return;

@@ -377,12 +377,13 @@ static void cloudTask(void *arg) {
       cloudPublish(cloudClient, "alert", text, 1, 0);
     }
 
-    if (cloudConnected && cloudLoopDone) {
+    // Sent even with nothing to measure (or a loop that never ends): it doubles as the heartbeat.
+    if (cloudConnected) {
       uint32_t since = now - cloudLastSend;
-      if (since >= CLOUD_INTERVAL_MS || (cloudSendNowFlag && since >= CLOUD_MIN_GAP_MS)) {
+      if (since >= CLOUD_INTERVAL_MS || (cloudLoopDone && cloudSendNowFlag && since >= CLOUD_MIN_GAP_MS)) {
         cloudSendNowFlag = false;
         cloudLastSend = now;
-        cloudSendTelemetry();
+        cloudSendTelemetry(cloudLoopDone);
       }
     }
     vTaskDelay(pdMS_TO_TICKS(100));
@@ -440,6 +441,7 @@ static void cloudSetup() {
   cloudDownSince = millis();
   WiFi.onEvent(cloudOnWifi);
   WiFi.mode(WIFI_STA);
+  WiFi.setSleep(false); // modem sleep delays incoming commands and can miss broker pings
   WiFi.setAutoReconnect(true);
   if (strlen(CLOUD_WIFI_PASS) > 0) {
     WiFi.begin(CLOUD_WIFI_SSID, CLOUD_WIFI_PASS);
@@ -493,7 +495,7 @@ const cloudFirmware = ({connections, program, cloud, secrets}) => {
     head.push(define('CLOUD_WSS_PATH', cfg.wssPath));
     head.push(`#define CLOUD_INTERVAL_MS ${intervalSec * 1000}UL`);
     head.push(`#define CLOUD_MIN_GAP_MS ${minGapSec * 1000}UL`);
-    head.push(define('CLOUD_FW', 'studio-1'));
+    head.push(define('CLOUD_FW', 'studio-2'));
     head.push('');
     head.push('// Let\'s Encrypt ISRG Root X1 + X2: certificate renewals never need a re-flash.');
     head.push('static const char CLOUD_CA[] =');
@@ -501,16 +503,22 @@ const cloudFirmware = ({connections, program, cloud, secrets}) => {
     pem.forEach((line, i) => head.push(`${line}${i === pem.length - 1 ? ';' : ''}`));
 
     const telemetry = [
-        'static void cloudSendTelemetry() {',
+        '// With no readings this still sends {"v":{}} so the dashboard knows the board is online.',
+        'static void cloudSendTelemetry(bool withReadings) {',
         '  char buf[768];',
         '  bool first = true;',
         '  int n = snprintf(buf, sizeof(buf), "{\\"seq\\":%lu,\\"boot\\":\\"%s\\",\\"v\\":{", (unsigned long)(cloudSeq + 1), cloudBoot);'
     ];
-    readings.forEach(r => {
-        telemetry.push(`  n = cloudAppend(buf, sizeof(buf), n, &first, "${r.key}", (double)${r.key}, ${r.type === 'int' ? 'true' : 'false'}, ${r.valid});`);
-    });
+    if (readings.length) {
+        telemetry.push('  if (withReadings) {');
+        readings.forEach(r => {
+            telemetry.push(`    n = cloudAppend(buf, sizeof(buf), n, &first, "${r.key}", (double)${r.key}, ${r.type === 'int' ? 'true' : 'false'}, ${r.valid});`);
+        });
+        telemetry.push('  }');
+    } else {
+        telemetry.push('  (void)withReadings;');
+    }
     telemetry.push('  if (n < 0 || (size_t)n + 3 > sizeof(buf)) return;');
-    telemetry.push('  if (first) return; // nothing measured yet');
     telemetry.push('  buf[n++] = \'}\';');
     telemetry.push('  buf[n++] = \'}\';');
     telemetry.push('  buf[n] = 0;');

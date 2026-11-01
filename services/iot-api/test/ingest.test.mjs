@@ -112,6 +112,40 @@ test('stale "online" with no traffic becomes offline even without an LWT', () =>
     assert.equal(fresh().status, 'offline');
 });
 
+test('heartbeats keep a board with no sensors online without storing readings', () => {
+    status({s: 'online', fw: 'studio-2', boot: 'abc1'});
+    for (let i = 1; i <= 10; i++) {
+        now.advance(30000);
+        cloud.handleMessage(`tb/${device.id}/telemetry`, Buffer.from(JSON.stringify({seq: i, boot: 'abc1', v: {}})), false);
+        cloud.sweepStatus();
+    }
+    assert.equal(fresh().status, 'online');
+    assert.equal(repo.latestFor(device.id).length, 0);
+    assert.ok(!events.some(e => e.type === 'reading'), 'heartbeats are not pushed as readings');
+});
+
+test('an ack from a stale-swept board brings it back online', async () => {
+    status({s: 'online', fw: 'studio-2', boot: 'abc1'});
+    now.advance(5 * 60 * 1000);
+    cloud.sweepStatus();
+    assert.equal(fresh().status, 'offline');
+    await cloud.setControl(user, fresh(), 'switch1', {value: 1, expectedVersion: 1});
+    events = [];
+    cloud.handleMessage(`tb/${device.id}/ack`, Buffer.from(JSON.stringify({key: 'switch1', ver: 2})), false);
+    assert.equal(fresh().status, 'online');
+    assert.ok(events.some(e => e.type === 'status' && e.status === 'online'));
+    assert.equal(repo.getControl(device.id, 'switch1').acked_version, 2);
+});
+
+test('older firmware without heartbeats stays online until the broker reports it gone', () => {
+    status({s: 'online', fw: 'studio-1', boot: 'abc1'});
+    now.advance(10 * 60 * 1000);
+    cloud.sweepStatus();
+    assert.equal(fresh().status, 'online');
+    status('offline');
+    assert.equal(fresh().status, 'offline');
+});
+
 test('retained replays do not count as restarts; repeated new boots raise one warning', () => {
     status({s: 'online', boot: 'abc1'}, true);
     status({s: 'online', boot: 'abc1'}, true);
