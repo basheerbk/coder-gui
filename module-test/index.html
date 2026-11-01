@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TinkerBit 3D components</title>
+<script type="importmap">
+{"imports": {"three": "./vendor/three/three.module.js"}}
+</script>
+<style>
+    :root {
+        --bg: #111827; --panel: #1f2937; --line: #374151; --text: #f9fafb; --sub: #9ca3af; --accent: #3b82f6;
+        font-family: "Segoe UI", Inter, system-ui, -apple-system, Roboto, sans-serif;
+    }
+    :root[data-theme="light"] { --bg: #f3f4f6; --panel: #ffffff; --line: #d1d5db; --text: #111827; --sub: #4b5563; }
+    * { box-sizing: border-box; }
+    body { margin: 0; height: 100vh; display: grid; grid-template-columns: 230px 1fr; background: var(--bg); color: var(--text); }
+    aside { background: var(--panel); border-right: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; }
+    aside header { padding: 16px 16px 8px; }
+    aside h1 { font-size: 16px; margin: 0 0 4px; }
+    aside p { margin: 0; font-size: 12px; color: var(--sub); }
+    nav { overflow-y: auto; padding: 4px 8px 16px; }
+    nav h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--sub); margin: 14px 8px 6px; }
+    nav button {
+        display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; padding: 7px 8px; border: 0; border-radius: 8px;
+        background: none; color: inherit; font: inherit; font-size: 13px; cursor: pointer;
+    }
+    nav button:hover { background: var(--line); }
+    nav button[aria-current="true"] { background: var(--accent); color: #fff; }
+    nav .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+    nav small { margin-left: auto; opacity: 0.7; font-size: 11px; }
+    main { display: grid; grid-template-rows: auto 1fr auto; min-width: 0; min-height: 0; }
+    .bar { display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--line); background: var(--panel); font-size: 12.5px; }
+    .bar .title { font-weight: 700; margin-right: auto; font-size: 14px; }
+    .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+    .seg button, .btn {
+        border: 0; background: none; color: inherit; font: inherit; padding: 5px 9px; cursor: pointer;
+    }
+    .bar label.check { font-size: inherit; }
+    .seg button[aria-pressed="true"] { background: var(--accent); color: #fff; }
+    .btn { border: 1px solid var(--line); border-radius: 8px; }
+    .btn:hover, .seg button:hover:not([aria-pressed="true"]) { background: var(--line); }
+    label.check { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; cursor: pointer; }
+    select { font: inherit; font-size: 13px; padding: 5px 6px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: inherit; }
+    #stage { position: relative; min-height: 0; }
+    #top { position: absolute; inset: 0; z-index: 1; padding: 24px; background: var(--bg); display: grid; place-items: center; }
+    #top svg { width: 100%; height: 100%; display: block; }
+    #stage .msg { position: absolute; inset: 0; display: grid; place-items: center; color: var(--sub); text-align: center; padding: 24px; }
+    footer { border-top: 1px solid var(--line); background: var(--panel); padding: 8px 14px; font-size: 12px; color: var(--sub); display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
+    footer code { color: var(--text); background: var(--bg); padding: 2px 6px; border-radius: 6px; }
+    [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<aside>
+    <header>
+        <h1>TinkerBit 3D components</h1>
+        <p>Standalone three.js models. Drag to orbit, scroll to zoom, right-drag to pan.</p>
+    </header>
+    <nav id="list" aria-label="Components"></nav>
+</aside>
+<main>
+    <div class="bar">
+        <span class="title" id="title">…</span>
+        <div class="seg" role="group" aria-label="View">
+            <button type="button" data-view="top" aria-pressed="false">Top view</button>
+            <button type="button" data-view="3d" aria-pressed="true">3D</button>
+            <button type="button" data-view="plugged" aria-pressed="false">Plugged in</button>
+        </div>
+        <select id="port" aria-label="Board jack" hidden></select>
+        <label class="check gl-only"><input type="checkbox" id="rotate"> Auto-rotate</label>
+        <label class="check gl-only"><input type="checkbox" id="shadows" checked> Shadows</label>
+        <label class="check gl-only"><input type="checkbox" id="wire"> Wireframe</label>
+        <button type="button" class="btn" id="theme">Light</button>
+        <button type="button" class="btn gl-only" id="reset">Reset view</button>
+        <button type="button" class="btn" id="save">Save PNG</button>
+    </div>
+    <div id="stage"><div id="top" hidden></div></div>
+    <footer>
+        <span id="info"></span>
+        <span>Embed: <code id="snippet"></code></span>
+    </footer>
+</main>
+<script type="module">
+import {COMPONENTS, PORTS, createViewer, getComponent, toTopSVG} from './lib/index.js';
+
+const $ = id => document.getElementById(id);
+const stage = $('stage');
+const topView = $('top');
+const viewButtons = Array.from(document.querySelectorAll('[data-view]'));
+const GROUPS = [['board', 'Board'], ['module', 'Modules'], ['card', 'Not modelled yet (cards)']];
+const VIEWS = ['top', '3d', 'plugged'];
+
+const state = {id: 'pot', view: '3d', port: null, theme: 'dark'};
+const fromHash = () => {
+    const params = new URLSearchParams(location.hash.slice(1));
+    if (params.get('c') && COMPONENTS.some(c => c.id === params.get('c'))) {
+        state.id = params.get('c');
+    }
+    state.view = VIEWS.includes(params.get('view')) ? params.get('view') : (params.get('plugged') === '1' ? 'plugged' : '3d');
+    state.port = params.get('port');
+    state.theme = params.get('theme') === 'light' ? 'light' : 'dark';
+};
+const toHash = () => {
+    const params = new URLSearchParams({c: state.id});
+    if (state.view !== '3d') {
+        params.set('view', state.view);
+    }
+    if (state.view === 'plugged' && state.port) {
+        params.set('port', state.port);
+    }
+    if (state.theme === 'light') {
+        params.set('theme', 'light');
+    }
+    history.replaceState(null, '', `#${params}`);
+};
+fromHash();
+
+let viewer;
+try {
+    viewer = createViewer(stage, {theme: state.theme});
+} catch (err) {
+    stage.insertAdjacentHTML('beforeend', '<div class="msg">WebGL isn\'t available in this browser, so only the top view works.</div>');
+    console.error(err);
+}
+
+const list = $('list');
+GROUPS.forEach(([kind, heading]) => {
+    const items = COMPONENTS.filter(c => (c.kind || 'module') === kind);
+    if (!items.length) {
+        return;
+    }
+    const h = document.createElement('h2');
+    h.textContent = heading;
+    list.appendChild(h);
+    items.forEach(c => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.dataset.id = c.id;
+        b.innerHTML = `<span class="dot"></span><span></span><small></small>`;
+        b.querySelector('.dot').style.background = c.color || '#9ca3af';
+        b.querySelector('span:nth-child(2)').textContent = c.name;
+        b.querySelector('small').textContent = c.id;
+        b.addEventListener('click', () => select(c.id));
+        list.appendChild(b);
+    });
+});
+
+PORTS.forEach(p => {
+    const o = document.createElement('option');
+    o.value = p.id;
+    o.textContent = `Jack ${p.label}`;
+    $('port').appendChild(o);
+});
+
+const render = () => {
+    const comp = getComponent(state.id);
+    document.documentElement.dataset.theme = state.theme;
+    list.querySelectorAll('button').forEach(b => {
+        if (b.dataset.id === state.id) {
+            b.setAttribute('aria-current', 'true');
+        } else {
+            b.removeAttribute('aria-current');
+        }
+    });
+    $('title').textContent = comp.name;
+    const canPlug = comp.kind !== 'board';
+    let view = state.view === 'plugged' && !canPlug ? '3d' : state.view;
+    if (!viewer) {
+        view = 'top';
+    }
+    viewButtons.forEach(b => {
+        b.setAttribute('aria-pressed', String(b.dataset.view === view));
+        b.disabled = (b.dataset.view === 'plugged' && !canPlug) || (b.dataset.view !== 'top' && !viewer);
+    });
+    $('port').hidden = view !== 'plugged';
+    $('port').value = state.port || comp.defaultPort || PORTS[0].id;
+    $('theme').textContent = state.theme === 'dark' ? 'Light' : 'Dark';
+    document.querySelectorAll('.gl-only').forEach(el => {
+        el.hidden = view === 'top';
+    });
+    $('save').textContent = view === 'top' ? 'Save SVG' : 'Save PNG';
+
+    const spec = comp.spec;
+    $('info').textContent = spec ? `${comp.id} · PCB ${spec.w} × ${spec.h} units · socket at y ${spec.jackY}` : comp.id;
+    $('snippet').textContent = {
+        top: `toTopSVG('${comp.id}')`,
+        '3d': `viewer.showComponent('${comp.id}')`,
+        plugged: `viewer.showPlugged('${comp.id}', {portId: '${$('port').value}'})`
+    }[view];
+
+    topView.hidden = view !== 'top';
+    if (view === 'top') {
+        topView.innerHTML = toTopSVG(comp.id, {theme: state.theme});
+    } else {
+        topView.innerHTML = '';
+        if (view === 'plugged') {
+            viewer.showPlugged(comp.id, {portId: $('port').value});
+        } else {
+            viewer.showComponent(comp.id);
+        }
+    }
+    toHash();
+};
+
+const select = id => {
+    state.id = id;
+    state.port = null;
+    render();
+};
+
+viewButtons.forEach(b => b.addEventListener('click', () => {
+    state.view = b.dataset.view;
+    render();
+}));
+$('port').addEventListener('change', e => {
+    state.port = e.target.value;
+    render();
+});
+$('rotate').addEventListener('change', e => viewer && viewer.setAutoRotate(e.target.checked));
+$('shadows').addEventListener('change', e => viewer && viewer.setShadows(e.target.checked));
+$('wire').addEventListener('change', e => viewer && viewer.setWireframe(e.target.checked));
+$('theme').addEventListener('click', () => {
+    state.theme = state.theme === 'dark' ? 'light' : 'dark';
+    document.documentElement.dataset.theme = state.theme;
+    $('theme').textContent = state.theme === 'dark' ? 'Light' : 'Dark';
+    if (viewer) {
+        viewer.setTheme(state.theme);
+    }
+    if (state.view === 'top') {
+        render();
+    }
+    toHash();
+});
+$('reset').addEventListener('click', () => viewer && viewer.frameContent());
+$('save').addEventListener('click', () => {
+    const a = document.createElement('a');
+    if (state.view === 'top') {
+        const blob = new Blob([toTopSVG(state.id, {theme: state.theme, idPrefix: `${state.id}-`})], {type: 'image/svg+xml'});
+        a.href = URL.createObjectURL(blob);
+        a.download = `${state.id}-top.svg`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+        return;
+    }
+    if (!viewer) {
+        return;
+    }
+    a.href = viewer.toPNG();
+    a.download = `${state.id}${state.view === 'plugged' ? '-plugged' : ''}.png`;
+    a.click();
+});
+
+document.addEventListener('keydown', e => {
+    if (e.target.closest('input, select') || (e.key !== 'ArrowDown' && e.key !== 'ArrowUp')) {
+        return;
+    }
+    const ids = COMPONENTS.map(c => c.id);
+    const i = ids.indexOf(state.id) + (e.key === 'ArrowDown' ? 1 : -1);
+    if (i >= 0 && i < ids.length) {
+        e.preventDefault();
+        select(ids[i]);
+        list.querySelector(`[data-id="${ids[i]}"]`).focus();
+    }
+});
+
+window.addEventListener('hashchange', () => {
+    fromHash();
+    if (viewer) {
+        viewer.setTheme(state.theme);
+    }
+    render();
+});
+
+render();
+window.tbViewer = viewer;
+</script>
+</body>
+</html>

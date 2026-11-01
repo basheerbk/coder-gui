@@ -28,6 +28,7 @@ const PARAM_FIELDS = {
     show_number: [{key: 'varName', label: 'var', type: 'text'}],
     serial_var: [{key: 'varName', label: 'var', type: 'text'}],
     blink: [{key: 'ms', label: 'ms', type: 'number'}],
+    cloud_alert: [{key: 'text', label: 'msg', type: 'text', maxLength: 120}],
     set_brightness: [{key: 'brightness', label: '0–255', type: 'number'}]
 };
 
@@ -62,7 +63,7 @@ const ConditionPicker = ({block, connections, updateParam}) => {
             updateParam(block.uid, {
                 sensor: id,
                 op: op === 'is' ? '<' : op,
-                value: Number(value) || 0
+                value: opt.defaultValue != null && opt.id !== sensor ? opt.defaultValue : (Number(value) || 0)
             });
         }
     };
@@ -308,6 +309,7 @@ const NodeCard = ({meta, fields, block, updateParam, deleteBlock, children}) => 
                                 <span>{field.label}</span>
                                 <input
                                     type={field.type === 'number' ? 'number' : 'text'}
+                                    maxLength={field.maxLength}
                                     value={block.params[field.key] == null ? '' : block.params[field.key]}
                                     onChange={e => {
                                         const raw = e.target.value;
@@ -475,6 +477,7 @@ const ProgramBlock = ({block, depth = 0}) => {
                             <span>{field.label}</span>
                             <input
                                 type={field.type === 'number' ? 'number' : 'text'}
+                                maxLength={field.maxLength}
                                 value={block.params[field.key] == null ? '' : block.params[field.key]}
                                 onChange={e => {
                                     const raw = e.target.value;

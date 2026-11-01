@@ -16,7 +16,7 @@ var postcssImport = require('postcss-import');
 
 const STATIC_PATH = process.env.STATIC_PATH || '/static';
 const MONACO_DIR = path.resolve(__dirname, './node_modules/monaco-editor');
-const LINK_PROXY_TARGET = process.env.COMPILE_PROXY_TARGET || 'http://13.217.19.72';
+const LINK_PROXY_TARGET = process.env.COMPILE_PROXY_TARGET || 'http://13.127.144.30';
 const linkProxy = {
     target: LINK_PROXY_TARGET,
     changeOrigin: true,
@@ -31,6 +31,8 @@ const SITE_DESCRIPTION = 'TinkerBit: click-in modules, block coding in the brows
     'and edge AI. First kits ship December 2026.';
 // Matches --tb-purple in src/site/tokens.css; meta tags can't read CSS variables.
 const SITE_THEME_COLOR = '#5B2BD1';
+// Local iot-api live socket (services/iot-api runs on 20114); never in production CSP.
+const IOT_DEV_WS = process.env.NODE_ENV === 'production' ? '' : ' ws://127.0.0.1:20114 ws://localhost:20114';
 const SITE_FONTS_HREF = 'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700' +
     '&family=JetBrains+Mono:wght@400;600&family=DM+Sans:wght@400;500;700&display=swap';
 
@@ -62,10 +64,18 @@ const base = {
                 {from: /^\/login\/?$/, to: '/login.html'},
                 {from: /^\/choose\/?$/, to: '/choose.html'},
                 {from: /^\/beginner\/?$/, to: '/beginner.html'},
-                {from: /^\/privacy\/?$/, to: '/privacy.html'}
+                {from: /^\/privacy\/?$/, to: '/privacy.html'},
+                {from: /^\/iot(\/.*)?$/, to: '/iot.html'}
             ]
         },
         proxy: {
+            // TinkerBit Cloud API (services/iot-api: npm run dev). Same path shape as the Vercel rewrite.
+            '/api/iot': {
+                target: process.env.IOT_PROXY_TARGET || 'http://127.0.0.1:20114',
+                pathRewrite: {'^/api/iot': '/iot/v1'},
+                changeOrigin: true,
+                secure: false
+            },
             '/api/auth': {
                 target: process.env.AUTH_PROXY_TARGET || 'http://127.0.0.1:3000',
                 changeOrigin: true,
@@ -312,7 +322,8 @@ module.exports = [
                 privacy: './src/site/privacy/index.jsx',
                 login: './src/site/login/index.jsx',
                 choose: './src/site/choose/index.jsx',
-                beginnerStudio: './src/beginner-studio/index.jsx'
+                beginnerStudio: './src/beginner-studio/index.jsx',
+                iot: './src/iot/index.jsx'
             },
             output: {
                 path: path.resolve(__dirname, 'build'),
@@ -462,6 +473,25 @@ module.exports = [
                     '<meta http-equiv="Content-Security-Policy" content="default-src \'self\'; style-src \'self\' \'unsafe-inline\' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src \'self\' data: https:; script-src \'self\' \'unsafe-eval\' https://*.clarity.ms https://c.bing.com; connect-src \'self\' https://*.clarity.ms https://c.bing.com; worker-src \'self\' blob:; frame-ancestors \'none\'; base-uri \'self\'; form-action \'self\'">',
                     '<meta http-equiv="X-Frame-Options" content="DENY">',
                     '<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">'
+                ].join('\n    ')
+            }),
+            new HtmlWebpackPlugin({
+                chunks: ['site-vendor', 'iot'],
+                template: 'src/site/site.ejs',
+                filename: 'iot.html',
+                title: 'TinkerBit Cloud',
+                description: 'Live readings, switches and alerts for your TinkerBit boards.',
+                robots: 'noindex',
+                canonical: `${SITE_ORIGIN}/iot`,
+                themeColor: '#111827',
+                manifestHref: '/iot.webmanifest',
+                fontsHref: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap',
+                extraHead: [
+                    // Live updates connect straight to the API host (Vercel rewrites cannot carry WebSockets).
+                    `<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; script-src 'self'; connect-src 'self' wss://api.tinkerbit.io${IOT_DEV_WS}; frame-ancestors 'none'; base-uri 'self'; form-action 'self'">`,
+                    '<meta http-equiv="X-Frame-Options" content="DENY">',
+                    '<meta name="apple-mobile-web-app-capable" content="yes">',
+                    '<meta name="mobile-web-app-capable" content="yes">'
                 ].join('\n    ')
             })
         ];

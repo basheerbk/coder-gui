@@ -50,9 +50,6 @@ const HowItWorks = () => (
                         Three moves. <span className="tb-text-gold">Something happens.</span>
                     </h2>
                 </div>
-                <p className="tb-lead tb-lead--on-dark tb-how-lead">
-                    No breadboard maze. No soldering iron. Just click, code, and look.
-                </p>
             </div>
             <ol className="tb-steps">
                 {STEPS.map(step => (

@@ -1,15 +1,32 @@
 import React, {useState} from 'react';
 
 import {useStudio} from '../../context/StudioContext.jsx';
+import {hasBle, hasCloud} from '../../domain/cloud';
 import {MODULES} from '../../domain/modules';
+import {fitsWithCloud} from '../../domain/ports';
 import ModuleIcon from '../shared/ModuleIcon.jsx';
 
 const FILTERS = [
     {id: 'all', label: 'All'},
     {id: 'sensor', label: 'Sensors'},
     {id: 'input', label: 'Inputs'},
-    {id: 'output', label: 'Outputs'}
+    {id: 'output', label: 'Outputs'},
+    {id: 'cloud', label: 'Cloud'}
 ];
+
+/** Why a part cannot be picked right now (shown instead of its description), or null. */
+const unavailableReason = (mod, cloudOn, bleOn) => {
+    if (cloudOn && mod.id === 'ble') {
+        return 'Not available with Cloud';
+    }
+    if (bleOn && mod.id === 'cloud') {
+        return 'Remove Bluetooth to use Cloud';
+    }
+    if (cloudOn && !fitsWithCloud(mod)) {
+        return 'Not available with Cloud (needs A1–A4)';
+    }
+    return null;
+};
 
 const FilterPill = ({active, label, onClick, K}) => {
     const [hover, setHover] = useState(false);
@@ -37,9 +54,9 @@ const FilterPill = ({active, label, onClick, K}) => {
     );
 };
 
-const ComponentRow = ({mod, connected, selected, onSelect, K}) => {
+const ComponentRow = ({mod, connected, unavailable, selected, onSelect, K}) => {
     const [hover, setHover] = useState(false);
-    const liveHover = hover && !connected;
+    const liveHover = hover && !connected && !unavailable;
     const bg = selected ?
         `${mod.color}22` :
         (liveHover ? `${mod.color}18` : 'transparent');
@@ -48,17 +65,19 @@ const ComponentRow = ({mod, connected, selected, onSelect, K}) => {
     return (
         <tr
             onClick={() => {
+                // Unavailable rows still call onSelect so the board explains why.
                 if (!connected) {
                     onSelect(mod.id);
                 }
             }}
             onMouseEnter={() => setHover(true)}
             onMouseLeave={() => setHover(false)}
+            title={unavailable || undefined}
             style={{
-                cursor: connected ? 'default' : 'pointer',
+                cursor: connected ? 'default' : (unavailable ? 'not-allowed' : 'pointer'),
                 background: bg,
                 boxShadow: bar,
-                opacity: connected ? 0.45 : 1,
+                opacity: connected || unavailable ? 0.45 : 1,
                 transform: liveHover ? 'translateX(3px)' : 'none',
                 transition: 'background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease, opacity 0.15s ease'
             }}
@@ -87,7 +106,7 @@ const ComponentRow = ({mod, connected, selected, onSelect, K}) => {
                 <div
                     style={{
                         fontSize: 9,
-                        color: liveHover ? K.sub : K.dim,
+                        color: unavailable ? K.orange : (liveHover ? K.sub : K.dim),
                         lineHeight: 1.3,
                         marginTop: 2,
                         overflow: 'hidden',
@@ -96,7 +115,7 @@ const ComponentRow = ({mod, connected, selected, onSelect, K}) => {
                         transition: 'color 0.15s ease'
                     }}
                 >
-                    {mod.description}
+                    {unavailable || mod.description}
                 </div>
             </td>
             <td style={{padding: '7px 4px', verticalAlign: 'middle'}}>
@@ -110,7 +129,7 @@ const ComponentRow = ({mod, connected, selected, onSelect, K}) => {
                         color: mod.signal === 'analog' ? K.analog : K.digital
                     }}
                 >
-                    {mod.signal === 'analog' ? 'ANA' : 'DIG'}
+                    {mod.signal === 'analog' ? 'ANA' : (mod.category === 'cloud' ? 'WIFI' : 'DIG')}
                 </span>
             </td>
             <td style={{padding: '7px 4px', verticalAlign: 'middle'}}>
@@ -169,6 +188,8 @@ const ComponentShelf = () => {
         used[c.moduleId] = true;
     });
 
+    const cloudOn = hasCloud(connections);
+    const bleOn = hasBle(connections);
     const list = MODULES.filter(m => categoryFilter === 'all' || m.category === categoryFilter);
 
     return (
@@ -263,6 +284,7 @@ const ComponentShelf = () => {
                                 key={mod.id}
                                 mod={mod}
                                 connected={Boolean(used[mod.id])}
+                                unavailable={used[mod.id] ? null : unavailableReason(mod, cloudOn, bleOn)}
                                 selected={selectedModule === mod.id}
                                 onSelect={selectModule}
                                 K={K}

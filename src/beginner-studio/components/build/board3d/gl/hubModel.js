@@ -7,6 +7,7 @@ import {moduleById} from '../../../../domain/modules';
 import {
     BOARD,
     CARD,
+    CLOUD_LOCKED_PORTS,
     ESP,
     PORTS,
     SPARE_JACKS,
@@ -17,7 +18,7 @@ import {
 } from '../../../../domain/ports';
 import {ModuleIconSvg} from '../../../shared/ModuleIcon.jsx';
 import {SceneDefs} from '../../ConnectionsLayer.jsx';
-import {PortLabel, labelCenter, labelWidth} from '../../Port.jsx';
+import {LockBadge, PortLabel, labelCenter, labelWidth} from '../../Port.jsx';
 
 import {
     JACK_H,
@@ -84,6 +85,27 @@ const labelDecal = (kit, port, pos, color, K, z) => {
     return label;
 };
 
+/** Padlock next to the label of a jack Cloud can switch off; the controller toggles visibility. */
+const lockDecal = (kit, port, pos, K, z) => {
+    const {cx, cy} = labelCenter(port, pos);
+    const lx = cx + (labelWidth(port) / 2) + 6;
+    const box = {x: lx - 10, y: cy - 10, w: 20, d: 20};
+    const tex = kit.tex.svg(`label:lock:${K.panel}:${K.orange}`, box.w, box.d, renderToStaticMarkup(
+        <g transform={`translate(${-box.x}, ${-box.y})`}>
+            <LockBadge cx={lx} cy={cy} K={K} />
+        </g>
+    ), {ppu: 6});
+    const lock = kit.decal({
+        ...box,
+        z,
+        material: new MeshBasicMaterial({map: tex, transparent: true, depthWrite: false, toneMapped: false}),
+        receive: false
+    });
+    lock.renderOrder = 5;
+    lock.visible = false;
+    return lock;
+};
+
 /**
  * Board jacks with highlight ring, glow and label; state is applied later by the controller.
  * ONBOARD is an invisible tap target over the ESP32 module (its meshes are marked hitOnly).
@@ -133,7 +155,8 @@ const buildPorts = (kit, K) => PORTS.map(port => {
     ring.renderOrder = 2;
     glow.renderOrder = 1;
     const label = labelDecal(kit, port, pos, color, K, top + 0.15);
-    return {port, jack, ring, glow, label, color};
+    const lock = CLOUD_LOCKED_PORTS.indexOf(port.id) !== -1 ? lockDecal(kit, port, pos, K, top + 0.2) : null;
+    return {port, jack, ring, glow, label, lock, color};
 });
 
 /** Hub jacks with no studio port: drawn in grey, never pickable. */

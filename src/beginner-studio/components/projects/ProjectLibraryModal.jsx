@@ -10,17 +10,26 @@ const FILTERS = [
     {id: 'all', label: 'All'},
     {id: 'Beginner', label: 'Beginner'},
     {id: 'Medium', label: 'Medium'},
-    {id: 'Advanced', label: 'Advanced'}
+    {id: 'Advanced', label: 'Advanced'},
+    {id: 'cloud', label: 'Cloud'}
 ];
+
+const matches = (tpl, filter) => {
+    if (filter === 'all') {
+        return true;
+    }
+    if (filter === 'cloud') {
+        return Boolean(tpl.cloud);
+    }
+    return tpl.difficulty === filter;
+};
 
 const ProjectLibraryModal = () => {
     const {showProjectLibrary, setShowProjectLibrary, loadTemplate, activeTemplateId, K} = useStudio();
     const [filter, setFilter] = useState('all');
 
     const filtered = useMemo(() => {
-        const list = filter === 'all'
-            ? TEMPLATES.slice()
-            : TEMPLATES.filter(t => t.difficulty === filter);
+        const list = TEMPLATES.filter(t => matches(t, filter));
         const rank = {Beginner: 0, Medium: 1, Advanced: 2};
         return list.sort((a, b) => {
             const da = rank[a.difficulty] != null ? rank[a.difficulty] : 9;
@@ -46,6 +55,9 @@ const ProjectLibraryModal = () => {
         if (id === 'Medium') {
             return K.orange;
         }
+        if (id === 'cloud') {
+            return K.cyan;
+        }
         return K.accent;
     };
 
@@ -70,9 +82,7 @@ const ProjectLibraryModal = () => {
                 {FILTERS.map(f => {
                     const active = filter === f.id;
                     const color = chipColor(f.id);
-                    const count = f.id === 'all'
-                        ? TEMPLATES.length
-                        : TEMPLATES.filter(t => t.difficulty === f.id).length;
+                    const count = TEMPLATES.filter(t => matches(t, f.id)).length;
                     return (
                         <button
                             key={f.id}

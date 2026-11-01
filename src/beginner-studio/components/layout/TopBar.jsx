@@ -1,6 +1,7 @@
 import React from 'react';
 
 import {useStudio} from '../../context/StudioContext.jsx';
+import {hasCloud} from '../../domain/cloud';
 import {moduleById} from '../../domain/modules';
 
 const TopBar = () => {
@@ -16,8 +17,11 @@ const TopBar = () => {
         K,
         theme,
         setTheme,
-        wireHint
+        wireHint,
+        cloud,
+        setShowCloudSetup
     } = useStudio();
+    const cloudPart = hasCloud(connections);
 
     const selectedDef = selectedModule ? moduleById(selectedModule) : null;
 
@@ -167,6 +171,39 @@ const TopBar = () => {
                     {wireHint}
                 </div>
             ) : null}
+
+            <button
+                type="button"
+                onClick={() => setShowCloudSetup(true)}
+                title={cloud ? `Cloud: ${cloud.deviceName}` : 'Send readings to your phone with TinkerBit Cloud'}
+                style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    maxWidth: 200,
+                    background: K.surface,
+                    border: `1px solid ${cloudPart && !cloud ? K.orange : K.border}`,
+                    color: K.text,
+                    borderRadius: 8,
+                    padding: '6px 10px',
+                    fontSize: 12,
+                    cursor: 'pointer'
+                }}
+            >
+                <span
+                    aria-hidden="true"
+                    style={{
+                        width: 8,
+                        height: 8,
+                        borderRadius: 4,
+                        flexShrink: 0,
+                        background: cloud ? K.green : (cloudPart ? K.orange : K.dim)
+                    }}
+                />
+                <span style={{overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
+                    {cloud ? `Cloud · ${cloud.deviceName}` : (cloudPart ? 'Cloud · set up' : 'Cloud')}
+                </span>
+            </button>
 
             <div
                 style={{

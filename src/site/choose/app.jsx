@@ -89,6 +89,15 @@ const App = () => {
                         <span className="mode-hint">Full block IDE with boards and upload</span>
                     </a>
                 </div>
+                <p className="choose-lead choose-cloud">
+                    Already connected a board to WiFi?{' '}
+                    <a
+                        href="/iot"
+                        onClick={() => clarityEvent('mode_cloud')}
+                    >
+                        Open your Cloud dashboard
+                    </a>
+                </p>
             </section>
         </main>
     );

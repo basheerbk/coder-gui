@@ -1,3 +1,4 @@
+import {CLOUD_CONTROL_OPTIONS} from './cloud';
 import {moduleById} from './modules';
 
 const COMPARE_OPS = [
@@ -41,6 +42,21 @@ const buildSensorOptions = connections => {
             });
         }
     });
+    const cloud = (connections || []).find(c => {
+        const mod = moduleById(c.moduleId);
+        return mod && mod.id === 'cloud';
+    });
+    if (cloud) {
+        CLOUD_CONTROL_OPTIONS.forEach(opt => {
+            options.push({
+                id: opt.id,
+                label: opt.label,
+                boolean: opt.boolean,
+                defaultValue: opt.defaultValue,
+                moduleId: 'cloud'
+            });
+        });
+    }
     return options;
 };
 
@@ -53,7 +69,7 @@ const defaultIfParams = (connections) => {
     if (first.boolean) {
         return {sensor: first.id, op: 'is', value: 0};
     }
-    return {sensor: first.id, op: '<', value: 500};
+    return {sensor: first.id, op: '<', value: first.defaultValue != null ? first.defaultValue : 500};
 };
 
 const formatCondition = params => {

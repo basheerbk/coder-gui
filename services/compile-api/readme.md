@@ -18,8 +18,8 @@ Supported FQBNs:
 From your machine:
 
 ```bash
-scp -i MakerShop.pem -r services/compile-api ubuntu@13.217.19.72:/tmp/compile-api
-ssh -i MakerShop.pem ubuntu@13.217.19.72 "bash /tmp/compile-api/install-on-ec2.sh"
+scp -i tinkerbit-key.pem -r services/compile-api ec2-user@13.127.144.30:/tmp/compile-api
+ssh -i tinkerbit-key.pem ec2-user@13.127.144.30 "bash /tmp/compile-api/install-on-ec2.sh"
 ```
 
 The install script also installs the `esp32:esp32` Arduino core (first run can take several minutes).
@@ -27,12 +27,12 @@ The install script also installs the `esp32:esp32` Arduino core (first run can t
 Verify:
 
 ```bash
-curl http://13.217.19.72/api/compile/health
+curl http://13.127.144.30/api/compile/health
 ```
 
 ## GUI
 
-The Vercel site proxies `/api/compile` to the EC2 host (`vercel.json`). Local dev proxies via webpack (`COMPILE_PROXY_TARGET`, default `http://13.217.19.72`).
+The Vercel site proxies `/api/compile` to the EC2 host (`vercel.json`). Local dev proxies via webpack (`COMPILE_PROXY_TARGET`, default `http://13.127.144.30`).
 
 - Arduino Uno: Web Serial + STK500 in the browser
 - ESP32 / ESP32-S3: Web Serial + esptool-js in the browser

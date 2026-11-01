@@ -1,6 +1,9 @@
-import React, {useState} from 'react';
+import React, {useRef, useState} from 'react';
 
 import {useStudio} from '../../context/StudioContext.jsx';
+import {cloudUploadProblem, hasCloud} from '../../domain/cloud';
+import {maskSecrets, readSecrets} from '../../domain/cloudSecrets';
+import {generateArduino} from '../../domain/codegen';
 import useBoardUpload from '../../hooks/useBoardUpload.js';
 
 import SerialMonitorPanel from './SerialMonitorPanel.jsx';
@@ -25,8 +28,19 @@ const colorize = (line, K) => {
 };
 
 const LiveCodePanel = () => {
-    const {generatedCode, showCodePanel, setShowCodePanel, K} = useStudio();
+    const {
+        generatedCode,
+        showCodePanel,
+        setShowCodePanel,
+        connections,
+        program,
+        cloud,
+        setShowCloudSetup,
+        K
+    } = useStudio();
     const [copied, setCopied] = useState(false);
+    const [cloudNote, setCloudNote] = useState('');
+    const uploadSecrets = useRef(null);
     const upload = useBoardUpload();
 
     if (!showCodePanel) {
@@ -76,6 +90,26 @@ const LiveCodePanel = () => {
             // ignore
         }
     };
+
+    const handleUpload = () => {
+        setCloudNote('');
+        if (!hasCloud(connections)) {
+            uploadSecrets.current = null;
+            upload.uploadCode(generatedCode);
+            return;
+        }
+        const secrets = cloud ? readSecrets(cloud.email, cloud.deviceId) : null;
+        const problem = cloudUploadProblem(connections, cloud, secrets);
+        if (problem) {
+            setCloudNote(problem);
+            return;
+        }
+        uploadSecrets.current = secrets;
+        upload.uploadCode(generateArduino(connections, program, {cloud, secrets}));
+    };
+
+    const shownMessage = maskSecrets(upload.message, uploadSecrets.current);
+    const shownLog = maskSecrets(upload.log, uploadSecrets.current);
 
     const statusColor = () => {
         if (upload.phase === 'success') {
@@ -175,7 +209,7 @@ const LiveCodePanel = () => {
                     <button
                         type="button"
                         disabled={upload.busy || !generatedCode}
-                        onClick={() => upload.uploadCode(generatedCode)}
+                        onClick={handleUpload}
                         style={{
                             border: 'none',
                             background: K.accent,
@@ -214,17 +248,54 @@ const LiveCodePanel = () => {
                 <div style={{fontSize: 10, color: statusColor(), fontWeight: 600, lineHeight: 1.35}}>
                     {!upload.supported
                         ? 'Upload needs Chrome or Edge on a computer.'
-                        : (upload.message ||
+                        : (shownMessage ||
                             (upload.connected
                                 ? `Ready · ${upload.portLabel || 'Maker ESP32'}`
                                 : 'Connect your Maker ESP32, then Upload.'))}
                 </div>
+                {cloudNote ? (
+                    <div
+                        role="alert"
+                        style={{
+                            fontSize: 11,
+                            color: K.text,
+                            background: `${K.orange}22`,
+                            border: `1px solid ${K.orange}`,
+                            borderRadius: 6,
+                            padding: '6px 8px',
+                            lineHeight: 1.4
+                        }}
+                    >
+                        {cloudNote}
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setCloudNote('');
+                                setShowCloudSetup(true);
+                            }}
+                            style={{
+                                display: 'block',
+                                marginTop: 6,
+                                border: 'none',
+                                background: K.accent,
+                                color: '#fff',
+                                borderRadius: 6,
+                                padding: '4px 8px',
+                                fontSize: 10,
+                                fontWeight: 700,
+                                cursor: 'pointer'
+                            }}
+                        >
+                            Open Cloud setup
+                        </button>
+                    </div>
+                ) : null}
                 {upload.phase === 'uploading' || upload.phase === 'error' ? (
                     <div style={{fontSize: 10, color: K.muted, lineHeight: 1.35, marginTop: 2}}>
                         Some laptops need you to hold BOOT during Upload (then release). Prefer a USB2 port if auto-reset fails.
                     </div>
                 ) : null}
-                {upload.log ? (
+                {shownLog ? (
                     <pre
                         style={{
                             margin: 0,
@@ -240,7 +311,7 @@ const LiveCodePanel = () => {
                             wordBreak: 'break-word'
                         }}
                     >
-                        {upload.log.slice(-1200)}
+                        {shownLog.slice(-1200)}
                     </pre>
                 ) : null}
             </div>

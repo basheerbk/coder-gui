@@ -85,6 +85,18 @@ const glyphs = {
             <path d="M12 4v16M12 4l5 4-5 4 5 4-5 4M7 8l5 4M7 16l5-4" />
         </g>
     ),
+    cloud: c => (
+        <g stroke={c} {...stroke}>
+            <path d="M7 18h10a4 4 0 00.6-7.95A5.5 5.5 0 006.3 9.2 4.5 4.5 0 007 18z" />
+            <path d="M12 16v-5M9.8 13l2.2-2.2 2.2 2.2" />
+        </g>
+    ),
+    cloud_alert: c => (
+        <g stroke={c} {...stroke}>
+            <path d="M6 16V11a6 6 0 0112 0v5l1.5 2h-15z" />
+            <path d="M10 20a2 2 0 004 0" />
+        </g>
+    ),
     hc05: c => (
         <g stroke={c} {...stroke}>
             <rect x="5" y="7" width="14" height="10" rx="2" />

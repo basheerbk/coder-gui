@@ -1,9 +1,9 @@
 #!/bin/bash
 # Deploy compile API to EC2 (run from repo root on your machine).
-# Usage: ./services/compile-api/deploy.sh ubuntu@13.217.19.72 path/to/key.pem
+# Usage: ./services/compile-api/deploy.sh ec2-user@13.127.144.30 path/to/key.pem
 
 set -e
-HOST="${1:?EC2 host required, e.g. ubuntu@13.217.19.72}"
+HOST="${1:?EC2 host required, e.g. ec2-user@13.127.144.30}"
 KEY="${2:?SSH key path required}"
 REMOTE_DIR="/opt/compile-api"
 

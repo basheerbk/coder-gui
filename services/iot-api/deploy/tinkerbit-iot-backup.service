@@ -1,0 +1,20 @@
+[Unit]
+Description=TinkerBit Cloud nightly backup (SQLite snapshot + Mosquitto state)
+After=tinkerbit-iot.service
+
+[Service]
+Type=oneshot
+# Root so it can read Mosquitto's dynamic-security.json and persistence file.
+User=root
+WorkingDirectory=/opt/tinkerbit-iot/current
+EnvironmentFile=/etc/tinkerbit-iot/env
+ExecStart=/opt/tinkerbit-iot/node/bin/node --disable-warning=ExperimentalWarning src/backup.js
+Nice=10
+IOSchedulingClass=idle
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/tinkerbit-iot /var/backups/tinkerbit-iot
+UMask=0077
+SyslogIdentifier=tinkerbit-iot-backup

@@ -1,0 +1,51 @@
+[Unit]
+Description=TinkerBit Cloud IoT API
+After=network-online.target mosquitto.service
+Wants=network-online.target mosquitto.service
+
+[Service]
+Type=simple
+User=tinkerbit-iot
+Group=tinkerbit-iot
+WorkingDirectory=/opt/tinkerbit-iot/current
+EnvironmentFile=/etc/tinkerbit-iot/env
+ExecStart=/opt/tinkerbit-iot/node/bin/node --disable-warning=ExperimentalWarning src/main.js
+Restart=always
+RestartSec=3
+# main.js drains for up to 10 s on SIGTERM before forcing exit.
+KillSignal=SIGTERM
+TimeoutStopSec=15
+
+# Share the box politely with compile-api: dashboards and ingest win over builds.
+CPUWeight=200
+MemoryHigh=400M
+MemoryMax=512M
+LimitNOFILE=65536
+
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ReadWritePaths=/var/lib/tinkerbit-iot
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectClock=true
+ProtectHostname=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+LockPersonality=true
+SystemCallArchitectures=native
+CapabilityBoundingSet=
+UMask=0077
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=tinkerbit-iot
+
+[Install]
+WantedBy=multi-user.target

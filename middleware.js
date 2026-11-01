@@ -16,7 +16,10 @@ export const config = {
         '/choose.html',
         '/beginner',
         '/beginner/',
-        '/beginner.html'
+        '/beginner.html',
+        '/iot',
+        '/iot/:path*',
+        '/iot.html'
     ]
 };
 

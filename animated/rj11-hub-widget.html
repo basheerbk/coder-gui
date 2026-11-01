@@ -1,0 +1,748 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>RJ11 Hub Board</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=Share+Tech+Mono&family=Barlow+Condensed:wght@500;600&display=swap">
+<style>
+/* Layout: a control column beside a photo-studio stage; the board is a CSS 3D scene of real boxes, one per part. */
+:root{
+  --bg:#e8eaed;
+  --bg-deep:#cfd4da;
+  --ink:#1a1d21;
+  --muted:#5b636c;
+  --line:#c2c8cf;
+  --chip:#f5f6f8;
+  --accent:#0f74e0;
+  --display:"Chakra Petch","Arial Narrow",system-ui,sans-serif;
+  --mono:"Share Tech Mono",ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+  --silk:"Barlow Condensed","Arial Narrow",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#16191d; --bg-deep:#0c0e10; --ink:#e8ebee; --muted:#98a1ab; --line:#2c3138; --chip:#1c2026; --accent:#4ea9ff; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#16191d; --bg-deep:#0c0e10; --ink:#e8ebee; --muted:#98a1ab; --line:#2c3138; --chip:#1c2026; --accent:#4ea9ff; color-scheme:dark;
+}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--mono);overflow:hidden}
+.app{height:100%;display:grid;grid-template-columns:minmax(300px,360px) 1fr}
+.side{
+  padding-block:28px 24px;
+  padding-left:max(24px, env(safe-area-inset-left, 0px));
+  padding-right:20px;
+  display:flex;flex-direction:column;gap:18px;
+  border-right:1px solid var(--line);
+  overflow-y:auto;min-width:0;
+}
+.eyebrow{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+h1{font-family:var(--display);font-weight:700;font-size:44px;line-height:.95;margin:0;letter-spacing:.01em;text-transform:uppercase;text-wrap:balance}
+.lede{font-size:13px;line-height:1.6;margin:0;color:var(--muted);max-width:34ch}
+.group{display:grid;gap:8px}
+.lbl{font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.btn{
+  font:inherit;font-size:12px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink);background:var(--chip);border:1px solid var(--line);
+  padding:8px 12px;border-radius:4px;cursor:pointer;
+}
+.btn[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.btn:focus-visible,.port:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.ports{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.port{
+  font:inherit;font-size:11.5px;letter-spacing:.04em;color:var(--ink);
+  background:var(--chip);border:1px solid var(--line);border-radius:4px;
+  padding:7px 4px;cursor:pointer;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  transition:border-color .2s, box-shadow .2s;
+}
+.port.hit{border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb, var(--accent) 30%, transparent)}
+.status{font-size:12.5px;line-height:1.5;min-height:3em;border-top:1px solid var(--line);padding-top:12px}
+.status b{font-family:var(--display);font-weight:600;font-size:15px;letter-spacing:.04em}
+.hint{font-size:11px;color:var(--muted);margin-top:auto}
+
+.stage{
+  position:relative;overflow:hidden;min-width:0;cursor:grab;touch-action:none;
+  background:radial-gradient(120% 90% at 50% 38%, var(--bg) 0%, var(--bg-deep) 100%);
+}
+.stage.drag{cursor:grabbing}
+.zoombar{
+  position:absolute;z-index:5;
+  right:max(16px, calc(env(safe-area-inset-right, 0px) + 16px));
+  bottom:calc(16px + env(safe-area-inset-bottom, 0px));
+  display:flex;align-items:center;gap:2px;padding:4px;
+  background:var(--chip);border:1px solid var(--line);border-radius:6px;
+  box-shadow:0 4px 14px rgba(0,0,0,.12);cursor:default;
+}
+.zb{font:inherit;font-size:16px;line-height:1;color:var(--ink);background:transparent;border:0;border-radius:4px;min-width:34px;height:32px;cursor:pointer}
+.zb.fit{font-size:11px;letter-spacing:.12em;text-transform:uppercase;padding:0 10px;border-left:1px solid var(--line);border-radius:0 4px 4px 0}
+.zb:hover{background:color-mix(in srgb, var(--ink) 8%, transparent)}
+.zb:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.zl{font-size:11.5px;min-width:44px;text-align:center;color:var(--muted);font-variant-numeric:tabular-nums}
+.scene{position:absolute;left:0;top:0;transform-style:preserve-3d;--lift:0}
+
+/* 3D primitives. All sizes are unitless board units (0.1 mm-ish) times --u. */
+.box{
+  position:absolute;
+  left:calc(var(--x) * var(--u)); top:calc(var(--y) * var(--u));
+  width:calc(var(--w) * var(--u)); height:calc(var(--d) * var(--u));
+  transform-style:preserve-3d;
+  transform:translateZ(calc((var(--z) + var(--lift) * var(--k)) * var(--u)));
+  transition:transform .9s cubic-bezier(.2,.8,.2,1);
+}
+.f{position:absolute;backface-visibility:hidden;overflow:visible}
+.f svg{display:block;width:100%;height:100%;overflow:visible}
+.f.t{inset:0;transform:translateZ(calc(var(--h) * var(--u)))}
+.f.s{left:0;width:100%;height:calc(var(--h) * var(--u));top:calc(100% - var(--h) * var(--u));transform-origin:bottom;transform:rotateX(-90deg)}
+.f.n{left:0;width:100%;top:0;height:calc(var(--h) * var(--u));transform-origin:top;transform:rotateX(90deg)}
+.f.e{top:0;height:100%;width:calc(var(--h) * var(--u));left:calc(100% - var(--h) * var(--u));transform-origin:right;transform:rotateY(90deg)}
+.f.w{top:0;height:100%;left:0;width:calc(var(--h) * var(--u));transform-origin:left;transform:rotateY(-90deg)}
+.f.b{inset:0;transform:rotateX(180deg)}
+.disc{
+  position:absolute;border-radius:50%;
+  left:calc(var(--x) * var(--u)); top:calc(var(--y) * var(--u));
+  width:calc(var(--w) * var(--u)); height:calc(var(--w) * var(--u));
+  transform:translateZ(calc((var(--z) + var(--lift) * var(--k)) * var(--u)));
+  transition:transform .9s cubic-bezier(.2,.8,.2,1);
+}
+.layer{position:absolute;left:0;top:0;pointer-events:none}
+.shadow{
+  position:absolute;left:calc(10 * var(--u));top:calc(20 * var(--u));
+  width:calc(540 * var(--u));height:calc(740 * var(--u));
+  background:rgba(0,0,0,.34);border-radius:calc(30 * var(--u));
+  filter:blur(calc(26 * var(--u)));
+  transform:translateZ(calc(-80 * var(--u)));
+  pointer-events:none;
+}
+.jack{cursor:pointer}
+.hl{position:absolute;inset:0;border-radius:calc(5 * var(--u));opacity:0;transition:opacity .45s;pointer-events:none;
+  box-shadow:0 0 0 calc(2 * var(--u)) #2aa6ff, 0 0 calc(22 * var(--u)) calc(6 * var(--u)) rgba(30,150,255,.55)}
+.hl.on{opacity:1;transition:opacity .06s}
+.glow{position:absolute;left:50%;top:50%;width:calc(70 * var(--u));height:calc(70 * var(--u));transform:translate(-50%,-50%);border-radius:50%;pointer-events:none;opacity:0}
+
+@media (max-width:760px){
+  .app{grid-template-columns:1fr;grid-template-rows:auto 1fr}
+  .side{border-right:0;border-bottom:1px solid var(--line);padding-block:16px 14px;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));gap:12px;max-height:46vh}
+  h1{font-size:32px}
+  .lede{font-size:12.5px}
+  .ports{grid-template-columns:repeat(5,minmax(0,1fr))}
+  .hint{display:none}
+}
+@media (prefers-reduced-motion: reduce){ .box,.disc{transition:none} }
+</style>
+
+<style>
+/* widget mode: board only, view buttons float top-left */
+.app{grid-template-columns:1fr !important;grid-template-rows:1fr !important}
+.side{position:absolute;z-index:6;top:12px;left:12px;padding:0 !important;border:0 !important;background:transparent;overflow:visible;max-height:none !important}
+.side > *{display:none !important}
+.side > div:nth-of-type(2){display:grid !important}
+.side > div:nth-of-type(2) .lbl{display:none}
+.side .btn{background:var(--chip);box-shadow:0 2px 8px rgba(0,0,0,.10);padding:7px 10px;font-size:11px}
+.side .btn[aria-pressed="true"]{background:var(--ink)}
+</style>
+</head>
+<body>
+
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="gBoard" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fbfbf8"/><stop offset="1" stop-color="#ebebe6"/></linearGradient>
+    <linearGradient id="gHous" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2c2c2c"/><stop offset="1" stop-color="#0c0c0c"/></linearGradient>
+    <linearGradient id="gFront" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2e2e2e"/><stop offset="1" stop-color="#141414"/></linearGradient>
+    <linearGradient id="gCan" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ddd9cf"/><stop offset=".55" stop-color="#b9b4a8"/><stop offset="1" stop-color="#d0ccc2"/></linearGradient>
+    <linearGradient id="gUsb" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e6e7e8"/><stop offset=".5" stop-color="#a9acaf"/><stop offset="1" stop-color="#d4d6d8"/></linearGradient>
+    <linearGradient id="gPad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#eeeeeb"/><stop offset="1" stop-color="#a8a9a5"/></linearGradient>
+    <radialGradient id="gHole" cx=".4" cy=".4" r=".7"><stop offset="0" stop-color="#9c9c98"/><stop offset=".7" stop-color="#7d7d79"/><stop offset="1" stop-color="#5d5d5a"/></radialGradient>
+    <radialGradient id="gDrill" cx=".6" cy=".6" r=".6"><stop offset="0" stop-color="#2a2a28"/><stop offset="1" stop-color="#5a5a56"/></radialGradient>
+    <pattern id="pBrush" width="6" height="2" patternUnits="userSpaceOnUse"><rect width="6" height="1" fill="rgba(255,255,255,.10)"/></pattern>
+  </defs>
+</svg>
+
+<div class="app">
+  <aside class="side" aria-label="Board controls">
+    <div class="eyebrow">ESP32 · 13 × RJ11 · USB-C</div>
+    <h1>RJ11 Hub</h1>
+    <p class="lede">Your board rebuilt as a 3D model. Drag to turn it. Tap a port, or pick one below, to send a signal from the ESP32.</p>
+    <div class="group">
+      <span class="lbl">View</span>
+      <div class="seg">
+        <button class="btn" id="v3d" type="button" aria-pressed="true">3D</button>
+        <button class="btn" id="vtop" type="button" aria-pressed="false">Top</button>
+        <button class="btn" id="vside" type="button" aria-pressed="false">Edge</button>
+        <button class="btn" id="explode" type="button" aria-pressed="false">Explode</button>
+      </div>
+    </div>
+    <div class="group">
+      <span class="lbl">Ports</span>
+      <div class="ports" id="ports"></div>
+    </div>
+    <div class="status" id="status" aria-live="polite"><b>Idle traffic</b><br>Signals run between the ESP32 and random ports.</div>
+    <div class="hint">Scroll or pinch to zoom. Shift-drag, right-drag or two fingers to pan. Explode lifts every part off the board.</div>
+  </aside>
+  <main class="stage" id="stage" aria-label="3D board, drag to rotate">
+    <div class="scene" id="scene"></div>
+    <div class="zoombar" role="group" aria-label="Zoom">
+      <button class="zb" id="zout" type="button" aria-label="Zoom out">−</button>
+      <span class="zl" id="zlevel" aria-live="polite">100%</span>
+      <button class="zb" id="zin" type="button" aria-label="Zoom in">+</button>
+      <button class="zb fit" id="zfit" type="button" aria-label="Reset zoom">Fit</button>
+    </div>
+  </main>
+</div>
+
+<script>
+(() => {
+  const BW = 560, BH = 750;           // board size in units
+  const JH = 46;                      // RJ11 housing height
+  const JACK_ACROSS = .8, JACK_DEPTH = .86; // jack size relative to the photo layout
+  const stage = document.getElementById("stage");
+  const scene = document.getElementById("scene");
+  const statusEl = document.getElementById("status");
+  const reduced = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* ---------------- helpers ---------------- */
+  const f1 = n => Math.round(n * 10) / 10;
+  function pathD(pts, c = 6){
+    let d = `M${f1(pts[0][0])},${f1(pts[0][1])}`;
+    for (let i = 1; i < pts.length - 1; i++){
+      const [ax,ay] = pts[i-1], [bx,by] = pts[i], [cx,cy] = pts[i+1];
+      const l1 = Math.hypot(bx-ax, by-ay), l2 = Math.hypot(cx-bx, cy-by);
+      const r = Math.min(c, l1/2, l2/2);
+      d += ` L${f1(bx-(bx-ax)/l1*r)},${f1(by-(by-ay)/l1*r)} L${f1(bx+(cx-bx)/l2*r)},${f1(by+(cy-by)/l2*r)}`;
+    }
+    const L = pts[pts.length-1];
+    return d + ` L${f1(L[0])},${f1(L[1])}`;
+  }
+  const svg = (w, h, inner) => `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">${inner}</svg>`;
+  function el(cls, style, html = ""){
+    const e = document.createElement("div");
+    e.className = cls; if (style) e.setAttribute("style", style); e.innerHTML = html; return e;
+  }
+  // a box with optional face contents: {t,s,n,e,w,b} each {bg, html}
+  function box(p, faces, extraCls = ""){
+    const b = el("box " + extraCls, `--x:${p.x};--y:${p.y};--w:${p.w};--d:${p.d};--h:${p.h};--z:${p.z||0};--k:${p.k||0}`);
+    for (const key of ["t","s","n","e","w","b"]){
+      const f = faces[key]; if (!f) continue;
+      const face = el("f " + key, f.bg ? `background:${f.bg}` : "", f.html || "");
+      if (f.radius) face.style.borderRadius = f.radius;
+      b.appendChild(face);
+    }
+    scene.appendChild(b);
+    return b;
+  }
+  const sides = (s, ew, n) => ({ s:{bg:s}, e:{bg:ew}, w:{bg:ew}, n:{bg:n||ew} });
+
+  /* ---------------- data ---------------- */
+  // open: which board edge the plug enters from. x,y,w,d are the footprint box.
+  const PORTS = [
+    { id:"A4",       open:"W", x:-32, y:-40, w:182, d:120, desc:"Analog port" },
+    { id:"I2C",      open:"N", x:153, y:-70, w:122, d:180, desc:"I²C bus port" },
+    { id:"I2C1",     open:"N", x:277, y:-70, w:122, d:180, desc:"Second I²C bus port" },
+    { id:"TOP-R",    open:"E", x:403, y:-40, w:182, d:120, desc:"Port (its label is hidden in the photo)" },
+    { id:"N01",      open:"W", x:-32, y:88,  w:182, d:122, desc:"RJ11 port" },
+    { id:"STEPPER1", open:"W", x:-32, y:223, w:182, d:124, desc:"Stepper motor port" },
+    { id:"A1",       open:"W", x:-32, y:368, w:182, d:124, desc:"Analog port" },
+    { id:"D13",      open:"W", x:-32, y:520, w:182, d:124, desc:"Digital port" },
+    { id:"A3",       open:"E", x:403, y:76,  w:182, d:124, desc:"Analog port" },
+    { id:"A2",       open:"E", x:403, y:223, w:182, d:124, desc:"Analog port" },
+    { id:"UART1",    open:"E", x:403, y:360, w:182, d:122, desc:"Serial (UART) port" },
+    { id:"J0",       open:"E", x:403, y:518, w:182, d:124, desc:"RJ11 port" },
+    { id:"RJ11",     open:"S", x:222, y:622, w:126, d:178, desc:"Bottom RJ11 port, wired to U4" },
+  ];
+  // traces: drawn from the port end (under the housing) to the chip pin
+  const M = x => 550 - x; // mirror across the module's centre line
+  const LEFT = {
+    I2C:      [[[214,104],[214,130],[194,130],[194,220],[198,220]], [[202,104],[202,124],[190,124],[190,230],[198,230]]],
+    A4:       [[[140,14],[186,14],[186,240],[198,240]], [[140,26],[182,26],[182,250],[198,250]]],
+    N01:      [[[140,143],[178,143],[178,260],[198,260]], [[140,155],[174,155],[174,270],[198,270]]],
+    STEPPER1: [[[140,280],[198,280]], [[140,290],[198,290]]],
+    A1:       [[[140,424],[182,424],[182,310],[198,310]], [[140,436],[186,436],[186,320],[198,320]]],
+    D13:      [[[140,576],[190,576],[190,330],[198,330]], [[140,588],[194,588],[194,340],[198,340]]],
+  };
+  const mirrorPts = (pts, dy = 0) => pts.map(([x,y]) => [M(x), y]).map(([x,y], i, a) => [x, y]);
+  const shiftStart = (pts, ys) => pts.map(([x,y], i) => (i < 2 && ys != null ? [x, ys] : [x, y]));
+  const TRACES = {
+    ...LEFT,
+    I2C1:   LEFT.I2C.map(p => mirrorPts(p)),
+    "TOP-R":LEFT.A4.map(p => mirrorPts(p)),
+    A3:     LEFT.N01.map((p, i) => shiftStart(mirrorPts(p), i ? 144 : 132)),
+    A2:     LEFT.STEPPER1.map(p => mirrorPts(p)),
+    UART1:  LEFT.A1.map((p, i) => shiftStart(mirrorPts(p), i ? 427 : 415)),
+    J0:     LEFT.D13.map((p, i) => shiftStart(mirrorPts(p), i ? 586 : 574)),
+    RJ11:   [[[279,632],[279,538],[262,521]], [[291,632],[291,538],[308,521]]],
+  };
+  const POWER = [[372,692],[372,666],[232,666],[232,552]];
+
+  const PASSIVES = [
+    ["C7","C",212,398,"v"],["C6","C",232,398,"v"],["R38","R",252,398,"v"],["C5","C",272,398,"v"],["R3","R",292,398,"v"],["R6","R",312,398,"v"],["R8","R",332,398,"v"],
+    ["C3","C",212,440,"v"],["R2","R",232,440,"v"],["D4","D",258,440,"h"],["D3","D",288,440,"h"],["R1","R",316,440,"v"],["R32","R",336,440,"v"],
+    ["C2","C",212,476,"v"],["R4","R",232,476,"v"],["C1","C",322,476,"v"],
+  ];
+  const LEDS = [
+    { ref:"E1", x:315, y:560, color:"255,40,40",  mode:"power" },
+    { ref:"D3", x:330, y:560, color:"40,140,255", mode:"activity" },
+    { ref:"D4", x:345, y:560, color:"40,220,110", mode:"heartbeat" },
+  ];
+
+  /* ---------------- board top artwork ---------------- */
+  function silk(t, x, y, size = 9, rot = 0, anchor = "middle"){
+    return `<text x="${x}" y="${y}" font-family='"Barlow Condensed","Arial Narrow",sans-serif' font-weight="600" font-size="${size}" fill="#1d1d1b" text-anchor="${anchor}" dominant-baseline="middle"${rot ? ` transform="rotate(${rot} ${x} ${y})"` : ""}>${t}</text>`;
+  }
+  function boardTop(){
+    let s = `<rect width="${BW}" height="${BH}" rx="8" fill="url(#gBoard)"/>`;
+    // copper relief under white mask
+    const all = [...Object.values(TRACES).flat()];
+    const stubs = [230,250,270,290,310].map(x => [[x,355],[x,378]]);
+    const shorts = [[[212,405],[212,433]],[[316,447],[316,469]],[[332,405],[336,433]]];
+    const cu = (pts, w) => `<path d="${pathD(pts)}" fill="none" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round"/>`;
+    const group = (list, w) => list.map(p => cu(p, w)).join("");
+    const relief = (list, w) => `
+      <g stroke="rgba(0,0,0,.07)" transform="translate(.7 .9)">${group(list, w + .6)}</g>
+      <g stroke="#e6e5dc">${group(list, w)}</g>
+      <g stroke="#ffffff" transform="translate(-.5 -.6)" opacity=".9">${group(list, w * .3)}</g>`;
+    s += relief([...all, ...stubs, ...shorts], 3);
+    s += relief([POWER], 6);
+    for (const [[x]] of stubs) s += `<circle cx="${x}" cy="380" r="3.4" fill="url(#gPad)"/><circle cx="${x}" cy="380" r="1.4" fill="#4a4a47"/>`;
+    // ESP32 castellation pads on the board
+    for (let i = 0; i < 13; i++){
+      const y = 220 + i * 10;
+      s += `<rect x="192" y="${y-2}" width="8" height="4" fill="url(#gPad)"/><rect x="350" y="${y-2}" width="8" height="4" fill="url(#gPad)"/>`;
+    }
+    for (let i = 0; i < 12; i++) s += `<rect x="${220 + i*10 - 2}" y="353" width="4" height="7" fill="url(#gPad)"/>`;
+    // passive pads
+    for (const [, kind, x, y, o] of PASSIVES){
+      if (o === "v") s += `<rect x="${x-4.5}" y="${y-9}" width="9" height="5" fill="url(#gPad)"/><rect x="${x-4.5}" y="${y+4}" width="9" height="5" fill="url(#gPad)"/>`;
+      else s += `<rect x="${x-10}" y="${y-4.5}" width="5" height="9" fill="url(#gPad)"/><rect x="${x+5}" y="${y-4.5}" width="5" height="9" fill="url(#gPad)"/>`;
+    }
+    for (const l of LEDS) s += `<rect x="${l.x-4}" y="${l.y-8}" width="8" height="4" fill="url(#gPad)"/><rect x="${l.x-4}" y="${l.y+4}" width="8" height="4" fill="url(#gPad)"/>`;
+    // U4 SOIC legs
+    for (let i = 0; i < 8; i++){
+      const y = 474 + i * 6.6;
+      s += `<rect x="260" y="${y-1.6}" width="9" height="3.2" fill="#c9ccce"/><rect x="301" y="${y-1.6}" width="9" height="3.2" fill="#c9ccce"/>`;
+    }
+    // U1 SOT-223 legs + SOT-23
+    for (const x of [212,223,234]) s += `<rect x="${x-2.5}" y="512" width="5" height="12" fill="#c9ccce"/>`;
+    s += `<rect x="217" y="548" width="12" height="7" fill="#c9ccce"/>`;
+    for (const y of [471,481]) s += `<rect x="333" y="${y-1.5}" width="5" height="3" fill="#c9ccce"/>`;
+    s += `<rect x="345" y="474.5" width="5" height="3" fill="#c9ccce"/>`;
+    // fuse, ZGA diode pads
+    s += `<rect x="203" y="576" width="5" height="8" fill="url(#gPad)"/><rect x="216" y="576" width="5" height="8" fill="url(#gPad)"/>`;
+    s += `<rect x="238" y="577" width="6" height="10" fill="url(#gPad)"/><rect x="260" y="577" width="6" height="10" fill="url(#gPad)"/>`;
+    // mounting holes
+    for (const [x,y,r] of [[168,370,7],[530,498,7],[20,664,8]]){
+      s += `<circle cx="${x}" cy="${y}" r="${r+1.5}" fill="#d9d9d4"/><circle cx="${x}" cy="${y}" r="${r}" fill="url(#gHole)"/>`;
+    }
+    // header pads 5V / GND / 3.3V
+    [["5V",676],["GND",700],["3.3V",724]].forEach(([t,y]) => {
+      s += `<rect x="468" y="${y-9}" width="84" height="18" fill="none" stroke="#1d1d1b" stroke-width="1"/>`;
+      for (let i = 0; i < 5; i++){ const x = 477 + i*16; s += `<circle cx="${x}" cy="${y}" r="6" fill="url(#gPad)"/><circle cx="${x}" cy="${y}" r="2.6" fill="url(#gDrill)"/>`; }
+      s += silk(t, 462, y, 11, 0, "end");
+    });
+    // silkscreen labels
+    s += silk("A4",157,58,10,90) + silk("N01",157,104,10,90) + silk("STEPPER1",157,246,10,90) + silk("A1",157,382,10,90) + silk("D13",157,537,10,90);
+    s += silk("A3",396,186,10,-90) + silk("A2",396,333,10,-90) + silk("UART1",396,458,10,-90) + silk("J0",396,628,10,-90);
+    s += silk("I2C",238,124,10,180) + silk("I2C1",312,124,10,180) + silk("RJ11",285,613,10);
+    for (const [ref,, x, y, o] of PASSIVES) s += o === "v" ? silk(ref, x-8, y, 7, -90) : silk(ref, x, y-10, 7);
+    s += silk("U4",252,497,9,-90) + silk("U1",250,536,9) + silk("U1",341,463,7) + silk("ZGA",252,569,8) + silk("PWR_LED1",330,579,8);
+    for (const l of LEDS) s += silk(l.ref, l.x, 547, 6.5);
+    s += silk("RST",33,728,11) + silk("BOOT",120,724,11) + silk("LMS",190,656,11) + silk("USB1",380,674,10);
+    s += `<circle cx="190" cy="398" r="1.6" fill="#1d1d1b"/><circle cx="264" cy="466" r="1.6" fill="#1d1d1b"/>`;
+    s += `<rect x=".5" y=".5" width="${BW-1}" height="${BH-1}" rx="8" fill="none" stroke="rgba(0,0,0,.08)"/>`;
+    return svg(BW, BH, s);
+  }
+
+  /* ---------------- RJ11 jack ---------------- */
+  function jackTopCanon(D, Wd){
+    const wx0 = 12, wx1 = D * .70, wy0 = Wd * .2, wy1 = Wd * .8;
+    let s = `<rect width="${D}" height="${Wd}" rx="5" fill="url(#gHous)"/>
+      <rect width="11" height="${Wd}" rx="3" fill="#2f2f2f"/>
+      <rect x="${D*.74}" y="${Wd*.1}" width="${D*.23}" height="${Wd*.8}" rx="2" fill="#151515" stroke="#2c2c2c"/>
+      <line x1="${D*.78}" y1="${Wd*.18}" x2="${D*.78}" y2="${Wd*.82}" stroke="#262626" stroke-width="2"/>
+      <line x1="14" y1="5" x2="${D*.72}" y2="5" stroke="#343434" stroke-width="1.4"/>
+      <line x1="14" y1="${Wd-5}" x2="${D*.72}" y2="${Wd-5}" stroke="#050505" stroke-width="1.4"/>
+      <rect x="${wx0}" y="${wy0}" width="${wx1-wx0}" height="${wy1-wy0}" rx="2" fill="#050505" stroke="#1f1f1f"/>`;
+    for (let i = 0; i < 6; i++){
+      const y = Wd*.28 + i * (Wd*.44/5);
+      s += `<path d="M16,${y} L${wx1-16},${y} L${wx1-5},${y+6}" fill="none" stroke="#b88f37" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M16,${y-.9} L${wx1-16},${y-.9}" fill="none" stroke="#f5dc93" stroke-width="1.1" stroke-linecap="round"/>`;
+    }
+    return s;
+  }
+  function jackFrontCanon(Wd, H){
+    let s = `<rect width="${Wd}" height="${H}" fill="url(#gFront)"/>
+      <rect x="${Wd*.18}" y="${H*.16}" width="${Wd*.64}" height="${H*.6}" rx="2" fill="#030303"/>
+      <rect x="${Wd*.4}" y="${H*.74}" width="${Wd*.2}" height="${H*.14}" fill="#030303"/>
+      <line x1="0" y1="1" x2="${Wd}" y2="1" stroke="#3a3a3a" stroke-width="2"/>`;
+    for (let i = 0; i < 6; i++){
+      const x = Wd*.29 + i * (Wd*.42/5);
+      s += `<path d="M${x},${H*.17} L${x},${H*.3} L${x+2},${H*.4}" fill="none" stroke="#c99d3e" stroke-width="2.4" stroke-linecap="round"/>`;
+    }
+    return s;
+  }
+  const portEls = {};
+  function addJack(p0){
+    // shrink the jack, keeping its back edge (where the traces enter) fixed
+    const p = { ...p0 };
+    if (p.open === "W"){ const back = p.x + p.w; p.w *= JACK_DEPTH; p.x = back - p.w; }
+    if (p.open === "E"){ p.w *= JACK_DEPTH; }
+    if (p.open === "N"){ const back = p.y + p.d; p.d *= JACK_DEPTH; p.y = back - p.d; }
+    if (p.open === "S"){ p.d *= JACK_DEPTH; }
+    if (p.open === "W" || p.open === "E"){ const c = p.y + p.d / 2; p.d *= JACK_ACROSS; p.y = c - p.d / 2; }
+    else { const c = p.x + p.w / 2; p.w *= JACK_ACROSS; p.x = c - p.w / 2; }
+    const vertical = p.open === "N" || p.open === "S";
+    const D = vertical ? p.d : p.w, Wd = vertical ? p.w : p.d;
+    const topT = { W:"", E:`translate(${D},0) scale(-1,1)`, N:"matrix(0,1,1,0,0,0)", S:`matrix(0,-1,1,0,0,${D})` }[p.open];
+    const top = svg(p.w, p.d, `<g transform="${topT}">${jackTopCanon(D, Wd)}</g>`);
+    const faceT = { S:"", N:`translate(${Wd},${JH}) rotate(180)`, E:"matrix(0,1,1,0,0,0)", W:`matrix(0,1,-1,0,${JH},0)` }[p.open];
+    const fw = (p.open === "E" || p.open === "W") ? JH : Wd, fh = (p.open === "E" || p.open === "W") ? Wd : JH;
+    const faces = sides("linear-gradient(#262626,#121212)", "linear-gradient(90deg,#1b1b1b,#101010)", "#0d0d0d");
+    faces.t = { html: top + `<div class="hl"></div>` };
+    faces[p.open.toLowerCase()] = { bg:"#151515", html: svg(fw, fh, `<g transform="${faceT}">${jackFrontCanon(Wd, JH)}</g>`) };
+    const b = box({ x:p.x, y:p.y, w:p.w, d:p.d, h:JH, z:0, k:70 }, faces, "jack");
+    b.dataset.port = p.id;
+    b.setAttribute("aria-label", p.id + " port");
+    portEls[p.id] = { box:b, hl:b.querySelector(".hl") };
+  }
+
+  /* ---------------- build scene ---------------- */
+  function build(){
+    scene.innerHTML = "";
+    scene.appendChild(el("shadow"));
+
+    // PCB: 1.6 mm board, white mask, FR-4 edge
+    const edge = dir => `linear-gradient(${dir}, #f2f2ee 0 14%, #d7cca4 14% 86%, #f0f0ec 86%)`;
+    box({ x:0, y:0, w:BW, d:BH, h:16, z:-16, k:0 }, {
+      t:{ html: boardTop() },
+      s:{ bg: edge("180deg") }, n:{ bg: edge("0deg") }, e:{ bg: edge("90deg") }, w:{ bg: edge("270deg") },
+      b:{ bg:"#e9e9e4" }
+    });
+
+    // pulse layer, just above the copper
+    const sig = el("layer", `width:calc(${BW} * var(--u));height:calc(${BH} * var(--u));transform:translateZ(calc(.6 * var(--u)))`);
+    sig.innerHTML = `<svg viewBox="0 0 ${BW} ${BH}" width="100%" height="100%" style="overflow:visible;display:block"><g id="pulses" fill="none" stroke-linecap="round"></g></svg>`;
+    scene.appendChild(sig);
+
+    PORTS.forEach(addJack);
+
+    // ESP32 module: black PCB with castellations, metal shield can on top
+    let mod = `<rect width="154" height="215" fill="#141414"/>
+      <path d="M14,12 H140 M14,12 V60 M28,12 V52 H40 V20 H52 V52 H64 V20 H76 V52 H88 V20 H100 V52 H112 V20 H124 V52" fill="none" stroke="#242424" stroke-width="3.2"/>
+      <rect x="0" y="0" width="154" height="215" fill="none" stroke="#2a2a2a" stroke-width="1.5"/>`;
+    for (let i = 0; i < 13; i++){ const y = 80 + i*10; mod += `<path d="M0,${y-3} A3,3 0 0 1 0,${y+3} Z" fill="#c9a34c"/><path d="M154,${y-3} A3,3 0 0 0 154,${y+3} Z" fill="#c9a34c"/>`; }
+    for (let i = 0; i < 12; i++){ const x = 22 + i*10; mod += `<path d="M${x-3},215 A3,3 0 0 1 ${x+3},215 Z" fill="#c9a34c"/>`; }
+    const castSide = (len, from, n) => { let r = ""; for (let i = 0; i < n; i++){ const p = from + i*10; r += `<rect x="0" y="${p-2.5}" width="8" height="5" fill="#c9a34c"/>`; } return svg(8, len, `<rect width="8" height="${len}" fill="#151515"/>` + r); };
+    const castBottom = () => { let r = ""; for (let i = 0; i < 12; i++){ const x = 22 + i*10; r += `<rect x="${x-2.5}" y="0" width="5" height="8" fill="#c9a34c"/>`; } return svg(154, 8, `<rect width="154" height="8" fill="#151515"/>` + r); };
+    box({ x:198, y:140, w:154, d:215, h:8, z:0, k:110 }, {
+      t:{ html: svg(154, 215, mod) },
+      s:{ html: castBottom() }, e:{ html: castSide(215, 80, 13) }, w:{ html: castSide(215, 80, 13) }, n:{ bg:"#151515" }
+    });
+    const can = `<rect width="146" height="138" rx="2" fill="url(#gCan)"/><rect width="146" height="138" fill="url(#pBrush)"/>
+      <rect x="1" y="1" width="144" height="136" rx="2" fill="none" stroke="rgba(0,0,0,.18)"/>
+      <text x="18" y="38" font-family='"Chakra Petch","Arial Narrow",sans-serif' font-weight="700" font-size="23" fill="#3a3832">ESP-32</text>
+      <text x="18" y="66" font-family='Arial,Helvetica,sans-serif' font-weight="700" font-size="17" fill="#3a3832">CE</text>
+      <circle cx="30" cy="84" r="5" fill="none" stroke="#3a3832" stroke-width="1.2"/>
+      <text x="42" y="88" font-family='"Share Tech Mono",monospace' font-size="9.5" fill="#3a3832">111S3-3100</text>
+      <text x="18" y="106" font-family='"Share Tech Mono",monospace' font-size="9.5" fill="#3a3832">PRC::DB60K1B408</text>
+      <circle cx="12" cy="126" r="3" fill="#1a1a1a"/>`;
+    const metal = "linear-gradient(180deg,#d3cfc5,#9e998e)";
+    box({ x:202, y:213, w:146, d:138, h:14, z:8, k:170 }, { t:{ html: svg(146, 138, can) }, ...sides(metal, "linear-gradient(90deg,#c2bdb2,#99948a)", "#8f8a80") });
+
+    // U4 SOIC, U1 SOT-223, small SOT-23
+    const chipTop = (w, d, extra="") => svg(w, d, `<rect width="${w}" height="${d}" rx="1.5" fill="#1a1b1d"/><rect width="${w}" height="${d}" rx="1.5" fill="none" stroke="rgba(255,255,255,.06)"/>${extra}`);
+    const blackSides = sides("linear-gradient(#232426,#141516)", "#151617", "#101112");
+    box({ x:267, y:469, w:36, d:57, h:9, z:0, k:90 }, { t:{ html: chipTop(36, 57, `<circle cx="7" cy="7" r="2.2" fill="#0a0a0b"/>`) }, ...blackSides });
+    box({ x:206, y:522, w:34, d:28, h:11, z:0, k:90 }, { t:{ html: chipTop(34, 28) }, ...blackSides });
+    box({ x:337, y:470, w:9, d:13, h:6, z:0, k:70 }, { t:{ html: chipTop(9, 13) }, ...blackSides });
+
+    // passives
+    const passTop = (kind, o) => {
+      const dir = o === "v" ? "180deg" : "90deg";
+      const body = kind === "R" ? "#161616" : kind === "C" ? "#b08657" : "#1b1b1b";
+      const band = kind === "D" ? `, transparent 0 22%, #9e9e9a 22% 32%, transparent 32%` : "";
+      return `linear-gradient(${dir}${band}), linear-gradient(${dir}, #d2d3d0 0 22%, ${body} 22% 78%, #d2d3d0 78%)`;
+    };
+    for (const [, kind, x, y, o] of PASSIVES){
+      const v = o === "v", w = v ? 7 : 15, d = v ? 13 : 7;
+      const sideBg = kind === "C" ? "#8a6641" : "#121212";
+      box({ x:x-w/2, y:y-d/2, w, d, h: kind === "C" ? 6 : 4.5, z:0, k:60 }, { t:{ bg: passTop(kind, o) }, ...sides(sideBg, sideBg, sideBg) });
+    }
+    // fuse and ZGA diode
+    box({ x:205, y:576, w:14, d:8, h:5, z:0, k:60 }, { t:{ bg:"linear-gradient(90deg,#d2d3d0 0 20%,#e4ddd2 20% 35%,#c0392b 35% 65%,#e4ddd2 65% 80%,#d2d3d0 80%)" }, ...sides("#bdb6aa","#bdb6aa") });
+    box({ x:242, y:577.5, w:20, d:9, h:6, z:0, k:60 }, { t:{ bg:"linear-gradient(90deg,#1a1a1a 0 14%,#9a9a96 14% 24%,#1a1a1a 24%)" }, ...sides("#141414","#141414") });
+
+    // LEDs with glow
+    for (const l of LEDS){
+      const b = box({ x:l.x-3, y:l.y-5, w:6, d:10, h:4, z:0, k:60 }, {
+        t:{ bg:`radial-gradient(circle at 50% 50%, rgb(${l.color}) 0 30%, #f1efe8 32%)`, html:`<div class="glow" style="background:radial-gradient(circle, rgba(${l.color},.55) 0%, rgba(${l.color},.22) 30%, rgba(${l.color},0) 70%)"></div>` },
+        ...sides("#e8e5dc","#dcd9d0")
+      });
+      l.glow = b.querySelector(".glow");
+    }
+
+    // tactile buttons (body + stacked discs for the round cap)
+    const button = (x, y) => {
+      box({ x, y, w:22, d:18, h:9, z:0, k:50 }, { t:{ bg:"linear-gradient(135deg,#d9dadb,#9fa1a3)" }, ...sides("linear-gradient(#b4b6b8,#8d8f91)","#9a9c9e") });
+      const cx = x + 11 - 5.5, cy = y + 9 - 5.5;
+      [[9,"#3a2c25"],[10.5,"#3f3029"],[12,"#4c3a31"]].forEach(([z,c], i) => {
+        const dsc = el("disc", `--x:${cx};--y:${cy};--w:11;--z:${z};--k:${80 + i*2};background:${c}`);
+        if (i === 2) dsc.style.background = "radial-gradient(circle at 38% 34%, #7a6153, #3d2e27 70%)";
+        scene.appendChild(dsc);
+      });
+    };
+    button(22, 690); button(109, 686);
+
+    // LMS slide switch
+    box({ x:177, y:668, w:26, d:74, h:12, z:0, k:50 }, { t:{ bg:"radial-gradient(farthest-side, #0b0b0b 0 0) center / 46% 70% no-repeat, linear-gradient(135deg,#2a2a2a,#121212)" }, ...blackSides });
+    box({ x:184, y:690, w:12, d:20, h:7, z:12, k:95 }, { t:{ bg:"repeating-linear-gradient(180deg,#4a4a4a 0 2px,#2e2e2e 2px 4px)" }, ...sides("#2c2c2c","#262626") });
+
+    // USB-C receptacle, opening to the south edge
+    const usbTop = `<rect width="56" height="68" rx="3" fill="url(#gUsb)"/><rect width="56" height="68" fill="url(#pBrush)"/>
+      <line x1="4" y1="20" x2="52" y2="20" stroke="rgba(0,0,0,.25)"/><ellipse cx="18" cy="44" rx="4" ry="6" fill="rgba(0,0,0,.12)"/><ellipse cx="38" cy="44" rx="4" ry="6" fill="rgba(0,0,0,.12)"/>`;
+    const usbFront = `<rect width="56" height="26" fill="#c9cbcd"/><rect x="6" y="5" width="44" height="16" rx="8" fill="#141516" stroke="#8d9093" stroke-width="1.4"/>
+      <rect x="15" y="11" width="26" height="4" rx="1" fill="#2e3033"/>${[0,1,2,3,4,5].map(i => `<rect x="${17 + i*4}" y="11.4" width="2" height="3.2" fill="#d6b25a"/>`).join("")}`;
+    box({ x:352, y:684, w:56, d:68, h:26, z:0, k:80 }, { t:{ html: svg(56, 68, usbTop) }, s:{ html: svg(56, 26, usbFront) }, e:{ bg:"linear-gradient(90deg,#b8babc,#8f9295)" }, w:{ bg:"linear-gradient(90deg,#8f9295,#b8babc)" }, n:{ bg:"#9a9da0" } });
+
+    buildTraces();
+  }
+
+  /* ---------------- signals ---------------- */
+  let traceList = [], pulseG, pulses = [], power;
+  const SNS = "http://www.w3.org/2000/svg";
+  function mkPath(d, attrs){
+    const p = document.createElementNS(SNS, "path"); p.setAttribute("d", d);
+    for (const k in attrs) p.setAttribute(k, attrs[k]); return p;
+  }
+  function buildTraces(){
+    pulseG = document.getElementById("pulses");
+    traceList = [];
+    for (const [port, list] of Object.entries(TRACES)){
+      list.forEach(pts => {
+        const d = pathD(pts), probe = mkPath(d, {});
+        pulseG.appendChild(probe); const len = probe.getTotalLength(); probe.remove();
+        traceList.push({ port, d, len });
+      });
+    }
+    const d = pathD(POWER), probe = mkPath(d, {}); pulseG.appendChild(probe);
+    power = { port:null, d, len: probe.getTotalLength(), power:true }; probe.remove();
+  }
+  function spawn(tr, reverse, delay = 0){
+    const hot = tr.power;
+    const col = hot ? ["rgba(255,110,40,.20)","rgba(255,120,40,.55)","#fff1e4"] : ["rgba(20,140,255,.20)","rgba(20,150,255,.6)","#eef8ff"];
+    const T = hot ? 34 : 46, H = 7;
+    const gap = tr.len + 200;
+    const g = document.createElementNS(SNS, "g");
+    const a = mkPath(tr.d, { stroke:col[0], "stroke-width": hot ? 11 : 9, "stroke-dasharray":`${T} ${gap}` });
+    const b = mkPath(tr.d, { stroke:col[1], "stroke-width": hot ? 4.5 : 3.4, "stroke-dasharray":`${T} ${gap}` });
+    const c = mkPath(tr.d, { stroke:col[2], "stroke-width": hot ? 4 : 3, "stroke-dasharray":`${H} ${gap}` });
+    g.append(a, b, c); pulseG.appendChild(g);
+    pulses.push({ tr, reverse, pos: reverse ? tr.len : 0, wait: delay, T, H, g, a, b, c, done:false, speed: hot ? 130 : 300 });
+  }
+  function hitPort(id){
+    const p = portEls[id]; if (!p) return;
+    p.hl.classList.add("on"); setTimeout(() => p.hl.classList.remove("on"), 320);
+    const chip = chipEls[id]; if (chip){ chip.classList.add("hit"); setTimeout(() => chip.classList.remove("hit"), 420); }
+  }
+  let activity = 0;
+  function fire(id, toPort = true){
+    traceList.filter(t => t.port === id).forEach((t, i) => spawn(t, toPort, i * .06));
+  }
+  function tickPulses(dt){
+    for (let i = pulses.length - 1; i >= 0; i--){
+      const p = pulses[i];
+      if (p.wait > 0){ p.wait -= dt; p.g.style.opacity = 0; continue; }
+      p.g.style.opacity = 1;
+      const L = p.tr.len;
+      p.pos += (p.reverse ? -1 : 1) * p.speed * dt;
+      let tailStart, headStart;
+      if (!p.reverse){ tailStart = p.pos - p.T; headStart = p.pos - p.H; }
+      else { tailStart = p.pos; headStart = p.pos; }
+      p.a.setAttribute("stroke-dashoffset", -tailStart);
+      p.b.setAttribute("stroke-dashoffset", -tailStart);
+      p.c.setAttribute("stroke-dashoffset", -headStart);
+      if (!p.done && (p.reverse ? p.pos <= 0 : p.pos >= L)){
+        p.done = true;
+        if (!p.tr.power){ if (p.reverse) hitPort(p.tr.port); else activity = 1; }
+      }
+      if ((!p.reverse && p.pos - p.T > L) || (p.reverse && p.pos + p.T < 0)){ p.g.remove(); pulses.splice(i, 1); }
+    }
+  }
+
+  /* ---------------- view & interaction ---------------- */
+  const VIEWS = { v3d:{ rx:56, rz:-26 }, vtop:{ rx:0, rz:0 }, vside:{ rx:76, rz:-8 } };
+  let rx = VIEWS.v3d.rx, rz = VIEWS.v3d.rz, trx = rx, trz = rz, u = 1;
+  let dragging = false, lastUser = -1e9, sway = 0, viewKey = "v3d";
+
+  const ZMIN = .5, ZMAX = 4;
+  let zoom = 1, panX = 0, panY = 0;
+  function fit(){
+    const r = stage.getBoundingClientRect();
+    u = Math.max(.25, Math.min(r.width / (r.width < 600 ? 860 : 720), r.height / 940)) * zoom;
+    scene.style.setProperty("--u", u + "px");
+    scene.style.width = BW * u + "px"; scene.style.height = BH * u + "px";
+    const cx = 276.5, cy = 365;
+    scene.style.left = (r.width / 2 + panX - cx * u) + "px";
+    scene.style.top = (r.height / 2 + panY - cy * u) + "px";
+    scene.style.transformOrigin = `${cx * u}px ${cy * u}px`;
+    stage.style.perspective = (2600 * u) + "px";
+    stage.style.perspectiveOrigin = "50% 40%";
+  }
+  function apply(){ scene.style.transform = `rotateX(${rx}deg) rotateZ(${rz + sway}deg)`; }
+
+  /* zoom: wheel, pinch, buttons and +/- keys; zooms toward the cursor or fingers */
+  const zoomLabel = document.getElementById("zlevel");
+  function zoomAt(factor, mx, my){
+    const r = stage.getBoundingClientRect();
+    const nz = Math.max(ZMIN, Math.min(ZMAX, zoom * factor));
+    const ratio = nz / zoom; if (ratio === 1) return;
+    if (mx == null){ mx = r.width / 2; my = r.height / 2; }
+    const px = r.width / 2 + panX, py = r.height / 2 + panY;
+    panX = mx - (mx - px) * ratio - r.width / 2;
+    panY = my - (my - py) * ratio - r.height / 2;
+    zoom = nz; clampPan(); fit(); lastUser = performance.now();
+    zoomLabel.textContent = Math.round(zoom * 100) + "%";
+  }
+  function clampPan(){
+    const r = stage.getBoundingClientRect(), lim = Math.max(0, zoom - .6);
+    panX = Math.max(-r.width * lim, Math.min(r.width * lim, panX));
+    panY = Math.max(-r.height * lim, Math.min(r.height * lim, panY));
+  }
+  function resetZoom(){ zoom = 1; panX = 0; panY = 0; fit(); zoomLabel.textContent = "100%"; }
+  stage.addEventListener("wheel", e => {
+    e.preventDefault();
+    const r = stage.getBoundingClientRect();
+    const dy = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
+    zoomAt(Math.exp(-dy * .0015), e.clientX - r.left, e.clientY - r.top);
+  }, { passive:false });
+  document.getElementById("zin").addEventListener("click", () => zoomAt(1.25));
+  document.getElementById("zout").addEventListener("click", () => zoomAt(1 / 1.25));
+  document.getElementById("zfit").addEventListener("click", resetZoom);
+  window.addEventListener("keydown", e => {
+    if (e.target.closest && e.target.closest("input,textarea")) return;
+    if (e.key === "+" || e.key === "=") zoomAt(1.2);
+    else if (e.key === "-" || e.key === "_") zoomAt(1 / 1.2);
+    else if (e.key === "0") resetZoom();
+  });
+  stage.addEventListener("contextmenu", e => e.preventDefault());
+
+  /* pointers: one finger or left mouse rotates, Shift/right mouse pans, two fingers pinch-zoom and pan */
+  const pts = new Map();
+  let down = null, pinch = null;
+  stage.addEventListener("pointerdown", e => {
+    if (e.target.closest(".zoombar")) return;
+    pts.set(e.pointerId, { x:e.clientX, y:e.clientY });
+    stage.setPointerCapture(e.pointerId);
+    if (pts.size === 2){
+      const [a, b] = [...pts.values()];
+      pinch = { d: Math.hypot(a.x-b.x, a.y-b.y), mx:(a.x+b.x)/2, my:(a.y+b.y)/2 };
+      if (down) down.moved = true;
+      return;
+    }
+    const pan = e.shiftKey || e.button === 2 || e.button === 1;
+    down = { x:e.clientX, y:e.clientY, rx:trx, rz:trz, px:panX, py:panY, pan, moved:false, target:e.target.closest(".jack") };
+  });
+  stage.addEventListener("pointermove", e => {
+    if (!pts.has(e.pointerId)) return;
+    pts.set(e.pointerId, { x:e.clientX, y:e.clientY });
+    if (pinch && pts.size >= 2){
+      const [a, b] = [...pts.values()];
+      const d = Math.hypot(a.x-b.x, a.y-b.y), mx = (a.x+b.x)/2, my = (a.y+b.y)/2;
+      const r = stage.getBoundingClientRect();
+      panX += mx - pinch.mx; panY += my - pinch.my;
+      zoomAt(d / pinch.d, mx - r.left, my - r.top);
+      pinch = { d, mx, my };
+      return;
+    }
+    if (!down) return;
+    const dx = e.clientX - down.x, dy = e.clientY - down.y;
+    if (!down.moved && Math.hypot(dx, dy) > 5){ down.moved = true; dragging = true; stage.classList.add("drag"); if (!down.pan) setView(null); }
+    if (down.moved){
+      if (down.pan){ panX = down.px + dx; panY = down.py + dy; clampPan(); fit(); }
+      else { trz = down.rz + dx * .35; trx = Math.max(0, Math.min(82, down.rx - dy * .3)); rx = trx; rz = trz; }
+      lastUser = performance.now();
+    }
+  });
+  const end = e => {
+    pts.delete(e.pointerId);
+    if (pts.size < 2) pinch = null;
+    if (pts.size > 0) return;
+    if (down && !down.moved && down.target) choose(down.target.dataset.port);
+    down = null; dragging = false; stage.classList.remove("drag"); lastUser = performance.now();
+  };
+  stage.addEventListener("pointerup", end);
+  stage.addEventListener("pointercancel", end);
+
+  const viewBtns = ["v3d","vtop","vside"].map(id => document.getElementById(id));
+  function setView(key){
+    viewKey = key;
+    viewBtns.forEach(b => b.setAttribute("aria-pressed", String(b.id === key)));
+    if (key){ trx = VIEWS[key].rx; trz = VIEWS[key].rz; lastUser = performance.now(); if (reduced){ rx = trx; rz = trz; } }
+  }
+  viewBtns.forEach(b => b.addEventListener("click", () => setView(b.id)));
+  const exBtn = document.getElementById("explode");
+  exBtn.addEventListener("click", () => {
+    const on = exBtn.getAttribute("aria-pressed") !== "true";
+    exBtn.setAttribute("aria-pressed", String(on));
+    scene.style.setProperty("--lift", on ? 1 : 0);
+    if (on && viewKey === "vtop") setView("v3d");
+  });
+
+  const chipEls = {};
+  const portsWrap = document.getElementById("ports");
+  for (const p of PORTS){
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "port"; b.id = "port-" + p.id.toLowerCase(); b.textContent = p.id; b.title = p.desc;
+    b.addEventListener("click", () => choose(p.id));
+    portsWrap.appendChild(b); chipEls[p.id] = b;
+  }
+  function choose(id){
+    const p = PORTS.find(q => q.id === id); if (!p) return;
+    fire(id, true);
+    const n = (TRACES[id] || []).length;
+    statusEl.innerHTML = `<b>${p.id}</b><br>${p.desc}. ${n} signal lines, pulse sent ${id === "RJ11" ? "from U4" : "from the ESP32"}.`;
+  }
+
+  /* ---------------- main loop ---------------- */
+  let last = performance.now(), spawnAcc = 0, powerAcc = 0, t = 0;
+  function frame(now){
+    const dt = Math.min(.05, (now - last) / 1000); last = now; t += dt;
+    if (!dragging){
+      const k = reduced ? 1 : 1 - Math.pow(.0025, dt);
+      rx += (trx - rx) * k; rz += (trz - rz) * k;
+    }
+    const idle = !reduced && !dragging && now - lastUser > 3500 && viewKey !== "vtop";
+    sway += ((idle ? Math.sin(t * .35) * 9 : 0) - sway) * Math.min(1, dt * 1.5);
+    apply();
+
+    if (!reduced){
+      spawnAcc += dt; powerAcc += dt;
+      if (spawnAcc > .55){ spawnAcc = 0; const p = PORTS[Math.floor(Math.random() * PORTS.length)]; fire(p.id, Math.random() < .5); }
+      if (powerAcc > .9){ powerAcc = 0; spawn(power, false); }
+    }
+    tickPulses(dt);
+
+    activity = Math.max(0, activity - dt * 6);
+    for (const l of LEDS){
+      let b = .9;
+      if (!reduced){
+        if (l.mode === "activity") b = .08 + activity * .92;
+        if (l.mode === "heartbeat"){ const x = (t * 1.1) % 1, a = (x - .1) / .045, c = (x - .28) / .05; b = Math.max(Math.exp(-a*a), .7 * Math.exp(-c*c)) * .95 + .05; }
+      }
+      l.glow.style.opacity = b.toFixed(3);
+    }
+    requestAnimationFrame(frame);
+  }
+
+  build(); fit(); apply();
+  new ResizeObserver(fit).observe(stage);
+  requestAnimationFrame(n => { last = n; requestAnimationFrame(frame); });
+})();
+</script>
+
+</body>
+</html>

@@ -24,12 +24,13 @@ const actionBlock = (conn, actionType, params) => {
 
 const assignWiring = moduleIds => {
     const used = {};
+    const cloudActive = moduleIds.indexOf('cloud') !== -1;
     return moduleIds.map(moduleId => {
         const mod = moduleById(moduleId);
         if (!mod) {
             throw new Error(`Unknown module: ${moduleId}`);
         }
-        const portId = pickPortForModule(mod, used);
+        const portId = pickPortForModule(mod, used, cloudActive);
         if (!portId) {
             throw new Error(`No free jack for ${moduleId} in ${moduleIds.join(',')}`);
         }
@@ -108,6 +109,48 @@ const programFor = (spec, m, act, blk) => {
             ? 2.5
             : ((sensor === 'mq2' || primary === 'mq2') ? 0.5 : 0.2));
     const pattern = spec.pattern;
+    const ifElse = (params, children, elseChildren) => Object.assign(blk('if_then', {params}), {
+        children,
+        elseChildren: elseChildren || []
+    });
+
+    if (pattern === 'cloud_lamp') {
+        return [
+            ifElse({sensor: 'cloudSwitch1', op: 'is', value: 0},
+                [act(m.led, 'set_on', {on: true})],
+                [act(m.led, 'set_on', {on: false})]),
+            blk('wait', {params: {seconds: 0.1}})
+        ];
+    }
+
+    if (pattern === 'cloud_relays') {
+        return [1, 2, 3, 4].map(ch => ifElse({sensor: `cloudSwitch${ch}`, op: 'is', value: 0},
+            [act(m.relay4, 'relay_channel', {channel: ch, on: true})],
+            [act(m.relay4, 'relay_channel', {channel: ch, on: false})]
+        )).concat([blk('wait', {params: {seconds: 0.1}})]);
+    }
+
+    if (pattern === 'cloud_fan') {
+        return [
+            ifElse({sensor: 'cloudSlider1', op: '>', value: 60},
+                [act(m.l293d, 'motor_speed', {speed: 230})],
+                [ifElse({sensor: 'cloudSlider1', op: '>', value: 20},
+                    [act(m.l293d, 'motor_speed', {speed: 150})],
+                    [act(m.l293d, 'motor_stop')])]),
+            blk('wait', {params: {seconds: 0.1}})
+        ];
+    }
+
+    if (pattern === 'cloud_doorbell') {
+        return [
+            act(m.btn, 'is_pressed'),
+            ifElse({sensor: 'buttonState', op: 'is', value: 0}, [
+                act(m.cloud, 'cloud_alert', {text: spec.alertText || 'Someone is at the door!'}),
+                blk('wait', {params: {seconds: 2}})
+            ]),
+            blk('wait', {params: {seconds: 0.05}})
+        ];
+    }
 
     if (pattern === 'blink') {
         const target = onOff || outs[0];
@@ -576,6 +619,16 @@ const ADVANCED_SPECS = [
     {id: 'adv-kit-tour', name: 'Kit Tour', description: 'Button tours LED, servo, OLED', difficulty: 'Advanced', modules: ['btn', 'led', 'servo', 'oled'], pattern: 'command_center', hold: 1.5}
 ];
 
+/** WiFi projects: A1–A4 are off while Cloud is on, so every part here uses D13, D5, MD or I2C. */
+const CLOUD_SPECS = [
+    {id: 'cloud-lamp', name: 'Phone Lamp', description: 'Dashboard switch turns the LED on', difficulty: 'Beginner', modules: ['cloud', 'led'], pattern: 'cloud_lamp'},
+    {id: 'cloud-doorbell', name: 'Phone Doorbell', description: 'Button sends an alert to your phone', difficulty: 'Beginner', modules: ['cloud', 'btn'], pattern: 'cloud_doorbell'},
+    {id: 'cloud-relays', name: 'Phone Relays', description: 'Four dashboard switches drive the 4-ch relay', difficulty: 'Medium', modules: ['cloud', 'relay4'], pattern: 'cloud_relays'},
+    {id: 'cloud-parking', name: 'Cloud Parking Sensor', description: 'Distance on your phone, LED when close', difficulty: 'Medium', modules: ['cloud', 'ultra', 'led'], op: '<', value: 20, blink: true},
+    {id: 'cloud-heart', name: 'Heartbeat Monitor', description: 'Heart rate on OLED and your phone', difficulty: 'Medium', modules: ['cloud', 'pulse', 'oled'], pattern: 'display'},
+    {id: 'cloud-fan', name: 'Smart Fan', description: 'Dashboard slider sets the fan speed', difficulty: 'Medium', modules: ['cloud', 'l293d'], pattern: 'cloud_fan'}
+];
+
 const dedupeSpecs = specs => {
     const seen = {};
     return specs.filter(spec => {
@@ -589,7 +642,7 @@ const dedupeSpecs = specs => {
 
 const PROJECT_SPECS = dedupeSpecs(FEATURED_SPECS.concat(EXTRA_SPECS).concat(expandPairs()));
 
-const TEMPLATES = PROJECT_SPECS.concat(ADVANCED_SPECS).reduce((list, spec) => {
+const TEMPLATES = PROJECT_SPECS.concat(ADVANCED_SPECS).concat(CLOUD_SPECS).reduce((list, spec) => {
     try {
         const wiring = assignWiring(spec.modules);
         list.push(buildTemplate(
@@ -597,7 +650,8 @@ const TEMPLATES = PROJECT_SPECS.concat(ADVANCED_SPECS).reduce((list, spec) => {
                 id: spec.id,
                 name: spec.name,
                 description: spec.description,
-                difficulty: spec.difficulty || 'Beginner'
+                difficulty: spec.difficulty || 'Beginner',
+                cloud: spec.modules.indexOf('cloud') !== -1
             },
             wiring,
             (m, act, blk) => programFor(spec, m, act, blk)
@@ -625,4 +679,4 @@ const QUICK_START_IDS = [
 
 const quickStartTemplates = () => QUICK_START_IDS.map(id => templateById(id)).filter(Boolean);
 
-export {TEMPLATES, templateById, quickStartTemplates, PROJECT_SPECS, ADVANCED_SPECS};
+export {TEMPLATES, templateById, quickStartTemplates, PROJECT_SPECS, ADVANCED_SPECS, CLOUD_SPECS};

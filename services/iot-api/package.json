@@ -1,0 +1,22 @@
+{
+  "name": "tinkerbit-iot-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "TinkerBit Cloud: MQTT ingest, device management and dashboard API.",
+  "type": "module",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning src/main.js",
+    "test": "node --disable-warning=ExperimentalWarning --test \"test/*.test.mjs\"",
+    "backup": "node --disable-warning=ExperimentalWarning src/backup.js",
+    "simulate": "node tools/simulate-devices.mjs"
+  },
+  "engines": {
+    "node": ">=22.13"
+  },
+  "dependencies": {
+    "jose": "^6.2.12",
+    "mqtt": "^5.10.4",
+    "ws": "^8.18.0"
+  }
+}

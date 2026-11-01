@@ -5,6 +5,7 @@ import {K} from './tokens';
  * Jack rules (see ports.js):
  *   OLED / HW-605 (MAX30102) → I2C (shared bus) | L293D / 4-ch relay → MD | Stepper → ST | HC-SR04 → D5
  *   RFID → 3D (SPI) | BLE → onboard (no RJ11) | HC-05 → UART RX=3 TX=1 | analogs → A1–A4
+ *   Cloud → onboard WiFi; A1–A4 are locked while it is wired (ADC2 + WiFi) and it excludes BLE.
  */
 const MODULES = [
     {
@@ -251,6 +252,22 @@ const MODULES = [
         actions: [
             {type: 'ble_advertise', label: 'Start advertising', params: {name: 'TinkerBit'}},
             {type: 'ble_send', label: 'Send text', params: {text: 'Hello'}}
+        ]
+    },
+    {
+        id: 'cloud',
+        name: 'TinkerBit Cloud',
+        signal: 'digital',
+        dir: 'out',
+        category: 'cloud',
+        color: K.green,
+        description: 'WiFi: send readings to your phone dashboard and use its switches (A1–A4 turn off)',
+        onboard: true,
+        // Readings are sent automatically; these blocks are optional extras.
+        autoBlock: false,
+        actions: [
+            {type: 'cloud_alert', label: 'Send alert', params: {text: 'Check on me!'}},
+            {type: 'cloud_send_now', label: 'Send readings now'}
         ]
     },
     {

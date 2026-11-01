@@ -26,7 +26,7 @@
     <link rel="icon" href="/static/favicon.ico" sizes="48x48">
     <link rel="icon" href="/static/brand/logo-mark.svg" type="image/svg+xml">
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
-    <link rel="manifest" href="/site.webmanifest">
+    <link rel="manifest" href="<%= htmlWebpackPlugin.options.manifestHref || '/site.webmanifest' %>">
   </head>
   <body>
     <div id="root"></div>

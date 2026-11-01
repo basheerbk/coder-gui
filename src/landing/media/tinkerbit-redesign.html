@@ -1,0 +1,494 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TinkerBit: Block Coding Meets Real Circuits | Fun STEM Kits</title>
+<meta name="description" content="TinkerBit: click-in modules, block coding in the browser, and room to grow into IoT and edge AI. First kits ship December 2026.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&amp;family=JetBrains+Mono:wght@400;600&amp;family=DM+Sans:wght@400;500;700&amp;display=swap" rel="stylesheet">
+<style>
+html{scroll-behavior:smooth}
+section[id]{scroll-margin-top:16px}
+
+body{margin:0;background:#ffffff;color:#1D1140;font-family:'DM Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+.disp{font-family:'Space Grotesk',system-ui,sans-serif}
+.mono{font-family:'JetBrains Mono',ui-monospace,monospace}
+.grid-light{background-color:#FBF9FF;background-image:linear-gradient(#ECE5FF 1px,transparent 1px),linear-gradient(90deg,#ECE5FF 1px,transparent 1px);background-size:24px 24px}
+.grid-dark{background-color:#1D1140;background-image:linear-gradient(rgba(255,255,255,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.07) 1px,transparent 1px);background-size:24px 24px}
+a{color:#4B22B0}a:hover{color:#2E1270}
+input:focus,button:focus-visible,a:focus-visible{outline:3px solid #F2B33D;outline-offset:2px}
+</style>
+</head>
+<body>
+<div style="width: 100%; min-height: 100vh; background: #ffffff">
+
+<!-- NAV -->
+<header style="border-bottom: 2px solid #1D1140; background: #ffffff">
+<nav aria-label="Main" style="max-width: 1200px; margin: 0 auto; padding: 16px 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px">
+<a href="#top" style="display: flex; align-items: center; gap: 10px; text-decoration: none; color: #1D1140">
+<span class="mono" style="width: 38px; height: 38px; border-radius: 9px; background: #5B2BD1; color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 14px; border: 2px solid #1D1140">TB</span>
+<span class="disp" style="font-size: 22px; font-weight: 700; letter-spacing: -0.02em">TinkerBit</span>
+</a>
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px 28px">
+<a href="#how" style="color: #1D1140; text-decoration: none; font-size: 15px; font-weight: 500">How it works</a>
+<a href="#makerspaces" style="color: #1D1140; text-decoration: none; font-size: 15px; font-weight: 500">Makerspaces</a>
+<a href="#about" style="color: #1D1140; text-decoration: none; font-size: 15px; font-weight: 500">About</a>
+<a href="#notify" style="background: #F2B33D; color: #1D1140; text-decoration: none; font-weight: 700; font-size: 15px; padding: 11px 18px; border: 2px solid #1D1140; border-radius: 10px; box-shadow: 3px 3px 0 #1D1140">Get notified</a>
+</div>
+</nav>
+</header>
+
+<!-- HERO -->
+<section id="top" class="grid-light" style="border-bottom: 2px solid #1D1140">
+<div style="max-width: 1200px; margin: 0 auto; padding: 72px 24px 80px; display: flex; flex-wrap: wrap; align-items: center; gap: 56px">
+
+<div style="flex: 1 1 460px; min-width: 0; display: flex; flex-direction: column; gap: 24px">
+<span class="mono" style="align-self: flex-start; display: inline-flex; align-items: center; gap: 10px; background: #ffffff; border: 1.5px solid #1D1140; border-radius: 999px; padding: 7px 14px; font-size: 13px; font-weight: 600; letter-spacing: 0.04em">
+<span style="width: 8px; height: 8px; border-radius: 50%; background: #F2B33D; border: 1.5px solid #1D1140"></span>TB-01 · FIRST KITS SHIP DEC 2026</span>
+<h1 class="disp" style="margin: 0; font-size: clamp(46px, 6.2vw, 82px); line-height: 0.98; letter-spacing: -0.035em; font-weight: 700">Block coding meets <span style="color: #5B2BD1">real circuits.</span></h1>
+<p style="margin: 0; font-size: 19px; line-height: 1.55; color: #4A4560; max-width: 520px">Plug something in. Stack a few blocks. Watch your desk come alive with lights, sound and motion. No soldering. No breadboard chaos. Start with blinking lights, then grow into <b style="color: #1D1140">IoT</b> and <b style="color: #1D1140">edge AI</b> on the same board.</p>
+
+<form id="notify" style="display: flex; flex-direction: column; gap: 10px; max-width: 520px">
+<label for="hero-email" class="mono" style="font-size: 12px; font-weight: 600; letter-spacing: 0.08em; color: #1D1140">GET A NOTE WHEN KITS SHIP</label>
+<div style="display: flex; flex-wrap: wrap; gap: 12px">
+<input id="hero-email" type="email" placeholder="you@email.com" style="flex: 1 1 240px; min-width: 0; height: 54px; box-sizing: border-box; padding: 0 16px; font-size: 16px; font-family: inherit; color: #1D1140; background: #ffffff; border: 2px solid #1D1140; border-radius: 10px">
+<button type="button" style="height: 54px; padding: 0 24px; font-size: 16px; font-weight: 700; font-family: inherit; color: #1D1140; background: #F2B33D; border: 2px solid #1D1140; border-radius: 10px; box-shadow: 4px 4px 0 #1D1140; cursor: pointer">Notify me</button>
+</div>
+<p style="margin: 0; font-size: 13px; color: #5C5675">We'll only use this to tell you about TinkerBit. <a href="#privacy">Privacy</a></p>
+</form>
+<a href="#how" style="font-weight: 700; font-size: 16px; text-decoration: none; color: #5B2BD1">See how it works →</a>
+</div><figure style="flex: 1 1 440px; min-width: 0; margin: 0; background-color: #5B2BD1; background-image: linear-gradient(rgba(255,255,255,0.09) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.09) 1px, transparent 1px); background-size: 20px 20px; border: 2px solid #1D1140; border-radius: 18px; box-shadow: 10px 10px 0 #1D1140; overflow: hidden">
+<div class="mono" style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; padding: 12px 18px; border-bottom: 1.5px dashed rgba(255,255,255,0.45); font-size: 12px; font-weight: 600; letter-spacing: 0.06em; color: #ffffff">
+<span>FIG. 01 — TB-01 MAIN BOARD</span><span style="color: #F2B33D">REV A</span>
+</div>
+<div style="padding: 28px 20px 32px">
+<svg viewBox="-472 -66 805 495" role="img" aria-label="Isometric outline drawing of the TinkerBit main board: an ESP32 module surrounded by click-in RJ11 ports, with an OLED screen module and a glowing LED module plugged in" style="width: 100%; height: auto; display: block"><polygon points="259.8,150.0 -103.9,360.0 -103.9,351.0 259.8,141.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="2.4" stroke-linejoin="round"></polygon><polygon points="259.8,150.0 -103.9,360.0 -103.9,351.0 259.8,141.0" fill="#1D1140" fill-opacity="0.32" stroke="none"></polygon><polygon points="-363.7,210.0 -103.9,360.0 -103.9,351.0 -363.7,201.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="2.4" stroke-linejoin="round"></polygon><polygon points="-363.7,210.0 -103.9,360.0 -103.9,351.0 -363.7,201.0" fill="#1D1140" fill-opacity="0.18" stroke="none"></polygon><polygon points="0.0,-9.0 259.8,141.0 -103.9,351.0 -363.7,201.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="2.4" stroke-linejoin="round"></polygon><ellipse cx="0.0" cy="9.0" rx="8.8" ry="5.1" fill="none" stroke="#ffffff" stroke-width="1.6"></ellipse><ellipse cx="228.6" cy="141.0" rx="8.8" ry="5.1" fill="none" stroke="#ffffff" stroke-width="1.6"></ellipse><ellipse cx="-332.6" cy="201.0" rx="8.8" ry="5.1" fill="none" stroke="#ffffff" stroke-width="1.6"></ellipse><ellipse cx="-103.9" cy="333.0" rx="8.8" ry="5.1" fill="none" stroke="#ffffff" stroke-width="1.6"></ellipse><polyline points="-20.8,99.0 -41.6,87.0 15.6,54.0 -5.2,42.0" fill="none" stroke="#ffffff" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" opacity="0.55"></polyline><polyline points="-59.8,121.5 -85.7,106.5 -62.4,93.0 -77.9,84.0" fill="none" stroke="#ffffff" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" opacity="0.55"></polyline><polyline points="-85.7,136.5 -116.9,118.5 -140.3,132.0 -150.7,126.0" fill="none" stroke="#ffffff" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" opacity="0.55"></polyline><polyline points="-111.7,151.5 -132.5,139.5 -202.6,180.0 -223.4,168.0" fill="none" stroke="#ffffff" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" opacity="0.55"></polyline><polyline points="72.7,153.0 93.5,165.0 150.7,132.0 171.5,144.0" fill="none" stroke="#ffffff" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" opacity="0.55"></polyline><polyline points="33.8,175.5 59.8,190.5 83.1,177.0 98.7,186.0" fill="none" stroke="#ffffff" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" opacity="0.55"></polyline><polyline points="7.8,190.5 39.0,208.5 15.6,222.0 26.0,228.0" fill="none" stroke="#ffffff" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" opacity="0.55"></polyline><polyline points="-18.2,205.5 2.6,217.5 -67.5,258.0 -46.8,270.0" fill="none" stroke="#ffffff" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" opacity="0.55"></polyline><polyline points="36.4,102.0 72.7,81.0" fill="none" stroke="#ffffff" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" opacity="0.55"></polyline><polyline points="72.7,123.0 109.1,102.0" fill="none" stroke="#ffffff" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" opacity="0.55"></polyline><polyline points="-109.1,174.0 -150.7,198.0 -166.3,189.0 -233.8,228.0" fill="none" stroke="#ffffff" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" opacity="0.55"></polyline><polyline points="-67.5,198.0 -166.3,255.0 -140.3,270.0 -181.9,294.0" fill="none" stroke="#ffffff" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" opacity="0.55"></polyline><circle cx="15.6" cy="54.0" r="2.6" fill="#ffffff" opacity="0.7"></circle><circle cx="-62.4" cy="93.0" r="2.6" fill="#ffffff" opacity="0.7"></circle><circle cx="-140.3" cy="132.0" r="2.6" fill="#ffffff" opacity="0.7"></circle><circle cx="-202.6" cy="180.0" r="2.6" fill="#ffffff" opacity="0.7"></circle><circle cx="150.7" cy="132.0" r="2.6" fill="#ffffff" opacity="0.7"></circle><circle cx="83.1" cy="177.0" r="2.6" fill="#ffffff" opacity="0.7"></circle><circle cx="15.6" cy="222.0" r="2.6" fill="#ffffff" opacity="0.7"></circle><circle cx="-67.5" cy="258.0" r="2.6" fill="#ffffff" opacity="0.7"></circle><circle cx="36.4" cy="102.0" r="2.6" fill="#ffffff" opacity="0.7"></circle><circle cx="72.7" cy="123.0" r="2.6" fill="#ffffff" opacity="0.7"></circle><circle cx="-166.3" cy="189.0" r="2.6" fill="#ffffff" opacity="0.7"></circle><circle cx="-140.3" cy="270.0" r="2.6" fill="#ffffff" opacity="0.7"></circle><polygon points="20.8,33.0 -20.8,57.0 -20.8,27.0 20.8,3.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"></polygon><polygon points="20.8,33.0 -20.8,57.0 -20.8,27.0 20.8,3.0" fill="#1D1140" fill-opacity="0.32" stroke="none"></polygon><polygon points="-77.9,24.0 -20.8,57.0 -20.8,27.0 -77.9,-6.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"></polygon><polygon points="-77.9,24.0 -20.8,57.0 -20.8,27.0 -77.9,-6.0" fill="#1D1140" fill-opacity="0.18" stroke="none"></polygon><polygon points="-36.4,-30.0 20.8,3.0 -20.8,27.0 -77.9,-6.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"></polygon><polygon points="124.7,51.0 67.5,84.0 67.5,54.0 124.7,21.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"></polygon><polygon points="124.7,51.0 67.5,84.0 67.5,54.0 124.7,21.0" fill="#1D1140" fill-opacity="0.32" stroke="none"></polygon><polygon points="26.0,60.0 67.5,84.0 67.5,54.0 26.0,30.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"></polygon><polygon points="26.0,60.0 67.5,84.0 67.5,54.0 26.0,30.0" fill="#1D1140" fill-opacity="0.18" stroke="none"></polygon><polygon points="83.1,-3.0 124.7,21.0 67.5,54.0 26.0,30.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"></polygon><polygon points="-52.0,75.0 -93.5,99.0 -93.5,69.0 -52.0,45.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"></polygon><polygon points="-52.0,75.0 -93.5,99.0 -93.5,69.0 -52.0,45.0" fill="#1D1140" fill-opacity="0.32" stroke="none"></polygon><polygon points="-150.7,66.0 -93.5,99.0 -93.5,69.0 -150.7,36.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"></polygon><polygon points="-150.7,66.0 -93.5,99.0 -93.5,69.0 -150.7,36.0" fill="#1D1140" fill-opacity="0.18" stroke="none"></polygon><polygon points="-109.1,12.0 -52.0,45.0 -93.5,69.0 -150.7,36.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"></polygon><polygon points="197.5,93.0 140.3,126.0 140.3,96.0 197.5,63.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"></polygon><polygon points="197.5,93.0 140.3,126.0 140.3,96.0 197.5,63.0" fill="#1D1140" fill-opacity="0.32" stroke="none"></polygon><polygon points="98.7,102.0 140.3,126.0 140.3,96.0 98.7,72.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"></polygon><polygon points="98.7,102.0 140.3,126.0 140.3,96.0 98.7,72.0" fill="#1D1140" fill-opacity="0.18" stroke="none"></polygon><polygon points="155.9,39.0 197.5,63.0 140.3,96.0 98.7,72.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"></polygon><polygon points="-124.7,117.0 -166.3,141.0 -166.3,111.0 -124.7,87.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"></polygon><polygon points="-124.7,117.0 -166.3,141.0 -166.3,111.0 -124.7,87.0" fill="#1D1140" fill-opacity="0.32" stroke="none"></polygon><polygon points="-223.4,108.0 -166.3,141.0 -166.3,111.0 -223.4,78.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"></polygon><polygon points="-223.4,108.0 -166.3,141.0 -166.3,111.0 -223.4,78.0" fill="#1D1140" fill-opacity="0.18" stroke="none"></polygon><polygon points="-181.9,54.0 -124.7,87.0 -166.3,111.0 -223.4,78.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"></polygon><polygon points="-197.5,159.0 -239.0,183.0 -239.0,153.0 -197.5,129.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"></polygon><polygon points="-197.5,159.0 -239.0,183.0 -239.0,153.0 -197.5,129.0" fill="#1D1140" fill-opacity="0.32" stroke="none"></polygon><polygon points="-296.2,150.0 -239.0,183.0 -239.0,153.0 -296.2,120.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"></polygon><polygon points="-296.2,150.0 -239.0,183.0 -239.0,153.0 -296.2,120.0" fill="#1D1140" fill-opacity="0.18" stroke="none"></polygon><polygon points="-254.6,96.0 -197.5,129.0 -239.0,153.0 -296.2,120.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"></polygon><polygon points="244.2,162.0 202.6,186.0 202.6,156.0 244.2,132.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"></polygon><polygon points="244.2,162.0 202.6,186.0 202.6,156.0 244.2,132.0" fill="#1D1140" fill-opacity="0.32" stroke="none"></polygon><polygon points="145.5,153.0 202.6,186.0 202.6,156.0 145.5,123.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"></polygon><polygon points="145.5,153.0 202.6,186.0 202.6,156.0 145.5,123.0" fill="#1D1140" fill-opacity="0.18" stroke="none"></polygon><polygon points="187.1,99.0 244.2,132.0 202.6,156.0 145.5,123.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"></polygon><polygon points="236.4,157.5 210.4,172.5 210.4,160.5 236.4,145.5" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.4" stroke-linejoin="round"></polygon><polyline points="231.2,151.5 231.2,163.5" fill="none" stroke="#ffffff" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"></polyline><polyline points="226.0,154.5 226.0,166.5" fill="none" stroke="#ffffff" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"></polyline><polyline points="220.8,157.5 220.8,169.5" fill="none" stroke="#ffffff" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"></polyline><polyline points="215.6,160.5 215.6,172.5" fill="none" stroke="#ffffff" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"></polyline><polygon points="-171.5,180.0 -181.9,186.0 -181.9,180.0 -171.5,174.0" fill="#F2B33D" stroke="#1D1140" stroke-width="1.2" stroke-linejoin="round"></polygon><polygon points="-171.5,180.0 -181.9,186.0 -181.9,180.0 -171.5,174.0" fill="#1D1140" fill-opacity="0.32" stroke="none"></polygon><polygon points="-192.3,180.0 -181.9,186.0 -181.9,180.0 -192.3,174.0" fill="#F2B33D" stroke="#1D1140" stroke-width="1.2" stroke-linejoin="round"></polygon><polygon points="-192.3,180.0 -181.9,186.0 -181.9,180.0 -192.3,174.0" fill="#1D1140" fill-opacity="0.18" stroke="none"></polygon><polygon points="-181.9,168.0 -171.5,174.0 -181.9,180.0 -192.3,174.0" fill="#F2B33D" stroke="#1D1140" stroke-width="1.2" stroke-linejoin="round"></polygon><polygon points="-223.4,174.0 -244.2,186.0 -244.2,177.0 -223.4,165.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"></polygon><polygon points="-223.4,174.0 -244.2,186.0 -244.2,177.0 -223.4,165.0" fill="#1D1140" fill-opacity="0.32" stroke="none"></polygon><polygon points="-265.0,174.0 -244.2,186.0 -244.2,177.0 -265.0,165.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"></polygon><polygon points="-265.0,174.0 -244.2,186.0 -244.2,177.0 -265.0,165.0" fill="#1D1140" fill-opacity="0.18" stroke="none"></polygon><polygon points="-244.2,153.0 -223.4,165.0 -244.2,177.0 -265.0,165.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"></polygon><ellipse cx="-244.2" cy="165.0" rx="7.3" ry="4.2" fill="none" stroke="#ffffff" stroke-width="1.6"></ellipse><polygon points="-254.6,192.0 -275.4,204.0 -275.4,195.0 -254.6,183.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"></polygon><polygon points="-254.6,192.0 -275.4,204.0 -275.4,195.0 -254.6,183.0" fill="#1D1140" fill-opacity="0.32" stroke="none"></polygon><polygon points="-296.2,192.0 -275.4,204.0 -275.4,195.0 -296.2,183.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"></polygon><polygon points="-296.2,192.0 -275.4,204.0 -275.4,195.0 -296.2,183.0" fill="#1D1140" fill-opacity="0.18" stroke="none"></polygon><polygon points="-275.4,171.0 -254.6,183.0 -275.4,195.0 -296.2,183.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"></polygon><ellipse cx="-275.4" cy="183.0" rx="7.3" ry="4.2" fill="none" stroke="#ffffff" stroke-width="1.6"></ellipse><polygon points="114.3,135.0 -36.4,222.0 -36.4,213.0 114.3,126.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"></polygon><polygon points="114.3,135.0 -36.4,222.0 -36.4,213.0 114.3,126.0" fill="#1D1140" fill-opacity="0.32" stroke="none"></polygon><polygon points="-140.3,162.0 -36.4,222.0 -36.4,213.0 -140.3,153.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"></polygon><polygon points="-140.3,162.0 -36.4,222.0 -36.4,213.0 -140.3,153.0" fill="#1D1140" fill-opacity="0.18" stroke="none"></polygon><polygon points="10.4,66.0 114.3,126.0 -36.4,213.0 -140.3,153.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"></polygon><polyline points="7.8,76.5 -7.8,85.5 5.2,93.0 18.2,85.5 31.2,93.0 18.2,100.5 31.2,108.0 44.2,100.5 57.2,108.0 44.2,115.5 57.2,123.0 70.1,115.5 83.1,123.0 70.1,130.5 80.5,136.5 96.1,127.5" fill="none" stroke="#ffffff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"></polyline><polygon points="62.4,144.0 -36.4,201.0 -36.4,192.0 62.4,135.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"></polygon><polygon points="62.4,144.0 -36.4,201.0 -36.4,192.0 62.4,135.0" fill="#1D1140" fill-opacity="0.32" stroke="none"></polygon><polygon points="-119.5,153.0 -36.4,201.0 -36.4,192.0 -119.5,144.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"></polygon><polygon points="-119.5,153.0 -36.4,201.0 -36.4,192.0 -119.5,144.0" fill="#1D1140" fill-opacity="0.18" stroke="none"></polygon><polygon points="-20.8,87.0 62.4,135.0 -36.4,192.0 -119.5,144.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"></polygon><polyline points="-39.0,97.5 -33.8,100.5" fill="none" stroke="#ffffff" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"></polyline><polyline points="-49.4,103.5 -44.2,106.5" fill="none" stroke="#ffffff" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"></polyline><polyline points="-59.8,109.5 -54.6,112.5" fill="none" stroke="#ffffff" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"></polyline><polyline points="-70.1,115.5 -65.0,118.5" fill="none" stroke="#ffffff" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"></polyline><polyline points="-80.5,121.5 -75.3,124.5" fill="none" stroke="#ffffff" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"></polyline><polyline points="-90.9,127.5 -85.7,130.5" fill="none" stroke="#ffffff" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"></polyline><polyline points="-101.3,133.5 -96.1,136.5" fill="none" stroke="#ffffff" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"></polyline><polyline points="-111.7,139.5 -106.5,142.5" fill="none" stroke="#ffffff" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"></polyline><polygon points="-270.2,201.0 -311.8,225.0 -311.8,195.0 -270.2,171.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"></polygon><polygon points="-270.2,201.0 -311.8,225.0 -311.8,195.0 -270.2,171.0" fill="#1D1140" fill-opacity="0.32" stroke="none"></polygon><polygon points="-368.9,192.0 -311.8,225.0 -311.8,195.0 -368.9,162.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"></polygon><polygon points="-368.9,192.0 -311.8,225.0 -311.8,195.0 -368.9,162.0" fill="#1D1140" fill-opacity="0.18" stroke="none"></polygon><polygon points="-327.4,138.0 -270.2,171.0 -311.8,195.0 -368.9,162.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"></polygon><polygon points="171.5,204.0 129.9,228.0 129.9,198.0 171.5,174.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"></polygon><polygon points="171.5,204.0 129.9,228.0 129.9,198.0 171.5,174.0" fill="#1D1140" fill-opacity="0.32" stroke="none"></polygon><polygon points="72.7,195.0 129.9,228.0 129.9,198.0 72.7,165.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"></polygon><polygon points="72.7,195.0 129.9,228.0 129.9,198.0 72.7,165.0" fill="#1D1140" fill-opacity="0.18" stroke="none"></polygon><polygon points="114.3,141.0 171.5,174.0 129.9,198.0 72.7,165.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"></polygon><polygon points="163.7,199.5 137.7,214.5 137.7,202.5 163.7,187.5" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.4" stroke-linejoin="round"></polygon><polyline points="158.5,193.5 158.5,205.5" fill="none" stroke="#ffffff" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"></polyline><polyline points="153.3,196.5 153.3,208.5" fill="none" stroke="#ffffff" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"></polyline><polyline points="148.1,199.5 148.1,211.5" fill="none" stroke="#ffffff" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"></polyline><polyline points="142.9,202.5 142.9,214.5" fill="none" stroke="#ffffff" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"></polyline><polygon points="98.7,246.0 57.2,270.0 57.2,240.0 98.7,216.0" fill="#F2B33D" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"></polygon><polygon points="98.7,246.0 57.2,270.0 57.2,240.0 98.7,216.0" fill="#1D1140" fill-opacity="0.32" stroke="none"></polygon><polygon points="0.0,237.0 57.2,270.0 57.2,240.0 0.0,207.0" fill="#F2B33D" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"></polygon><polygon points="0.0,237.0 57.2,270.0 57.2,240.0 0.0,207.0" fill="#1D1140" fill-opacity="0.18" stroke="none"></polygon><polygon points="41.6,183.0 98.7,216.0 57.2,240.0 0.0,207.0" fill="#F2B33D" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"></polygon><polygon points="90.9,241.5 65.0,256.5 65.0,244.5 90.9,229.5" fill="#1D1140" stroke="#1D1140" stroke-width="1.4" stroke-linejoin="round"></polygon><polyline points="85.7,235.5 85.7,247.5" fill="none" stroke="#1D1140" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"></polyline><polyline points="80.5,238.5 80.5,250.5" fill="none" stroke="#1D1140" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"></polyline><polyline points="75.3,241.5 75.3,253.5" fill="none" stroke="#1D1140" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"></polyline><polyline points="70.1,244.5 70.1,256.5" fill="none" stroke="#1D1140" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"></polyline><polygon points="-207.8,237.0 -265.0,270.0 -265.0,240.0 -207.8,207.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"></polygon><polygon points="-207.8,237.0 -265.0,270.0 -265.0,240.0 -207.8,207.0" fill="#1D1140" fill-opacity="0.32" stroke="none"></polygon><polygon points="-306.6,246.0 -265.0,270.0 -265.0,240.0 -306.6,216.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"></polygon><polygon points="-306.6,246.0 -265.0,270.0 -265.0,240.0 -306.6,216.0" fill="#1D1140" fill-opacity="0.18" stroke="none"></polygon><polygon points="-249.4,183.0 -207.8,207.0 -265.0,240.0 -306.6,216.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"></polygon><polygon points="-298.8,241.5 -272.8,256.5 -272.8,244.5 -298.8,229.5" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.4" stroke-linejoin="round"></polygon><polyline points="-293.6,235.5 -293.6,247.5" fill="none" stroke="#ffffff" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"></polyline><polyline points="-288.4,238.5 -288.4,250.5" fill="none" stroke="#ffffff" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"></polyline><polyline points="-283.2,241.5 -283.2,253.5" fill="none" stroke="#ffffff" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"></polyline><polyline points="-278.0,244.5 -278.0,256.5" fill="none" stroke="#ffffff" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"></polyline><polygon points="-80.5,268.5 -88.3,273.0 -88.3,255.0 -80.5,250.5" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.0" stroke-linejoin="round"></polygon><polygon points="-80.5,268.5 -88.3,273.0 -88.3,255.0 -80.5,250.5" fill="#1D1140" fill-opacity="0.32" stroke="none"></polygon><polygon points="-96.1,268.5 -88.3,273.0 -88.3,255.0 -96.1,250.5" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.0" stroke-linejoin="round"></polygon><polygon points="-96.1,268.5 -88.3,273.0 -88.3,255.0 -96.1,250.5" fill="#1D1140" fill-opacity="0.18" stroke="none"></polygon><polygon points="-88.3,246.0 -80.5,250.5 -88.3,255.0 -96.1,250.5" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.0" stroke-linejoin="round"></polygon><polygon points="-93.5,276.0 -101.3,280.5 -101.3,262.5 -93.5,258.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.0" stroke-linejoin="round"></polygon><polygon points="-93.5,276.0 -101.3,280.5 -101.3,262.5 -93.5,258.0" fill="#1D1140" fill-opacity="0.32" stroke="none"></polygon><polygon points="-109.1,276.0 -101.3,280.5 -101.3,262.5 -109.1,258.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.0" stroke-linejoin="round"></polygon><polygon points="-109.1,276.0 -101.3,280.5 -101.3,262.5 -109.1,258.0" fill="#1D1140" fill-opacity="0.18" stroke="none"></polygon><polygon points="-101.3,253.5 -93.5,258.0 -101.3,262.5 -109.1,258.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.0" stroke-linejoin="round"></polygon><polygon points="-67.5,276.0 -75.3,280.5 -75.3,262.5 -67.5,258.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.0" stroke-linejoin="round"></polygon><polygon points="-67.5,276.0 -75.3,280.5 -75.3,262.5 -67.5,258.0" fill="#1D1140" fill-opacity="0.32" stroke="none"></polygon><polygon points="-83.1,276.0 -75.3,280.5 -75.3,262.5 -83.1,258.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.0" stroke-linejoin="round"></polygon><polygon points="-83.1,276.0 -75.3,280.5 -75.3,262.5 -83.1,258.0" fill="#1D1140" fill-opacity="0.18" stroke="none"></polygon><polygon points="-75.3,253.5 -67.5,258.0 -75.3,262.5 -83.1,258.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.0" stroke-linejoin="round"></polygon><polygon points="-249.4,300.0 -348.1,357.0 -348.1,348.0 -249.4,291.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="2.2" stroke-linejoin="round"></polygon><polygon points="-249.4,300.0 -348.1,357.0 -348.1,348.0 -249.4,291.0" fill="#1D1140" fill-opacity="0.32" stroke="none"></polygon><polygon points="-436.5,306.0 -348.1,357.0 -348.1,348.0 -436.5,297.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="2.2" stroke-linejoin="round"></polygon><polygon points="-436.5,306.0 -348.1,357.0 -348.1,348.0 -436.5,297.0" fill="#1D1140" fill-opacity="0.18" stroke="none"></polygon><polygon points="-337.7,240.0 -249.4,291.0 -348.1,348.0 -436.5,297.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="2.2" stroke-linejoin="round"></polygon><polygon points="-106.5,283.5 -114.3,288.0 -114.3,270.0 -106.5,265.5" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.0" stroke-linejoin="round"></polygon><polygon points="-106.5,283.5 -114.3,288.0 -114.3,270.0 -106.5,265.5" fill="#1D1140" fill-opacity="0.32" stroke="none"></polygon><polygon points="-122.1,283.5 -114.3,288.0 -114.3,270.0 -122.1,265.5" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.0" stroke-linejoin="round"></polygon><polygon points="-122.1,283.5 -114.3,288.0 -114.3,270.0 -122.1,265.5" fill="#1D1140" fill-opacity="0.18" stroke="none"></polygon><polygon points="-114.3,261.0 -106.5,265.5 -114.3,270.0 -122.1,265.5" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.0" stroke-linejoin="round"></polygon><polygon points="-80.5,283.5 -88.3,288.0 -88.3,270.0 -80.5,265.5" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.0" stroke-linejoin="round"></polygon><polygon points="-80.5,283.5 -88.3,288.0 -88.3,270.0 -80.5,265.5" fill="#1D1140" fill-opacity="0.32" stroke="none"></polygon><polygon points="-96.1,283.5 -88.3,288.0 -88.3,270.0 -96.1,265.5" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.0" stroke-linejoin="round"></polygon><polygon points="-96.1,283.5 -88.3,288.0 -88.3,270.0 -96.1,265.5" fill="#1D1140" fill-opacity="0.18" stroke="none"></polygon><polygon points="-88.3,261.0 -80.5,265.5 -88.3,270.0 -96.1,265.5" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.0" stroke-linejoin="round"></polygon><polygon points="296.2,327.0 181.9,393.0 181.9,384.0 296.2,318.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="2.2" stroke-linejoin="round"></polygon><polygon points="296.2,327.0 181.9,393.0 181.9,384.0 296.2,318.0" fill="#1D1140" fill-opacity="0.32" stroke="none"></polygon><polygon points="26.0,303.0 181.9,393.0 181.9,384.0 26.0,294.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="2.2" stroke-linejoin="round"></polygon><polygon points="26.0,303.0 181.9,393.0 181.9,384.0 26.0,294.0" fill="#1D1140" fill-opacity="0.18" stroke="none"></polygon><polygon points="140.3,228.0 296.2,318.0 181.9,384.0 26.0,294.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="2.2" stroke-linejoin="round"></polygon><ellipse cx="275.4" cy="318.0" rx="7.3" ry="4.2" fill="none" stroke="#ffffff" stroke-width="1.6"></ellipse><ellipse cx="181.9" cy="372.0" rx="7.3" ry="4.2" fill="none" stroke="#ffffff" stroke-width="1.6"></ellipse><polygon points="-119.5,291.0 -127.3,295.5 -127.3,277.5 -119.5,273.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.0" stroke-linejoin="round"></polygon><polygon points="-119.5,291.0 -127.3,295.5 -127.3,277.5 -119.5,273.0" fill="#1D1140" fill-opacity="0.32" stroke="none"></polygon><polygon points="-135.1,291.0 -127.3,295.5 -127.3,277.5 -135.1,273.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.0" stroke-linejoin="round"></polygon><polygon points="-135.1,291.0 -127.3,295.5 -127.3,277.5 -135.1,273.0" fill="#1D1140" fill-opacity="0.18" stroke="none"></polygon><polygon points="-127.3,268.5 -119.5,273.0 -127.3,277.5 -135.1,273.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.0" stroke-linejoin="round"></polygon><polygon points="-93.5,291.0 -101.3,295.5 -101.3,277.5 -93.5,273.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.0" stroke-linejoin="round"></polygon><polygon points="-93.5,291.0 -101.3,295.5 -101.3,277.5 -93.5,273.0" fill="#1D1140" fill-opacity="0.32" stroke="none"></polygon><polygon points="-109.1,291.0 -101.3,295.5 -101.3,277.5 -109.1,273.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.0" stroke-linejoin="round"></polygon><polygon points="-109.1,291.0 -101.3,295.5 -101.3,277.5 -109.1,273.0" fill="#1D1140" fill-opacity="0.18" stroke="none"></polygon><polygon points="-101.3,268.5 -93.5,273.0 -101.3,277.5 -109.1,273.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.0" stroke-linejoin="round"></polygon><polygon points="-106.5,298.5 -114.3,303.0 -114.3,285.0 -106.5,280.5" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.0" stroke-linejoin="round"></polygon><polygon points="-106.5,298.5 -114.3,303.0 -114.3,285.0 -106.5,280.5" fill="#1D1140" fill-opacity="0.32" stroke="none"></polygon><polygon points="-122.1,298.5 -114.3,303.0 -114.3,285.0 -122.1,280.5" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.0" stroke-linejoin="round"></polygon><polygon points="-122.1,298.5 -114.3,303.0 -114.3,285.0 -122.1,280.5" fill="#1D1140" fill-opacity="0.18" stroke="none"></polygon><polygon points="-114.3,276.0 -106.5,280.5 -114.3,285.0 -122.1,280.5" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.0" stroke-linejoin="round"></polygon><polygon points="26.0,288.0 -15.6,312.0 -15.6,282.0 26.0,258.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"></polygon><polygon points="26.0,288.0 -15.6,312.0 -15.6,282.0 26.0,258.0" fill="#1D1140" fill-opacity="0.32" stroke="none"></polygon><polygon points="-72.7,279.0 -15.6,312.0 -15.6,282.0 -72.7,249.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"></polygon><polygon points="-72.7,279.0 -15.6,312.0 -15.6,282.0 -72.7,249.0" fill="#1D1140" fill-opacity="0.18" stroke="none"></polygon><polygon points="-31.2,225.0 26.0,258.0 -15.6,282.0 -72.7,249.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"></polygon><polygon points="18.2,283.5 -7.8,298.5 -7.8,286.5 18.2,271.5" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.4" stroke-linejoin="round"></polygon><polyline points="13.0,277.5 13.0,289.5" fill="none" stroke="#ffffff" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"></polyline><polyline points="7.8,280.5 7.8,292.5" fill="none" stroke="#ffffff" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"></polyline><polyline points="2.6,283.5 2.6,295.5" fill="none" stroke="#ffffff" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"></polyline><polyline points="-2.6,286.5 -2.6,298.5" fill="none" stroke="#ffffff" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"></polyline><polygon points="-155.9,303.0 -176.7,315.0 -176.7,300.0 -155.9,288.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.6" stroke-linejoin="round"></polygon><polygon points="-155.9,303.0 -176.7,315.0 -176.7,300.0 -155.9,288.0" fill="#1D1140" fill-opacity="0.32" stroke="none"></polygon><polygon points="-213.0,294.0 -176.7,315.0 -176.7,300.0 -213.0,279.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.6" stroke-linejoin="round"></polygon><polygon points="-213.0,294.0 -176.7,315.0 -176.7,300.0 -213.0,279.0" fill="#1D1140" fill-opacity="0.18" stroke="none"></polygon><polygon points="-192.3,267.0 -155.9,288.0 -176.7,300.0 -213.0,279.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.6" stroke-linejoin="round"></polygon><polygon points="-265.0,270.0 -301.4,291.0 -301.4,267.0 -265.0,246.0" fill="#F2B33D" stroke="#1D1140" stroke-width="1.6" stroke-linejoin="round"></polygon><polygon points="-342.9,267.0 -301.4,291.0 -301.4,267.0 -342.9,243.0" fill="#F2B33D" stroke="#1D1140" stroke-width="1.6" stroke-linejoin="round"></polygon><polygon points="-306.6,222.0 -265.0,246.0 -301.4,267.0 -342.9,243.0" fill="#F2B33D" stroke="#1D1140" stroke-width="1.6" stroke-linejoin="round"></polygon><polygon points="135.1,267.0 93.5,291.0 93.5,267.0 135.1,243.0" fill="#F2B33D" stroke="#1D1140" stroke-width="1.6" stroke-linejoin="round"></polygon><polygon points="57.2,270.0 93.5,291.0 93.5,267.0 57.2,246.0" fill="#F2B33D" stroke="#1D1140" stroke-width="1.6" stroke-linejoin="round"></polygon><polygon points="98.7,222.0 135.1,243.0 93.5,267.0 57.2,246.0" fill="#F2B33D" stroke="#1D1140" stroke-width="1.6" stroke-linejoin="round"></polygon><polygon points="-46.8,330.0 -88.3,354.0 -88.3,324.0 -46.8,300.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"></polygon><polygon points="-46.8,330.0 -88.3,354.0 -88.3,324.0 -46.8,300.0" fill="#1D1140" fill-opacity="0.32" stroke="none"></polygon><polygon points="-145.5,321.0 -88.3,354.0 -88.3,324.0 -145.5,291.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"></polygon><polygon points="-145.5,321.0 -88.3,354.0 -88.3,324.0 -145.5,291.0" fill="#1D1140" fill-opacity="0.18" stroke="none"></polygon><polygon points="-103.9,267.0 -46.8,300.0 -88.3,324.0 -145.5,291.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"></polygon><polygon points="-54.6,325.5 -80.5,340.5 -80.5,328.5 -54.6,313.5" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.4" stroke-linejoin="round"></polygon><polyline points="-59.8,319.5 -59.8,331.5" fill="none" stroke="#ffffff" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"></polyline><polyline points="-65.0,322.5 -65.0,334.5" fill="none" stroke="#ffffff" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"></polyline><polyline points="-70.1,325.5 -70.1,337.5" fill="none" stroke="#ffffff" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"></polyline><polyline points="-75.3,328.5 -75.3,340.5" fill="none" stroke="#ffffff" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"></polyline><ellipse cx="-358.5" cy="291.0" rx="46" ry="30" fill="#F2B33D" fill-opacity="0.22"></ellipse><ellipse cx="-358.5" cy="291.0" rx="28" ry="18" fill="#F2B33D" fill-opacity="0.3"></ellipse><path d="M-380.6 306.0 A22.0 12.7 0 0 0 -336.5 306.0 L-336.5 267.0 L-380.6 267.0 Z" fill="#F2B33D" stroke="#1D1140" stroke-width="1.6" stroke-linejoin="round"></path><ellipse cx="-358.5" cy="267.0" rx="22.0" ry="12.7" fill="#F2B33D" stroke="#1D1140" stroke-width="1.6"></ellipse><path d="M-358.5 253.0 V241.0 M-340.5 259.0 L-330.5 251.0 M-376.5 259.0 L-386.5 251.0" stroke="#F2B33D" stroke-width="3" stroke-linecap="round" fill="none"></path><polygon points="270.2,315.0 176.7,369.0 176.7,360.0 270.2,306.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"></polygon><polygon points="270.2,315.0 176.7,369.0 176.7,360.0 270.2,306.0" fill="#1D1140" fill-opacity="0.32" stroke="none"></polygon><polygon points="83.1,315.0 176.7,369.0 176.7,360.0 83.1,306.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"></polygon><polygon points="83.1,315.0 176.7,369.0 176.7,360.0 83.1,306.0" fill="#1D1140" fill-opacity="0.18" stroke="none"></polygon><polygon points="176.7,252.0 270.2,306.0 176.7,360.0 83.1,306.0" fill="#5B2BD1" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"></polygon><polygon points="176.7,264.0 249.4,306.0 176.7,348.0 103.9,306.0" fill="#1D1140" stroke="#ffffff" stroke-width="1.2" stroke-linejoin="round"></polygon><polyline points="228.6,306.0 202.6,291.0" fill="none" stroke="#F2B33D" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></polyline><polyline points="215.6,313.5 168.9,286.5" fill="none" stroke="#F2B33D" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></polyline><polyline points="202.6,321.0 168.9,301.5" fill="none" stroke="#F2B33D" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></polyline><polyline points="189.7,328.5 132.5,295.5" fill="none" stroke="#F2B33D" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></polyline><polyline points="176.7,336.0 155.9,324.0" fill="none" stroke="#F2B33D" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></polyline></svg>
+</div>
+
+</figure>
+
+<!-- Figure card -->
+
+</div>
+</section>
+
+<!-- FACT STRIP -->
+<section aria-label="Key facts" style="background: #5B2BD1; color: #ffffff; border-bottom: 2px solid #1D1140">
+<div class="mono" style="max-width: 1200px; margin: 0 auto; padding: 18px 24px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px 32px; font-size: 13px; font-weight: 600; letter-spacing: 0.06em">
+<span>◆ ONE BOARD</span><span>◆ CLICK-IN MODULES</span><span>◆ BLOCKS IN THE BROWSER</span><span>◆ NO SOLDERING</span><span>◆ IoT + EDGE AI</span>
+</div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how" class="grid-dark" style="color: #ffffff; border-bottom: 2px solid #1D1140">
+<div style="max-width: 1200px; margin: 0 auto; padding: 96px 24px 104px; display: flex; flex-direction: column; gap: 52px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 20px">
+<div style="display: flex; flex-direction: column; gap: 14px; max-width: 640px">
+<span class="mono" style="font-size: 13px; font-weight: 600; letter-spacing: 0.08em; color: #F2B33D">HOW IT WORKS · 03 STEPS</span>
+<h2 class="disp" style="margin: 0; font-size: clamp(36px, 4.6vw, 60px); line-height: 1.0; letter-spacing: -0.03em; font-weight: 700">Three moves. <span style="color: #F2B33D">Something happens.</span></h2>
+</div>
+<p style="margin: 0; font-size: 18px; color: #E9E1FF; max-width: 380px; line-height: 1.5">No breadboard maze. No soldering iron. Just click, code, and look.</p>
+</div>
+
+<ol style="list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 28px">
+
+<li style="flex: 1 1 300px; min-width: 0; background: #ffffff; color: #1D1140; border: 2px solid #1D1140; border-radius: 18px; padding: 22px; display: flex; flex-direction: column; gap: 18px">
+<div style="display: flex; align-items: center; gap: 12px">
+<span class="disp" style="font-size: 56px; font-weight: 700; line-height: 0.9; letter-spacing: -0.04em; color: #5B2BD1">01</span>
+<span class="mono" style="font-size: 12px; font-weight: 600; letter-spacing: 0.08em; border: 1.5px solid #1D1140; border-radius: 999px; padding: 4px 10px">CLICK</span>
+<span aria-hidden="true" style="flex: 1; border-top: 2px dashed #B9A6F5"></span>
+<span aria-hidden="true" style="width: 10px; height: 10px; border-radius: 50%; background: #F2B33D; border: 2px solid #1D1140"></span>
+</div>
+<div class="grid-light" style="border-radius: 12px; border: 1.5px solid #E3DAFF; padding: 16px">
+<svg viewBox="0 0 300 190" role="img" aria-label="A module's plug sliding into a port on the side of the main board" style="width: 100%; height: auto; display: block">
+<g fill="none" stroke-linecap="round" stroke-linejoin="round">
+<rect x="170" y="30" width="120" height="130" rx="12" stroke="#5B2BD1" stroke-width="2.6" fill="#ffffff"></rect>
+<circle cx="276" cy="44" r="4" stroke="#5B2BD1" stroke-width="1.8"></circle><circle cx="276" cy="146" r="4" stroke="#5B2BD1" stroke-width="1.8"></circle>
+<rect x="208" y="68" width="58" height="54" rx="5" stroke="#1D1140" stroke-width="2" fill="#F4F0FF"></rect>
+<text x="237" y="100" text-anchor="middle" style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600" fill="#5B2BD1" stroke="none">ESP32</text>
+<rect x="150" y="72" width="44" height="46" rx="4" stroke="#1D1140" stroke-width="2.2" fill="#ffffff"></rect>
+<rect x="156" y="82" width="22" height="26" rx="2" stroke="#1D1140" stroke-width="1.6" fill="#F4F0FF"></rect>
+<path d="M161 86 V96 M166 86 V96 M171 86 V96" stroke="#1D1140" stroke-width="1.4"></path>
+<rect x="10" y="58" width="90" height="74" rx="9" stroke="#5B2BD1" stroke-width="2.6" fill="#ECE3FF"></rect>
+<circle cx="44" cy="95" r="16" stroke="#1D1140" stroke-width="2.2" fill="#ffffff"></circle><circle cx="44" cy="95" r="8" stroke="#1D1140" stroke-width="2.2" fill="#F2B33D"></circle>
+<rect x="96" y="84" width="30" height="22" rx="3" stroke="#1D1140" stroke-width="2.2" fill="#ffffff"></rect>
+<path d="M104 90 V100 M110 90 V100 M116 90 V100" stroke="#1D1140" stroke-width="1.4"></path>
+<path d="M131 95 H144" stroke="#1D1140" stroke-width="2.2"></path><path d="M138 89 L145 95 L138 101" stroke="#1D1140" stroke-width="2.2"></path>
+<text x="138" y="66" text-anchor="middle" style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600" fill="#1D1140" stroke="none">click!</text>
+<path d="M126 52 L122 46 M138 50 V43 M150 52 L154 46" stroke="#1D1140" stroke-width="1.8"></path>
+</g>
+</svg>
+</div>
+<h3 class="disp" style="margin: 0; font-size: 23px; letter-spacing: -0.015em">Plug a module into the board</h3>
+<p style="margin: 0; font-size: 16px; line-height: 1.5; color: #4A4560">Modules click into the board. Firm, obvious and kid-friendly.</p>
+<span class="mono" style="margin-top: auto; padding-top: 14px; border-top: 1.5px dashed #D9CFFA; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; color: #5B2BD1">NO TOOLS · NO WIRING CHART</span>
+</li>
+
+<li style="flex: 1 1 300px; min-width: 0; background: #ffffff; color: #1D1140; border: 2px solid #1D1140; border-radius: 18px; padding: 22px; display: flex; flex-direction: column; gap: 18px">
+<div style="display: flex; align-items: center; gap: 12px">
+<span class="disp" style="font-size: 56px; font-weight: 700; line-height: 0.9; letter-spacing: -0.04em; color: #5B2BD1">02</span>
+<span class="mono" style="font-size: 12px; font-weight: 600; letter-spacing: 0.08em; border: 1.5px solid #1D1140; border-radius: 999px; padding: 4px 10px">CODE</span>
+<span aria-hidden="true" style="flex: 1; border-top: 2px dashed #B9A6F5"></span>
+<span aria-hidden="true" style="width: 10px; height: 10px; border-radius: 50%; background: #F2B33D; border: 2px solid #1D1140"></span>
+</div>
+<div class="grid-light" style="border-radius: 12px; border: 1.5px solid #E3DAFF; padding: 16px">
+<svg viewBox="0 0 300 190" role="img" aria-label="The browser block editor with three stacked blocks: when button pressed, turn LED on, wait 1 sec, and an Upload button" style="width: 100%; height: auto; display: block">
+<g stroke-linejoin="round">
+<rect x="4" y="4" width="292" height="182" rx="10" fill="#ffffff" stroke="#1D1140" stroke-width="2"></rect>
+<path d="M4 28 H296" stroke="#1D1140" stroke-width="1.6"></path>
+<circle cx="18" cy="16" r="3.5" fill="#1D1140"></circle><circle cx="30" cy="16" r="3.5" fill="#1D1140"></circle><circle cx="42" cy="16" r="3.5" fill="#1D1140"></circle>
+<text x="58" y="20" style="font-family: 'JetBrains Mono', monospace; font-size: 10px" fill="#4A4560">tinkerbit · blocks</text>
+<path d="M62 28 V186" stroke="#D9CFFA" stroke-width="1.6"></path>
+<rect x="5" y="29" width="56" height="156" fill="#F4F0FF"></rect>
+<rect x="13" y="40" width="40" height="12" rx="3" fill="#F2B33D" stroke="#1D1140" stroke-width="1.2"></rect>
+<rect x="13" y="60" width="40" height="12" rx="3" fill="#DCE8FF" stroke="#1D1140" stroke-width="1.2"></rect>
+<rect x="13" y="80" width="40" height="12" rx="3" fill="#D8F3E6" stroke="#1D1140" stroke-width="1.2"></rect>
+<rect x="13" y="100" width="40" height="12" rx="3" fill="#ECE3FF" stroke="#1D1140" stroke-width="1.2"></rect>
+<path d="M76 40 h204 v30 h-166 v6 h-18 v-6 h-20 z" fill="#F2B33D" stroke="#1D1140" stroke-width="2"></path>
+<text x="88" y="60" style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600" fill="#1D1140">when button pressed</text>
+<path d="M92 76 h4 v6 h18 v-6 h166 v28 h-166 v6 h-18 v-6 h-4 z" fill="#ffffff" stroke="#5B2BD1" stroke-width="2"></path>
+<text x="106" y="95" style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600" fill="#1D1140">turn LED on</text>
+<path d="M92 110 h4 v6 h18 v-6 h166 v28 h-188 z" fill="#ffffff" stroke="#5B2BD1" stroke-width="2"></path>
+<text x="106" y="129" style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600" fill="#1D1140">wait 1 sec</text>
+<rect x="190" y="152" width="94" height="26" rx="6" fill="#5B2BD1" stroke="#1D1140" stroke-width="1.6"></rect>
+<text x="237" y="169" text-anchor="middle" style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 600" fill="#ffffff">Upload ▶</text>
+</g>
+</svg>
+</div>
+<h3 class="disp" style="margin: 0; font-size: 23px; letter-spacing: -0.015em">Drag blocks to program it</h3>
+<p style="margin: 0; font-size: 16px; line-height: 1.5; color: #4A4560">Snap colorful blocks together on screen to say what should blink, beep, or sense.</p>
+<span class="mono" style="margin-top: auto; padding-top: 14px; border-top: 1.5px dashed #D9CFFA; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; color: #5B2BD1">RUNS IN THE BROWSER · NO INSTALLS</span>
+</li>
+
+<li style="flex: 1 1 300px; min-width: 0; background: #ffffff; color: #1D1140; border: 2px solid #1D1140; border-radius: 18px; padding: 22px; display: flex; flex-direction: column; gap: 18px; box-shadow: 8px 8px 0 #F2B33D">
+<div style="display: flex; align-items: center; gap: 12px">
+<span class="disp" style="font-size: 56px; font-weight: 700; line-height: 0.9; letter-spacing: -0.04em; color: #5B2BD1">03</span>
+<span class="mono" style="font-size: 12px; font-weight: 600; letter-spacing: 0.08em; background: #F2B33D; border: 1.5px solid #1D1140; border-radius: 999px; padding: 4px 10px">WATCH</span>
+<span aria-hidden="true" style="flex: 1; border-top: 2px dashed #B9A6F5"></span>
+<span aria-hidden="true" style="width: 10px; height: 10px; border-radius: 50%; background: #5B2BD1; border: 2px solid #1D1140"></span>
+</div>
+<div style="border-radius: 12px; border: 1.5px solid #1D1140; padding: 16px; background: #5B2BD1">
+<svg viewBox="0 0 300 196" role="img" aria-label="The main board with an LED module and a buzzer module plugged into its ports. The LED glows and the buzzer sends out sound waves." style="width: 100%; height: auto; display: block">
+<g fill="none" stroke-linecap="round" stroke-linejoin="round">
+<!-- wifi -->
+<path d="M63 22 a14 14 0 0 1 20 0 M67 27 a8 8 0 0 1 12 0" stroke="#ffffff" stroke-width="2"></path>
+<!-- traces -->
+<g stroke="#ffffff" stroke-width="1.3" opacity="0.5">
+<path d="M106 76 H124 V82 H140"></path><path d="M106 120 H124 V152 H140"></path><path d="M40 84 H32 V80 H28"></path><path d="M40 126 H32 V134 H28"></path><path d="M82 134 V172"></path>
+</g>
+<g fill="#ffffff" opacity="0.6" stroke="none"><circle cx="124" cy="82" r="2.5"></circle><circle cx="124" cy="152" r="2.5"></circle><circle cx="32" cy="80" r="2.5"></circle><circle cx="32" cy="134" r="2.5"></circle></g>
+<!-- board -->
+<rect x="12" y="30" width="140" height="150" rx="12" stroke="#ffffff" stroke-width="2.4"></rect>
+<circle cx="24" cy="42" r="4" stroke="#ffffff" stroke-width="1.6"></circle><circle cx="140" cy="42" r="4" stroke="#ffffff" stroke-width="1.6"></circle><circle cx="24" cy="168" r="4" stroke="#ffffff" stroke-width="1.6"></circle>
+<text x="128" y="172" text-anchor="end" style="font-family: 'JetBrains Mono', monospace; font-size: 8px; font-weight: 600; letter-spacing: 1px" fill="#ffffff" stroke="none">TB-01</text>
+<!-- esp32 -->
+<rect x="40" y="56" width="66" height="78" rx="4" stroke="#ffffff" stroke-width="2"></rect>
+<polyline points="48,74 48,62 58,62 58,72 68,72 68,62 78,62 78,72 88,72 88,62 98,62 98,74" stroke="#ffffff" stroke-width="1.6"></polyline>
+<rect x="48" y="80" width="50" height="46" rx="3" stroke="#ffffff" stroke-width="1.6" fill="#ffffff" fill-opacity="0.12"></rect>
+<text x="73" y="106" text-anchor="middle" style="font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 600" fill="#ffffff" stroke="none">ESP32</text>
+<path d="M36 90 H40 M36 98 H40 M36 106 H40 M36 114 H40 M36 122 H40 M106 90 H110 M106 98 H110 M106 106 H110 M106 114 H110 M106 122 H110" stroke="#ffffff" stroke-width="1.4"></path>
+<!-- status led -->
+<circle cx="124" cy="58" r="4" fill="#F2B33D" stroke="#1D1140" stroke-width="1.4"></circle>
+<path d="M124 48 V45 M132 52 L134 50 M116 52 L114 50" stroke="#F2B33D" stroke-width="1.6"></path>
+<!-- buttons -->
+<rect x="36" y="146" width="11" height="11" rx="2" stroke="#ffffff" stroke-width="1.5"></rect><rect x="54" y="146" width="11" height="11" rx="2" stroke="#ffffff" stroke-width="1.5"></rect>
+<!-- usb-c -->
+<rect x="64" y="172" width="36" height="14" rx="7" stroke="#ffffff" stroke-width="2" fill="#5B2BD1"></rect>
+<rect x="72" y="177" width="20" height="4" rx="2" stroke="#ffffff" stroke-width="1.2"></rect>
+<!-- empty left ports -->
+<rect x="4" y="64" width="24" height="34" rx="3" stroke="#ffffff" stroke-width="1.8" fill="#5B2BD1"></rect>
+<path d="M10 70 V80 M15 70 V80 M20 70 V80" stroke="#ffffff" stroke-width="1.3"></path>
+<rect x="4" y="118" width="24" height="34" rx="3" stroke="#ffffff" stroke-width="1.8" fill="#5B2BD1"></rect>
+<path d="M10 124 V134 M15 124 V134 M20 124 V134" stroke="#ffffff" stroke-width="1.3"></path>
+<!-- LED module -->
+<rect x="166" y="46" width="122" height="74" rx="8" stroke="#ffffff" stroke-width="2.4" fill="#ffffff" fill-opacity="0.08"></rect>
+<circle cx="278" cy="56" r="3" stroke="#ffffff" stroke-width="1.4"></circle>
+<circle cx="232" cy="80" r="34" fill="#F2B33D" fill-opacity="0.16" stroke="none"></circle>
+<circle cx="232" cy="80" r="22" fill="#F2B33D" fill-opacity="0.3" stroke="none"></circle>
+<path d="M220 96 v-20 a12 12 0 0 1 24 0 v20 z" fill="#F2B33D" stroke="#1D1140" stroke-width="2"></path>
+<path d="M226 74 a6 6 0 0 1 6 -6" stroke="#ffffff" stroke-width="1.6"></path>
+<rect x="216" y="96" width="32" height="5" rx="1.5" fill="#F2B33D" stroke="#1D1140" stroke-width="1.6"></rect>
+<path d="M226 101 V112 M238 101 V108" stroke="#ffffff" stroke-width="1.6"></path>
+<rect x="188" y="94" width="16" height="7" rx="2" stroke="#ffffff" stroke-width="1.4"></rect>
+<path d="M192 94 V101 M197 94 V101" stroke="#ffffff" stroke-width="1"></path>
+<text x="178" y="114" style="font-family: 'JetBrains Mono', monospace; font-size: 7px; font-weight: 600; letter-spacing: 0.8px" fill="#ffffff" stroke="none">MOD-LED</text>
+<path d="M232 40 V32 M258 50 L264 44 M206 50 L200 44 M270 80 H282" stroke="#F2B33D" stroke-width="2.6"></path>
+<!-- buzzer module -->
+<rect x="166" y="128" width="122" height="56" rx="8" stroke="#ffffff" stroke-width="2.4" fill="#ffffff" fill-opacity="0.08"></rect>
+<circle cx="212" cy="154" r="14" stroke="#ffffff" stroke-width="2" fill="#1D1140"></circle>
+<circle cx="212" cy="154" r="3.5" fill="#ffffff" stroke="none"></circle>
+<path d="M234 146 a10 10 0 0 1 0 16 M242 140 a18 18 0 0 1 0 28 M250 134 a26 26 0 0 1 0 40" stroke="#F2B33D" stroke-width="2.2"></path>
+<text x="176" y="178" style="font-family: 'JetBrains Mono', monospace; font-size: 7px; font-weight: 600; letter-spacing: 0.8px" fill="#ffffff" stroke="none">BUZZER</text>
+<!-- plugged ports -->
+<rect x="140" y="62" width="30" height="40" rx="4" stroke="#1D1140" stroke-width="2" fill="#F2B33D"></rect>
+<path d="M148 72 V88 M155 72 V88 M162 72 V88" stroke="#1D1140" stroke-width="1.4"></path>
+<rect x="140" y="134" width="30" height="40" rx="4" stroke="#1D1140" stroke-width="2" fill="#F2B33D"></rect>
+<path d="M148 144 V160 M155 144 V160 M162 144 V160" stroke="#1D1140" stroke-width="1.4"></path>
+</g>
+</svg>
+</div>
+<h3 class="disp" style="margin: 0; font-size: 23px; letter-spacing: -0.015em">Watch it come alive</h3>
+<p style="margin: 0; font-size: 16px; line-height: 1.5; color: #4A4560">Upload from the browser and the board answers with light, sound and motion, right on the table.</p>
+<span class="mono" style="margin-top: auto; padding-top: 14px; border-top: 1.5px dashed #D9CFFA; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; color: #5B2BD1">LIGHT · SOUND · MOTION</span>
+</li>
+
+</ol>
+</div>
+</section>
+
+<!-- LEVEL UP -->
+<section id="grow" class="grid-light" style="border-bottom: 2px solid #1D1140">
+<div style="max-width: 1200px; margin: 0 auto; padding: 96px 24px; display: flex; flex-direction: column; gap: 44px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 20px">
+<div style="display: flex; flex-direction: column; gap: 14px; max-width: 680px">
+<span class="mono" style="font-size: 13px; font-weight: 600; letter-spacing: 0.08em; color: #5B2BD1">ROOM TO GROW · BLOCKS → IoT → EDGE AI</span>
+<h2 class="disp" style="margin: 0; font-size: clamp(36px, 4.4vw, 56px); line-height: 1.02; letter-spacing: -0.03em; font-weight: 700">From a blinking LED to a board that thinks.</h2>
+</div>
+<p style="margin: 0; font-size: 18px; color: #4A4560; max-width: 400px; line-height: 1.5">The ESP32 inside has Wi-Fi, Bluetooth and enough power for tiny AI models. Kids level up without ever changing boards.</p>
+</div>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 28px">
+
+<article style="background: #ffffff; border: 2px solid #1D1140; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 16px">
+<span class="mono" style="font-size: 12px; font-weight: 600; letter-spacing: 0.08em">LEVEL 01 / CIRCUITS</span>
+<div style="border-radius: 10px; border: 1.5px solid #E3DAFF; background: #FBF9FF; padding: 14px">
+<svg viewBox="0 0 300 210" role="img" aria-label="The main board with four modules plugged in: a push button, a glowing LED, an ultrasonic sensor and a buzzer" style="width: 100%; height: auto; display: block">
+<g fill="none" stroke-linecap="round" stroke-linejoin="round">
+<rect x="100" y="56" width="100" height="100" rx="10" stroke="#5B2BD1" stroke-width="2.4" fill="#ffffff"></rect>
+<circle cx="110" cy="66" r="3" stroke="#5B2BD1" stroke-width="1.4"></circle><circle cx="190" cy="146" r="3" stroke="#5B2BD1" stroke-width="1.4"></circle>
+<rect x="122" y="78" width="56" height="56" rx="4" stroke="#1D1140" stroke-width="1.8" fill="#F4F0FF"></rect>
+<polyline points="128,92 128,84 136,84 136,90 144,90 144,84 152,84 152,90 160,90 160,84 168,84 168,92" stroke="#5B2BD1" stroke-width="1.4"></polyline>
+<text x="150" y="118" text-anchor="middle" style="font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 600" fill="#5B2BD1" stroke="none">ESP32</text>
+<rect x="14" y="78" width="76" height="56" rx="7" stroke="#5B2BD1" stroke-width="2.2" fill="#ECE3FF"></rect>
+<circle cx="46" cy="104" r="14" stroke="#1D1140" stroke-width="2" fill="#ffffff"></circle><circle cx="46" cy="104" r="7" stroke="#1D1140" stroke-width="2" fill="#DCE8FF"></circle>
+<text x="22" y="128" style="font-family: 'JetBrains Mono', monospace; font-size: 7px; font-weight: 600" fill="#1D1140" stroke="none">BUTTON</text>
+<rect x="88" y="92" width="22" height="28" rx="3" stroke="#1D1140" stroke-width="1.8" fill="#F2B33D"></rect>
+<path d="M94 99 V113 M99 99 V113 M104 99 V113" stroke="#1D1140" stroke-width="1.2"></path>
+<rect x="210" y="78" width="76" height="56" rx="7" stroke="#5B2BD1" stroke-width="2.2" fill="#ECE3FF"></rect>
+<circle cx="248" cy="106" r="18" fill="#F2B33D" fill-opacity="0.3" stroke="none"></circle>
+<path d="M240 118 v-16 a8 8 0 0 1 16 0 v16 z" fill="#F2B33D" stroke="#1D1140" stroke-width="1.8"></path>
+<path d="M236 118 H260" stroke="#1D1140" stroke-width="1.8"></path>
+<path d="M248 88 V84 M262 94 L266 90 M234 94 L230 90" stroke="#1D1140" stroke-width="1.6"></path>
+<text x="218" y="128" style="font-family: 'JetBrains Mono', monospace; font-size: 7px; font-weight: 600" fill="#1D1140" stroke="none">LED</text>
+<rect x="190" y="92" width="22" height="28" rx="3" stroke="#1D1140" stroke-width="1.8" fill="#F2B33D"></rect>
+<path d="M196 99 V113 M201 99 V113 M206 99 V113" stroke="#1D1140" stroke-width="1.2"></path>
+<rect x="100" y="4" width="100" height="42" rx="7" stroke="#5B2BD1" stroke-width="2.2" fill="#ECE3FF"></rect>
+<circle cx="132" cy="24" r="12" stroke="#1D1140" stroke-width="1.8" fill="#D8F3E6"></circle><circle cx="132" cy="24" r="5" stroke="#1D1140" stroke-width="1.4"></circle>
+<circle cx="168" cy="24" r="12" stroke="#1D1140" stroke-width="1.8" fill="#D8F3E6"></circle><circle cx="168" cy="24" r="5" stroke="#1D1140" stroke-width="1.4"></circle>
+<rect x="138" y="44" width="24" height="20" rx="3" stroke="#1D1140" stroke-width="1.8" fill="#F2B33D"></rect>
+<path d="M144 48 V58 M150 48 V58 M156 48 V58" stroke="#1D1140" stroke-width="1.2"></path>
+<rect x="100" y="166" width="100" height="40" rx="7" stroke="#5B2BD1" stroke-width="2.2" fill="#ECE3FF"></rect>
+<circle cx="140" cy="186" r="12" stroke="#1D1140" stroke-width="1.8" fill="#1D1140"></circle><circle cx="140" cy="186" r="3" fill="#ffffff" stroke="none"></circle>
+<path d="M158 180 a8 8 0 0 1 0 12 M165 176 a14 14 0 0 1 0 20 M172 172 a20 20 0 0 1 0 28" stroke="#5B2BD1" stroke-width="2"></path>
+<rect x="138" y="148" width="24" height="20" rx="3" stroke="#1D1140" stroke-width="1.8" fill="#F2B33D"></rect>
+<path d="M144 152 V162 M150 152 V162 M156 152 V162" stroke="#1D1140" stroke-width="1.2"></path>
+</g>
+</svg>
+</div>
+<h3 class="disp" style="margin: 0; font-size: 22px; letter-spacing: -0.01em">Blink, beep, sense</h3>
+<p style="margin: 0; font-size: 16px; line-height: 1.5; color: #4A4560">Lights, buttons, buzzers and sensors. The first wins that make kids want to keep going.</p>
+</article>
+
+<article style="background: #ffffff; border: 2px solid #1D1140; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 16px">
+<span class="mono" style="font-size: 12px; font-weight: 600; letter-spacing: 0.08em">LEVEL 02 / IoT</span>
+<div style="border-radius: 10px; border: 1.5px solid #E3DAFF; background: #FBF9FF; padding: 14px">
+<svg viewBox="0 0 300 210" role="img" aria-label="The board sends sensor readings over Wi-Fi through the cloud to a phone app showing temperature, a chart and an LED switch" style="width: 100%; height: auto; display: block">
+<g fill="none" stroke-linecap="round" stroke-linejoin="round">
+<rect x="10" y="96" width="112" height="100" rx="10" stroke="#5B2BD1" stroke-width="2.4" fill="#ffffff"></rect>
+<circle cx="20" cy="106" r="3" stroke="#5B2BD1" stroke-width="1.4"></circle><circle cx="112" cy="186" r="3" stroke="#5B2BD1" stroke-width="1.4"></circle>
+<rect x="34" y="114" width="54" height="62" rx="4" stroke="#1D1140" stroke-width="1.8" fill="#F4F0FF"></rect>
+<polyline points="40,128 40,120 48,120 48,126 56,126 56,120 64,120 64,126 72,126 72,120 80,120 80,128" stroke="#5B2BD1" stroke-width="1.4"></polyline>
+<text x="61" y="156" text-anchor="middle" style="font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 600" fill="#5B2BD1" stroke="none">ESP32</text>
+<circle cx="104" cy="114" r="4" fill="#F2B33D" stroke="#1D1140" stroke-width="1.4"></circle>
+<rect x="48" y="190" width="30" height="12" rx="6" stroke="#1D1140" stroke-width="1.6" fill="#ffffff"></rect>
+<path d="M52 80 a14 14 0 0 1 18 0 M45 72 a24 24 0 0 1 32 0 M38 64 a34 34 0 0 1 46 0" stroke="#5B2BD1" stroke-width="2.2"></path>
+<circle cx="61" cy="88" r="3" fill="#5B2BD1" stroke="none"></circle>
+<path d="M88 52 Q104 34 122 46" stroke="#1D1140" stroke-width="1.8" stroke-dasharray="3 5"></path>
+<path d="M116 40 L123 46 L114 49" stroke="#1D1140" stroke-width="1.8"></path>
+<path d="M130 66 h44 a14 14 0 0 0 2 -28 a20 20 0 0 0 -38 -6 a14 14 0 0 0 -8 34 z" stroke="#1D1140" stroke-width="2" fill="#ffffff"></path>
+<path d="M144 54 h16 M140 46 h24" stroke="#5B2BD1" stroke-width="1.6"></path>
+<path d="M182 50 Q198 42 208 62" stroke="#1D1140" stroke-width="1.8" stroke-dasharray="3 5"></path>
+<path d="M202 58 L208 63 L210 55" stroke="#1D1140" stroke-width="1.8"></path>
+<rect x="210" y="40" width="80" height="164" rx="14" stroke="#1D1140" stroke-width="2.2" fill="#ffffff"></rect>
+<rect x="239" y="48" width="22" height="5" rx="2.5" fill="#1D1140" stroke="none"></rect>
+<text x="220" y="72" style="font-family: 'JetBrains Mono', monospace; font-size: 8px; font-weight: 600" fill="#4A4560" stroke="none">PLANT 01</text>
+<text x="220" y="98" style="font-family: 'Space Grotesk', sans-serif; font-size: 22px; font-weight: 700" fill="#5B2BD1" stroke="none">28°C</text>
+<text x="220" y="112" style="font-family: 'JetBrains Mono', monospace; font-size: 8px" fill="#4A4560" stroke="none">64% humid</text>
+<rect x="220" y="120" width="60" height="34" rx="4" stroke="#D9CFFA" stroke-width="1.4" fill="#FBF9FF"></rect>
+<polyline points="224,148 232,140 240,144 248,132 256,136 264,126 276,130" stroke="#5B2BD1" stroke-width="1.8"></polyline>
+<rect x="220" y="164" width="34" height="18" rx="9" fill="#F2B33D" stroke="#1D1140" stroke-width="1.6"></rect>
+<circle cx="245" cy="173" r="6.5" fill="#ffffff" stroke="#1D1140" stroke-width="1.6"></circle>
+<text x="260" y="177" style="font-family: 'JetBrains Mono', monospace; font-size: 8px; font-weight: 600" fill="#1D1140" stroke="none">LED</text>
+<rect x="238" y="192" width="24" height="3" rx="1.5" fill="#1D1140" stroke="none"></rect>
+</g>
+</svg>
+</div>
+<h3 class="disp" style="margin: 0; font-size: 22px; letter-spacing: -0.01em">Connect it to the internet</h3>
+<p style="margin: 0; font-size: 16px; line-height: 1.5; color: #4A4560">Send sensor readings to a phone, switch things on from anywhere, build a weather station or a plant that texts you.</p>
+</article>
+
+<article style="background: #1D1140; color: #ffffff; border: 2px solid #1D1140; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 16px; box-shadow: 8px 8px 0 #5B2BD1">
+<span class="mono" style="font-size: 12px; font-weight: 600; letter-spacing: 0.08em; color: #F2B33D">LEVEL 03 / EDGE AI</span>
+<div style="border-radius: 10px; border: 1.5px solid rgba(255,255,255,0.18); padding: 14px">
+<svg viewBox="0 0 300 210" role="img" aria-label="A clap is picked up by the microphone module, a small neural network on the chip recognises it, and the result reads CLAP, all offline" style="width: 100%; height: auto; display: block">
+<g fill="none" stroke-linecap="round" stroke-linejoin="round">
+<polyline points="6,44 14,44 18,32 23,58 28,22 33,64 38,34 43,52 48,40 53,48 58,44 74,44" stroke="#F2B33D" stroke-width="2.2"></polyline>
+<rect x="8" y="72" width="66" height="70" rx="8" stroke="#ffffff" stroke-width="2.2"></rect>
+<circle cx="41" cy="100" r="13" stroke="#ffffff" stroke-width="2"></circle>
+<g fill="#ffffff" stroke="none"><circle cx="37" cy="96" r="1.6"></circle><circle cx="45" cy="96" r="1.6"></circle><circle cx="37" cy="104" r="1.6"></circle><circle cx="45" cy="104" r="1.6"></circle><circle cx="41" cy="100" r="1.6"></circle></g>
+<text x="16" y="134" style="font-family: 'JetBrains Mono', monospace; font-size: 7px; font-weight: 600" fill="#B9A6F5" stroke="none">MIC</text>
+<path d="M78 106 H94" stroke="#ffffff" stroke-width="2"></path><path d="M89 101 L95 106 L89 111" stroke="#ffffff" stroke-width="2"></path>
+<rect x="100" y="44" width="100" height="122" rx="8" stroke="#ffffff" stroke-width="2.4"></rect>
+<path d="M116 44 V36 M132 44 V36 M150 44 V36 M168 44 V36 M184 44 V36 M116 166 V174 M132 166 V174 M150 166 V174 M168 166 V174 M184 166 V174" stroke="#ffffff" stroke-width="1.8"></path>
+<text x="150" y="60" text-anchor="middle" style="font-family: 'JetBrains Mono', monospace; font-size: 7px; font-weight: 600; letter-spacing: 0.8px" fill="#B9A6F5" stroke="none">ON-DEVICE MODEL</text>
+<g stroke="#B9A6F5" stroke-width="1" opacity="0.8">
+<path d="M120 86 L150 76 M120 86 L150 98 M120 86 L150 120 M120 86 L150 142 M120 110 L150 76 M120 110 L150 98 M120 110 L150 120 M120 110 L150 142 M120 134 L150 76 M120 134 L150 98 M120 134 L150 120 M120 134 L150 142"></path>
+<path d="M150 76 L180 98 M150 98 L180 98 M150 120 L180 98 M150 142 L180 98 M150 76 L180 126 M150 98 L180 126 M150 120 L180 126 M150 142 L180 126"></path>
+</g>
+<g stroke="#ffffff" stroke-width="1.6">
+<circle cx="120" cy="86" r="5" fill="#ffffff"></circle><circle cx="120" cy="110" r="5" fill="#ffffff"></circle><circle cx="120" cy="134" r="5" fill="#ffffff"></circle>
+<circle cx="150" cy="76" r="5" fill="#B9A6F5"></circle><circle cx="150" cy="98" r="5" fill="#B9A6F5"></circle><circle cx="150" cy="120" r="5" fill="#B9A6F5"></circle><circle cx="150" cy="142" r="5" fill="#B9A6F5"></circle>
+<circle cx="180" cy="98" r="7" fill="#F2B33D"></circle><circle cx="180" cy="126" r="5" fill="#1D1140"></circle>
+</g>
+<path d="M206 106 H222" stroke="#ffffff" stroke-width="2"></path><path d="M217 101 L223 106 L217 111" stroke="#ffffff" stroke-width="2"></path>
+<rect x="226" y="62" width="68" height="88" rx="8" stroke="#ffffff" stroke-width="2.2"></rect>
+<text x="234" y="80" style="font-family: 'JetBrains Mono', monospace; font-size: 7px; font-weight: 600; letter-spacing: 0.8px" fill="#B9A6F5" stroke="none">HEARD</text>
+<text x="234" y="104" style="font-family: 'Space Grotesk', sans-serif; font-size: 17px; font-weight: 700" fill="#F2B33D" stroke="none">CLAP</text>
+<rect x="234" y="114" width="52" height="8" rx="4" stroke="#ffffff" stroke-width="1.4"></rect>
+<rect x="234" y="114" width="46" height="8" rx="4" fill="#F2B33D" stroke="none"></rect>
+<text x="234" y="140" style="font-family: 'JetBrains Mono', monospace; font-size: 8px; font-weight: 600" fill="#ffffff" stroke="none">92% sure</text>
+<path d="M134 200 h26 a8 8 0 0 0 1 -16 a11 11 0 0 0 -21 -3 a8 8 0 0 0 -6 19 z" stroke="#B9A6F5" stroke-width="1.6"></path>
+<path d="M132 204 L164 180" stroke="#F2B33D" stroke-width="2"></path>
+<text x="172" y="198" style="font-family: 'JetBrains Mono', monospace; font-size: 8px; font-weight: 600; letter-spacing: 0.8px" fill="#B9A6F5" stroke="none">NO CLOUD</text>
+</g>
+</svg>
+</div>
+<h3 class="disp" style="margin: 0; font-size: 22px; letter-spacing: -0.01em">Teach it to recognise things</h3>
+<p style="margin: 0; font-size: 16px; line-height: 1.5; color: #E9E1FF">Train a tiny AI model to spot claps, voice words or gestures, and run it right on the board. No cloud needed.</p>
+</article>
+
+</div>
+</div>
+</section>
+
+<!-- SPEC SHEET -->
+<section style="background: #ffffff; border-bottom: 2px solid #1D1140">
+<div style="max-width: 1200px; margin: 0 auto; padding: 96px 24px; display: flex; flex-wrap: wrap; gap: 48px">
+<div style="flex: 1 1 340px; min-width: 0; display: flex; flex-direction: column; gap: 14px">
+<span class="mono" style="font-size: 13px; font-weight: 600; letter-spacing: 0.08em; color: #5B2BD1">TRUST &amp; SAFETY</span>
+<h2 class="disp" style="margin: 0; font-size: clamp(36px, 4.4vw, 56px); line-height: 1.02; letter-spacing: -0.03em; font-weight: 700">Built for curious hands.</h2>
+<p style="margin: 0; font-size: 18px; color: #4A4560; line-height: 1.5">Everything a parent or teacher wants to know, on one spec sheet.</p>
+</div>
+<dl style="flex: 2 1 520px; min-width: 0; margin: 0; border: 2px solid #1D1140; border-radius: 16px; overflow: hidden; background: #ffffff">
+
+<div style="display: flex; flex-wrap: wrap; gap: 6px 24px; padding: 18px 22px; border-bottom: 1.5px dashed #C9B9F7">
+<dt class="mono" style="flex: 0 0 150px; font-size: 13px; font-weight: 600; letter-spacing: 0.06em; color: #5B2BD1">AGES</dt>
+<dd style="flex: 1 1 260px; margin: 0; font-size: 16px; line-height: 1.5; color: #1D1140">8+, with an adult nearby as needed.</dd>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; gap: 6px 24px; padding: 18px 22px; border-bottom: 1.5px dashed #C9B9F7">
+<dt class="mono" style="flex: 0 0 150px; font-size: 13px; font-weight: 600; letter-spacing: 0.06em; color: #5B2BD1">POWER</dt>
+<dd style="flex: 1 1 260px; margin: 0; font-size: 16px; line-height: 1.5; color: #1D1140">Kid-friendly low voltage. No mains wiring on the modules.</dd>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; gap: 6px 24px; padding: 18px 22px; border-bottom: 1.5px dashed #C9B9F7">
+<dt class="mono" style="flex: 0 0 150px; font-size: 13px; font-weight: 600; letter-spacing: 0.06em; color: #5B2BD1">IN THE BOX</dt>
+<dd style="flex: 1 1 260px; margin: 0; font-size: 16px; line-height: 1.5; color: #1D1140">Main board, a starter set of plug-in modules (lights, sound, sensors), USB cable and a quick-start card.</dd>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; gap: 6px 24px; padding: 18px 22px; border-bottom: 1.5px dashed #C9B9F7">
+<dt class="mono" style="flex: 0 0 150px; font-size: 13px; font-weight: 600; letter-spacing: 0.06em; color: #5B2BD1">SOFTWARE</dt>
+<dd style="flex: 1 1 260px; margin: 0; font-size: 16px; line-height: 1.5; color: #1D1140">Block coding in the browser. Nothing to install.</dd>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; gap: 6px 24px; padding: 18px 22px; border-bottom: 1.5px dashed #C9B9F7">
+<dt class="mono" style="flex: 0 0 150px; font-size: 13px; font-weight: 600; letter-spacing: 0.06em; color: #5B2BD1">ROOM TO GROW</dt>
+<dd style="flex: 1 1 260px; margin: 0; font-size: 16px; line-height: 1.5; color: #1D1140">Start with blink-and-beep, then add sensors, IoT over Wi-Fi and edge AI. Same board, bigger ideas.</dd>
+</div>
+
+</dl>
+</div>
+</section>
+
+<!-- MAKERSPACES -->
+<section id="makerspaces" class="grid-dark" style="color: #ffffff; border-bottom: 2px solid #1D1140">
+<div style="max-width: 1200px; margin: 0 auto; padding: 96px 24px; display: flex; flex-wrap: wrap; align-items: center; gap: 48px">
+<div style="flex: 1 1 440px; min-width: 0; display: flex; flex-direction: column; gap: 20px">
+<span class="mono" style="font-size: 13px; font-weight: 600; letter-spacing: 0.08em; color: #F2B33D">FOR MAKERSPACES &amp; STEM LABS</span>
+<h2 class="disp" style="margin: 0; font-size: clamp(36px, 4.4vw, 56px); line-height: 1.02; letter-spacing: -0.03em; font-weight: 700">Makerspace kits without the cable chaos.</h2>
+<div style="display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; gap: 14px; align-items: baseline"><span class="mono" style="color: #F2B33D; font-weight: 600; font-size: 14px">01</span><p style="margin: 0; font-size: 17px; line-height: 1.5; color: #E9E1FF">Workbenches stay tidy when every module clicks into a known port. Less sorting, more making.</p></div>
+<div style="display: flex; gap: 14px; align-items: baseline"><span class="mono" style="color: #F2B33D; font-weight: 600; font-size: 14px">02</span><p style="margin: 0; font-size: 17px; line-height: 1.5; color: #E9E1FF">A shared browser IDE, so members build on any space computer without installing desktop software.</p></div>
+<div style="display: flex; gap: 14px; align-items: baseline"><span class="mono" style="color: #F2B33D; font-weight: 600; font-size: 14px">03</span><p style="margin: 0; font-size: 17px; line-height: 1.5; color: #E9E1FF">Made by a team that runs hands-on STEM sessions with kids every week.</p></div>
+</div>
+<a href="#contact" style="align-self: flex-start; background: #F2B33D; color: #1D1140; text-decoration: none; font-weight: 700; font-size: 16px; padding: 15px 22px; border: 2px solid #ffffff; border-radius: 10px; box-shadow: 4px 4px 0 #ffffff">Talk to us about makerspace programs</a>
+</div>
+<div style="flex: 1 1 420px; min-width: 0; aspect-ratio: 5 / 4; border: 2px dashed rgba(255,255,255,0.5); border-radius: 18px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; text-align: center; padding: 24px">
+<span class="mono" style="font-size: 12px; font-weight: 600; letter-spacing: 0.08em; color: #F2B33D">FIG. 02</span>
+<span class="mono" style="font-size: 13px; color: #E9E1FF">[ PHOTO — TINKERBIT BUILDS IN A MAKERSPACE ]</span>
+</div>
+</div>
+</section>
+
+<!-- ABOUT -->
+<section id="about" style="background: #ffffff; border-bottom: 2px solid #1D1140">
+<div style="max-width: 1200px; margin: 0 auto; padding: 96px 24px; display: flex; flex-wrap: wrap; gap: 48px; align-items: flex-start">
+<div style="flex: 1 1 440px; min-width: 0; display: flex; flex-direction: column; gap: 14px">
+<span class="mono" style="font-size: 13px; font-weight: 600; letter-spacing: 0.08em; color: #5B2BD1">ABOUT</span>
+<h2 class="disp" style="margin: 0; font-size: clamp(32px, 3.8vw, 48px); line-height: 1.05; letter-spacing: -0.03em; font-weight: 700">Made by people who still get excited when an LED turns on.</h2>
+</div>
+<p style="flex: 1 1 380px; min-width: 0; margin: 0; font-size: 18px; line-height: 1.6; color: #4A4560">We've spent years running hands-on STEM spaces, the kind where kids spill parts on tables and leave grinning because something they built actually worked. TinkerBit grew out of that mess and magic: fewer loose wires, clearer first wins, and a coding screen that feels as tactile as the board on the desk.</p>
+</div>
+</section>
+
+<!-- FINAL CTA -->
+<section style="background: #5B2BD1; color: #ffffff; border-bottom: 2px solid #1D1140">
+<div style="max-width: 1200px; margin: 0 auto; padding: 88px 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 32px">
+<h2 class="disp" style="flex: 1 1 460px; margin: 0; font-size: clamp(36px, 4.6vw, 60px); line-height: 1.0; letter-spacing: -0.03em; font-weight: 700">Click it in. Code it. Watch it come alive.</h2>
+<form style="flex: 1 1 420px; min-width: 0; display: flex; flex-direction: column; gap: 10px">
+<label for="cta-email" class="mono" style="font-size: 12px; font-weight: 600; letter-spacing: 0.08em; color: #ffffff">FIRST KITS SHIP DEC 2026</label>
+<div style="display: flex; flex-wrap: wrap; gap: 12px">
+<input id="cta-email" type="email" placeholder="you@email.com" style="flex: 1 1 220px; min-width: 0; height: 54px; box-sizing: border-box; padding: 0 16px; font-size: 16px; font-family: inherit; color: #1D1140; background: #ffffff; border: 2px solid #1D1140; border-radius: 10px">
+<button type="button" style="height: 54px; padding: 0 24px; font-size: 16px; font-weight: 700; font-family: inherit; color: #1D1140; background: #F2B33D; border: 2px solid #1D1140; border-radius: 10px; box-shadow: 4px 4px 0 #1D1140; cursor: pointer">Notify me</button>
+</div>
+</form>
+</div>
+</section>
+
+<!-- FOOTER -->
+<footer style="background: #1D1140; color: #ffffff">
+<div style="max-width: 1200px; margin: 0 auto; padding: 64px 24px 32px; display: flex; flex-direction: column; gap: 40px">
+<div style="display: flex; flex-wrap: wrap; justify-content: space-between; gap: 40px">
+<div style="flex: 1 1 260px; display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; align-items: center; gap: 10px">
+<span class="mono" style="width: 36px; height: 36px; border-radius: 9px; background: #5B2BD1; color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 13px; border: 2px solid #ffffff">TB</span>
+<span class="disp" style="font-size: 22px; font-weight: 700">TinkerBit</span>
+</div>
+<p style="margin: 0; font-size: 15px; color: #CFC4F2; max-width: 280px; line-height: 1.5">Click it in. Code it. Watch it come alive.</p>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 48px">
+<div style="display: flex; flex-direction: column; gap: 10px">
+<span class="mono" style="font-size: 12px; font-weight: 600; letter-spacing: 0.08em; color: #F2B33D">EXPLORE</span>
+<a href="#how" style="color: #E9E1FF; text-decoration: none; font-size: 15px">How it works</a>
+<a href="#makerspaces" style="color: #E9E1FF; text-decoration: none; font-size: 15px">Makerspaces</a>
+<a href="#about" style="color: #E9E1FF; text-decoration: none; font-size: 15px">About</a>
+<a href="#privacy" style="color: #E9E1FF; text-decoration: none; font-size: 15px">Privacy</a>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px">
+<span class="mono" style="font-size: 12px; font-weight: 600; letter-spacing: 0.08em; color: #F2B33D">CONNECT</span>
+<a href="mailto:hello@tinkerbit.io" style="color: #E9E1FF; text-decoration: none; font-size: 15px">hello@tinkerbit.io</a>
+<a href="#linkedin" style="color: #E9E1FF; text-decoration: none; font-size: 15px">LinkedIn</a>
+<a href="#facebook" style="color: #E9E1FF; text-decoration: none; font-size: 15px">Facebook</a>
+<a href="#signin" style="color: #E9E1FF; text-decoration: none; font-size: 15px">Sign in (early access)</a>
+</div>
+</div>
+</div>
+<div class="mono" style="border-top: 1.5px dashed rgba(255,255,255,0.25); padding-top: 20px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; font-size: 12px; color: #CFC4F2">
+<span>© 2026 TinkerBit · Built for makers at every age</span><span>TB-01 · REV A</span>
+</div>
+</div>
+</footer>
+
+</div>
+</body>
+</html>

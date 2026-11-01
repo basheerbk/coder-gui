@@ -19,7 +19,8 @@ const sanitizeNext = next => {
         pathOnly === '/choose' || pathOnly === '/choose/' ||
         pathOnly === '/beginner' || pathOnly === '/beginner/' ||
         pathOnly === '/beginner.html' || pathOnly === '/choose.html' ||
-        pathOnly === '/ide' || pathOnly.indexOf('/ide/') === 0 || pathOnly === '/ide.html';
+        pathOnly === '/ide' || pathOnly.indexOf('/ide/') === 0 || pathOnly === '/ide.html' ||
+        pathOnly === '/iot' || pathOnly.indexOf('/iot/') === 0 || pathOnly === '/iot.html';
     if (
         next.charAt(0) !== '/' ||
         next.indexOf('//') === 0 ||

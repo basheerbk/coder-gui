@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Embedding TinkerBit 3D components</title>
+<!-- "three" must resolve to three.js r186 (the vendored copy, or your site's own). -->
+<script type="importmap">
+{"imports": {"three": "./vendor/three/three.module.js"}}
+</script>
+<style>
+    body { margin: 24px; font-family: system-ui, sans-serif; background: #f3f4f6; color: #111827; }
+    .row { display: flex; gap: 24px; flex-wrap: wrap; }
+    figure { margin: 0; }
+    figcaption { font-size: 13px; color: #4b5563; margin-top: 6px; }
+    .stage { width: 480px; height: 320px; border-radius: 12px; overflow: hidden; background: #e8eef5; }
+</style>
+</head>
+<body>
+<h1>Embedding the components</h1>
+<div class="row">
+    <figure>
+        <div class="stage" id="viewer-stage"></div>
+        <figcaption>1. Ready-made viewer: <code>createViewer(el).showComponent('pot')</code></figcaption>
+    </figure>
+    <figure>
+        <div class="stage" id="own-stage"></div>
+        <figcaption>2. Your own three.js scene: <code>scene.add(createComponent('dht'))</code></figcaption>
+    </figure>
+</div>
+<script type="module">
+import * as THREE from 'three';
+import {createComponent, createViewer, onTexturesChanged} from './lib/index.js';
+
+// 1. The kit's viewer: lighting, shadows, orbit controls and resizing included.
+const viewer = createViewer(document.getElementById('viewer-stage'), {theme: 'light', autoRotate: true});
+viewer.showComponent('pot', {knobColor: '#b91c1c'});
+
+// 2. A plain three.js scene you control. Components are Y-up groups resting on y = 0, in board units.
+const el = document.getElementById('own-stage');
+const renderer = new THREE.WebGLRenderer({antialias: true});
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(el.clientWidth, el.clientHeight);
+el.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#e8eef5');
+scene.add(new THREE.HemisphereLight('#ffffff', '#c9c2b4', 1.4));
+const sun = new THREE.DirectionalLight('#ffffff', 2.4);
+sun.position.set(-80, 200, 120);
+scene.add(sun);
+const camera = new THREE.PerspectiveCamera(30, el.clientWidth / el.clientHeight, 1, 5000);
+camera.position.set(120, 150, 190);
+camera.lookAt(0, 0, 0);
+
+const dht = createComponent('dht', {label: 'MY SENSOR'});
+scene.add(dht);
+
+const draw = () => renderer.render(scene, camera);
+onTexturesChanged(draw); // textures decode asynchronously; redraw when they land
+renderer.setAnimationLoop(() => {
+    dht.rotation.y += 0.01;
+    draw();
+});
+</script>
+</body>
+</html>

@@ -20,13 +20,16 @@ const initialState = () => ({
     view: 'build',
     flashPortId: null,
     wireHint: null,
+    // {deviceId, deviceName, intervalSec, ssid, email} once Cloud is set up; never holds secrets.
+    cloud: null,
+    showCloudSetup: false,
     theme: typeof window !== 'undefined' ? readStoredTheme() : 'dark'
 });
 
 const StudioProvider = ({children}) => {
     const [state, setState] = useState(initialState);
     const actions = useStudioActions(state, setState);
-    const generatedCode = useGeneratedCode(state.connections, state.program);
+    const generatedCode = useGeneratedCode(state.connections, state.program, state.cloud);
     const K = tokensFor(state.theme);
 
     const value = useMemo(() => Object.assign({}, state, actions, {generatedCode, K}), [

@@ -294,6 +294,7 @@ const BoardCanvas = () => {
                                 occupied={state.occupied}
                                 compatible={state.compatible}
                                 dimmed={state.dimmed}
+                                cloudLocked={state.cloudLocked}
                                 flashing={flashPortId === port.id}
                                 onClick={() => {
                                     connectToPort(port.id);

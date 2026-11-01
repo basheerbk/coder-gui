@@ -35,6 +35,13 @@ const PORT_CONFLICTS = {
     '3D': ['D13']
 };
 
+/**
+ * A1–A4 sit on ESP32 ADC2, which stops working while WiFi is on, so they are
+ * switched off whenever the Cloud part is wired.
+ */
+const CLOUD_LOCKED_PORTS = ['A1', 'A2', 'A3', 'A4'];
+const CLOUD_LOCK_HINT = 'A1–A4 are off while Cloud is on (WiFi needs their analog reader)';
+
 const HUB_PORT_BY_ID = HUB_PORTS.reduce((all, p) => Object.assign(all, {[p.id]: p}), {});
 
 /** Hub jack record and plug side for a studio port id. */
@@ -172,8 +179,11 @@ const isPortBlockedByConflicts = (portId, usedIds) => {
     return rivals.some(id => used[id]);
 };
 
-const isPortCompatible = (port, moduleDef, usedIds) => {
+const isPortCompatible = (port, moduleDef, usedIds, cloudActive) => {
     if (!port || !moduleDef) {
+        return false;
+    }
+    if (cloudActive && CLOUD_LOCKED_PORTS.indexOf(port.id) !== -1) {
         return false;
     }
     if (isPortBlockedByConflicts(port.id, usedIds)) {
@@ -219,9 +229,12 @@ const isPortCompatible = (port, moduleDef, usedIds) => {
     return false;
 };
 
-const compatibilityHint = (port, moduleDef) => {
+const compatibilityHint = (port, moduleDef, cloudActive) => {
     if (!port) {
         return 'Unknown jack';
+    }
+    if (cloudActive && CLOUD_LOCKED_PORTS.indexOf(port.id) !== -1) {
+        return CLOUD_LOCK_HINT;
     }
     if (!moduleDef) {
         if (port.kind === 'stepper') {
@@ -252,7 +265,10 @@ const compatibilityHint = (port, moduleDef) => {
     }
     const need = neededKind(moduleDef);
     if (need === 'onboard') {
-        return 'Bluetooth is built into the ESP32 — tap the ESP32 chip';
+        return `${moduleDef.name} is built into the ESP32 — pick it from the list`;
+    }
+    if (cloudActive && need === 'analog') {
+        return `${moduleDef.name} needs A1–A4, which are off while Cloud is on`;
     }
     if (need === 'uart') {
         return 'Plug HC-05 into UART (RX=GPIO3 TX=GPIO1, shared with USB @ 9600)';
@@ -305,9 +321,9 @@ const compatibilityHint = (port, moduleDef) => {
     return `${port.label} needs a digital part`;
 };
 
-const pickPortForModule = (moduleDef, usedIds) => {
+const pickPortForModule = (moduleDef, usedIds, cloudActive) => {
     const used = usedIds || {};
-    const take = ids => ids.find(id => !used[id] && isPortCompatible(portById(id), moduleDef, used));
+    const take = ids => ids.find(id => !used[id] && isPortCompatible(portById(id), moduleDef, used, cloudActive));
     const need = neededKind(moduleDef);
     if (need === 'onboard') {
         return take(['ONBOARD']);
@@ -318,7 +334,7 @@ const pickPortForModule = (moduleDef, usedIds) => {
     if (need === 'i2c') {
         // One shared bus: take a free I2C jack, else share I2C.
         const port = portById('I2C');
-        return take(['I2C', 'I2C1']) || (port && isPortCompatible(port, moduleDef, used) ? 'I2C' : null);
+        return take(['I2C', 'I2C1']) || (port && isPortCompatible(port, moduleDef, used, cloudActive) ? 'I2C' : null);
     }
     if (need === 'motor') {
         return take(['MD']);
@@ -423,19 +439,32 @@ const sharesI2cBus = (port, moduleDef) => Boolean(
     (moduleDef.i2c || moduleDef.id === 'oled' || moduleDef.id === 'pulse')
 );
 
+/** Is the Cloud part plugged in, given a portId → connection map from usedPortMap? */
+const cloudActiveIn = usedPorts => {
+    const onboard = usedPorts && usedPorts.ONBOARD;
+    const def = onboard && typeof onboard === 'object' ? moduleById(onboard.moduleId) : null;
+    return Boolean(def && def.id === 'cloud');
+};
+
 /** How a jack should look while `selectedDef` (or nothing) is picked in the shelf. */
 const portUiState = (port, usedPorts, selectedDef) => {
     const conn = usedPorts[port.id];
+    const cloudActive = cloudActiveIn(usedPorts);
+    const cloudLocked = cloudActive && CLOUD_LOCKED_PORTS.indexOf(port.id) !== -1;
     const shareI2c = sharesI2cBus(port, selectedDef);
-    const fits = Boolean(selectedDef) && isPortCompatible(port, selectedDef, usedPorts);
+    const fits = Boolean(selectedDef) && isPortCompatible(port, selectedDef, usedPorts, cloudActive);
     const compatible = fits && (!conn || shareI2c);
     return {
         occupied: Boolean(conn) && !shareI2c,
         compatible,
-        dimmed: Boolean(selectedDef) && !fits,
-        shareI2c
+        dimmed: cloudLocked || (Boolean(selectedDef) && !fits),
+        shareI2c,
+        cloudLocked
     };
 };
+
+/** Can this part go anywhere at all while Cloud is on (ignoring what is already plugged)? */
+const fitsWithCloud = moduleDef => PORTS.some(port => isPortCompatible(port, moduleDef, {}, true));
 
 const usedPortMap = connections => {
     const map = {};
@@ -483,6 +512,10 @@ const portColor = (port, K) => {
 export {
     PORTS,
     PORT_CONFLICTS,
+    CLOUD_LOCKED_PORTS,
+    CLOUD_LOCK_HINT,
+    cloudActiveIn,
+    fitsWithCloud,
     BOARD,
     JACK,
     ESP,

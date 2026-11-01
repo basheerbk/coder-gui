@@ -31,10 +31,6 @@
   margin: 0;
 }
 
-.tb-lead--on-dark {
-  color: var(--tb-on-dark);
-}
-
 .tb-hero,
 .tb-facts,
 .tb-how,
@@ -210,10 +206,6 @@
 .tb-how-title {
   font-size: clamp(36px, 4.6vw, 60px);
   line-height: 1;
-}
-
-.tb-how-lead {
-  max-width: 380px;
 }
 
 .tb-steps,

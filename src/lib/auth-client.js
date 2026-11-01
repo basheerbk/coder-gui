@@ -14,7 +14,9 @@ const safeIdeNext = () => {
         path.indexOf('/ide/') === 0 ||
         path === '/beginner' ||
         path === '/beginner/' ||
-        path === '/beginner.html'
+        path === '/beginner.html' ||
+        path === '/iot' ||
+        path.indexOf('/iot/') === 0
     ) {
         return path === '/beginner/' ? '/beginner' : path;
     }

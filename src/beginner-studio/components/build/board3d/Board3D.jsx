@@ -15,7 +15,7 @@ import {
 } from '../../../domain/ports';
 import {BoardTop, PCB_EDGE} from '../BoardArt.jsx';
 import ConnectionsLayer, {SceneDefs} from '../ConnectionsLayer.jsx';
-import {PortLabel, labelCenter} from '../Port.jsx';
+import {LockBadge, PortLabel, labelCenter, labelWidth} from '../Port.jsx';
 
 import {Box, FaceSvg} from './Box.jsx';
 import Jack3D, {JACK_H, SpareJack3D} from './Jack3D.jsx';
@@ -428,15 +428,19 @@ const Board3D = () => {
                         const state = portUiState(port, usedPorts, selectedDef);
                         const {cx, cy} = labelCenter(port, portPosition(port));
                         return (
-                            <PortLabel
-                                key={port.id}
-                                port={port}
-                                cx={cx}
-                                cy={cy}
-                                color={portColor(port, K)}
-                                K={K}
-                                opacity={state.dimmed ? 0.3 : 1}
-                            />
+                            <g key={port.id}>
+                                <PortLabel
+                                    port={port}
+                                    cx={cx}
+                                    cy={cy}
+                                    color={portColor(port, K)}
+                                    K={K}
+                                    opacity={state.dimmed ? 0.3 : 1}
+                                />
+                                {state.cloudLocked ? (
+                                    <LockBadge cx={cx + (labelWidth(port) / 2) + 6} cy={cy} K={K} />
+                                ) : null}
+                            </g>
                         );
                     })}
                 </SceneLayer>

@@ -85,6 +85,16 @@ h1 {
   font-size: 1rem;
 }
 
+.choose-cloud {
+  margin: 1.25rem 0 0;
+  font-size: 0.9rem;
+}
+
+.choose-cloud a {
+  color: inherit;
+  font-weight: 700;
+}
+
 .choose-actions {
   display: grid;
   gap: 0.85rem;

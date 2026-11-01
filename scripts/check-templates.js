@@ -23,11 +23,20 @@ const kindOf = {
     dht: 'digital',
     ultra: 'ultra',
     rfid: 'spi',
-    ble: 'onboard'
+    ble: 'onboard',
+    cloud: 'onboard'
 };
+
+/** Cloud's WiFi takes over ADC2, so A1–A4 are off whenever Cloud is in the project. */
+const CLOUD_LOCKED = ['A1', 'A2', 'A3', 'A4'];
 
 const assign = ids => {
     const used = {};
+    if (ids.indexOf('cloud') !== -1) {
+        CLOUD_LOCKED.forEach(id => {
+            used[id] = true;
+        });
+    }
     return ids.map(moduleId => {
         const kind = kindOf[moduleId];
         if (!kind) {

@@ -1,3 +1,5 @@
+import {cEscape, hasCloud} from './cloud';
+import {cloudFirmware} from './cloudFirmware';
 import {moduleById} from './modules';
 import {portById} from './ports';
 import {formatCondition} from './condition';
@@ -198,7 +200,10 @@ const setupLinesForConnection = c => {
             'mfrc522.PCD_Init();'
         ];
     }
-    if (mod.id === 'ble' || port.kind === 'onboard') {
+    if (mod.id === 'cloud') {
+        return [];
+    }
+    if (mod.id === 'ble') {
         return [
             'BLEDevice::init(bleDeviceName.c_str());',
             'pBleServer = BLEDevice::createServer();',
@@ -683,6 +688,14 @@ const emitLeaf = (block, connById, level) => {
         lines.push(indent(level, `${(mod && mod.valueName) || 'motionDetected'} = digitalRead(${pin});`));
         serialLabel(`${modLabel}: `, (mod && mod.valueName) || 'motionDetected');
         break;
+    case 'cloud_alert': {
+        const text = String(p.text == null ? '' : p.text).slice(0, 120);
+        lines.push(indent(level, `cloudAlert("${cEscape(text)}");`));
+        break;
+    }
+    case 'cloud_send_now':
+        lines.push(indent(level, 'cloudSendNow();'));
+        break;
     case 'wait':
         lines.push(indent(level, `delay(${Math.round((Number(p.seconds) || 1) * 1000)});`));
         break;
@@ -741,7 +754,16 @@ const findBleName = blocks => {
     return found;
 };
 
-const generateArduino = (connections, program) => {
+/**
+ * @param {Array} connections wired parts
+ * @param {Array} program block tree
+ * @param {object} [options] {cloud: {deviceId, intervalSec, ...}, secrets: {ssid, password, token}}
+ *   secrets are only passed when uploading; otherwise they are masked in the output.
+ */
+const generateArduino = (connections, program, options = {}) => {
+    const cloud = hasCloud(connections) ?
+        cloudFirmware({connections, program, cloud: options.cloud, secrets: options.secrets}) :
+        null;
     const connById = connectionLookup(connections);
     const includes = collectIncludes(connections);
     const globals = collectGlobals(connections);
@@ -764,10 +786,16 @@ const generateArduino = (connections, program) => {
     (connections || []).forEach(c => {
         setupLinesForConnection(c).forEach(line => setupBody.push(line));
     });
+    if (cloud) {
+        cloud.setup.forEach(line => setupBody.push(line));
+    }
     const loopBody = emitBlocks(program, connById, 1);
     if (!loopBody.length) {
         loopBody.push(indent(1, '// Add blocks in the Code tab'));
         loopBody.push(indent(1, 'delay(100);'));
+    }
+    if (cloud) {
+        cloud.loopEnd.forEach(line => loopBody.push(indent(1, line)));
     }
 
     const out = [];
@@ -792,6 +820,10 @@ const generateArduino = (connections, program) => {
     if (includes.length) {
         out.push('');
     }
+    if (cloud) {
+        cloud.head.forEach(l => out.push(l));
+        out.push('');
+    }
     globals.forEach(g => out.push(g));
     if (globals.length) {
         out.push('');
@@ -806,6 +838,10 @@ const generateArduino = (connections, program) => {
     }
     if (needsAnalogAvgHelper(connections)) {
         analogAvgHelper().forEach(l => out.push(l));
+        out.push('');
+    }
+    if (cloud) {
+        cloud.body.forEach(l => out.push(l));
         out.push('');
     }
     out.push('void setup() {');

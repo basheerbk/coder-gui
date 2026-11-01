@@ -1,0 +1,32 @@
+# /etc/systemd/system/mosquitto.service on Amazon Linux 2023 (no Mosquitto package there).
+# install-on-ec2.sh replaces @MOSQ_IMAGE@. Host networking keeps the listeners on the
+# same addresses as a native install (1883 and 9001 on 127.0.0.1, 8883 public), and
+# config, certificates and state stay in the usual host paths, so backups, the certbot
+# hook (systemctl reload mosquitto) and journalctl -u mosquitto work unchanged.
+[Unit]
+Description=Mosquitto MQTT broker (TinkerBit Cloud, container)
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStartPre=-/usr/bin/docker rm -f mosquitto
+# Limits mirror mosquitto-override.conf: boards stay connected while a compile saturates the CPU.
+ExecStart=/usr/bin/docker run --rm --name mosquitto --network host \
+  --security-opt label=disable \
+  --memory 400m --memory-reservation 300m --cpu-shares 2048 \
+  --ulimit nofile=65536:65536 \
+  --log-opt max-size=10m --log-opt max-file=3 \
+  -v /etc/mosquitto:/etc/mosquitto:ro \
+  -v /var/lib/mosquitto:/var/lib/mosquitto \
+  @MOSQ_IMAGE@ mosquitto -c /etc/mosquitto/mosquitto.conf
+# SIGHUP makes Mosquitto re-read its certificates after renewal.
+ExecReload=/usr/bin/docker kill --signal HUP mosquitto
+ExecStop=/usr/bin/docker stop -t 10 mosquitto
+Restart=on-failure
+RestartSec=2
+TimeoutStartSec=120
+
+[Install]
+WantedBy=multi-user.target

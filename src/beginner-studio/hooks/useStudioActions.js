@@ -2,10 +2,11 @@ import {useCallback} from 'react';
 
 import {clearOffset, spreadConnections} from '../components/build/ModuleArt.jsx';
 
+import {cloudAddProblem, hasCloud} from '../domain/cloud';
 import {defaultIfParams} from '../domain/condition';
 import {uid} from '../domain/ids';
 import {moduleById} from '../domain/modules';
-import {portById, isPortCompatible, compatibilityHint} from '../domain/ports';
+import {portById, isPortCompatible, compatibilityHint, fitsWithCloud} from '../domain/ports';
 import {playConnect, playDisconnect, playTick} from '../domain/sound';
 import {templateById} from '../domain/templates';
 import {persistTheme} from '../domain/tokens';
@@ -25,7 +26,8 @@ const useStudioActions = (state, setState) => {
     const selectModule = useCallback(moduleId => {
         setState(prev => {
             const mod = moduleById(moduleId);
-            // BLE is onboard — snap it in without picking a jack.
+            const cloudOn = hasCloud(prev.connections);
+            // BLE and Cloud are onboard — snap them in without picking a jack.
             if (mod && mod.onboard) {
                 if (prev.connections.some(c => c.moduleId === mod.id)) {
                     return Object.assign({}, prev, {
@@ -33,10 +35,16 @@ const useStudioActions = (state, setState) => {
                         wireHint: `${mod.name} is already on`
                     });
                 }
+                const refusal = mod.id === 'cloud' ?
+                    cloudAddProblem(prev.connections) :
+                    (cloudOn ? `${mod.name} cannot run together with Cloud — remove Cloud first` : null);
+                if (refusal) {
+                    return Object.assign({}, prev, {selectedModule: null, wireHint: refusal});
+                }
                 const port = portById('ONBOARD');
                 const plug = {id: uid('conn'), moduleId: mod.id, portId: 'ONBOARD', pin: port ? port.pin : '-'};
                 const conn = Object.assign(plug, clearOffset(plug, prev.connections), {bendX: null, bendY: null});
-                const first = mod.actions && mod.actions[0];
+                const first = mod.autoBlock === false ? null : (mod.actions && mod.actions[0]);
                 let program = prev.program;
                 if (first) {
                     program = appendBlock(program, createBlock(first.type, {
@@ -50,8 +58,17 @@ const useStudioActions = (state, setState) => {
                     program,
                     selectedModule: null,
                     flashPortId: 'ONBOARD',
-                    wireHint: 'Bluetooth is built into the ESP32',
+                    wireHint: mod.id === 'cloud' ?
+                        'Cloud is on — open Cloud in the top bar to connect. A1–A4 are now off.' :
+                        `${mod.name} is built into the ESP32`,
+                    showCloudSetup: prev.showCloudSetup || (mod.id === 'cloud' && !prev.cloud),
                     activeTemplateId: null
+                });
+            }
+            if (mod && cloudOn && !fitsWithCloud(mod)) {
+                return Object.assign({}, prev, {
+                    selectedModule: null,
+                    wireHint: `${mod.name} needs A1–A4, which are off while Cloud is on`
                 });
             }
             const next = prev.selectedModule === moduleId ? null : moduleId;
@@ -65,7 +82,7 @@ const useStudioActions = (state, setState) => {
         }, 450);
         setTimeout(() => {
             setState(prev => (prev.wireHint ? Object.assign({}, prev, {wireHint: null}) : prev));
-        }, 2600);
+        }, 4000);
     }, [setState]);
 
     const clearSelection = useCallback(() => {
@@ -92,9 +109,10 @@ const useStudioActions = (state, setState) => {
             prev.connections.forEach(c => {
                 usedIds[c.portId] = true;
             });
-            if (!isPortCompatible(port, mod, usedIds)) {
+            const cloudOn = hasCloud(prev.connections);
+            if (!isPortCompatible(port, mod, usedIds, cloudOn)) {
                 return Object.assign({}, prev, {
-                    wireHint: compatibilityHint(port, mod)
+                    wireHint: compatibilityHint(port, mod, cloudOn)
                 });
             }
             const samePort = prev.connections.filter(c => c.portId === portId);
@@ -139,7 +157,7 @@ const useStudioActions = (state, setState) => {
         }, 450);
         setTimeout(() => {
             setState(prev => (prev.wireHint ? Object.assign({}, prev, {wireHint: null}) : prev));
-        }, 2600);
+        }, 4000);
     }, [setState]);
 
     const disconnect = useCallback(connectionId => {
@@ -227,6 +245,7 @@ const useStudioActions = (state, setState) => {
             selectedModule: null,
             addTarget: null,
             showProjectLibrary: false,
+            showCloudSetup: !prev.cloud && tpl.connections.some(c => c.moduleId === 'cloud'),
             view: 'build'
         }));
     }, [setState]);
@@ -242,6 +261,8 @@ const useStudioActions = (state, setState) => {
         persistTheme(next);
         patch({theme: next});
     }, [patch]);
+    const setCloud = useCallback(cloud => patch({cloud: cloud || null}), [patch]);
+    const setShowCloudSetup = useCallback(showCloudSetup => patch({showCloudSetup: Boolean(showCloudSetup)}), [patch]);
 
     return {
         selectModule,
@@ -262,7 +283,9 @@ const useStudioActions = (state, setState) => {
         setBlockPaletteCategory,
         setShowCodePanel,
         setShowProjectLibrary,
-        setTheme
+        setTheme,
+        setCloud,
+        setShowCloudSetup
     };
 };
 

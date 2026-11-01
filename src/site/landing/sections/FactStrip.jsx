@@ -1,6 +1,6 @@
 import React from 'react';
 
-const FACTS = ['ONE BOARD', 'CLICK-IN MODULES', 'BLOCKS IN THE BROWSER', 'NO SOLDERING', 'IoT + EDGE AI'];
+const FACTS = ['ONE BOARD', 'CLICK-IN MODULES', 'BLOCKS IN THE BROWSER', 'NO SOLDERING'];
 
 const FactStrip = () => (
     <section

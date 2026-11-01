@@ -352,7 +352,12 @@ class SceneController {
             .reduce((all, prefix) => all.concat(this.textures.evict(prefix)), []));
         this.kit.dropMaterials(m => gone.has(m.map));
         this.ports = buildPorts(this.kit, K);
-        this.ports.forEach(p => this.portsGroup.add(p.jack, p.label));
+        this.ports.forEach(p => {
+            this.portsGroup.add(p.jack, p.label);
+            if (p.lock) {
+                this.portsGroup.add(p.lock);
+            }
+        });
         this.portsGroup.add(buildSpareJacks(this.kit));
         this.shadowCatcher.material.opacity = luminance(K.canvas) < 0.35 ? 0.5 : 0.24;
         this.buildTraces({}, true);
@@ -787,6 +792,9 @@ class SceneController {
             p.ring.visible = ring > 0.01;
             p.glow.material.opacity = glow;
             p.glow.visible = glow > 0.01;
+            if (p.lock) {
+                p.lock.visible = Boolean(st.cloudLocked);
+            }
             const dim = st.dimmed ? 0.3 : 1;
             if (p.dim !== dim) {
                 p.dim = dim;

@@ -51,7 +51,10 @@ const labelCenter = (port, pos) => {
     return {cx: fp.x + (fp.w / 2), cy: fp.y + (fp.d / 2)};
 };
 
-const portTitle = (port, {occupied, compatible, dimmed}) => {
+const portTitle = (port, {occupied, compatible, dimmed, cloudLocked}) => {
+    if (cloudLocked) {
+        return `${port.label} is off while Cloud is on`;
+    }
     if (occupied) {
         return `${port.label} is in use`;
     }
@@ -63,6 +66,15 @@ const portTitle = (port, {occupied, compatible, dimmed}) => {
     }
     return port.label;
 };
+
+/** Small padlock badge centred on (cx, cy) for jacks switched off by Cloud. */
+const LockBadge = ({cx, cy, K}) => (
+    <g transform={`translate(${cx - 8}, ${cy - 8})`} style={{pointerEvents: 'none'}}>
+        <circle cx={8} cy={8} r={8.5} fill={K.panel} stroke={K.orange} strokeWidth={1.2} />
+        <rect x={4.5} y={7.5} width={7} height={5.5} rx={1.2} fill={K.orange} />
+        <path d="M5.8 7.5V6a2.2 2.2 0 014.4 0v1.5" fill="none" stroke={K.orange} strokeWidth={1.4} />
+    </g>
+);
 
 /** RJ11 housing seen from above, D deep × Wd across, mouth at x = 0, in its own units. */
 const JackArt = ({gid, D, Wd, color, occupied}) => {
@@ -152,13 +164,17 @@ const Port = ({
     occupied,
     compatible,
     dimmed,
+    cloudLocked,
     flashing,
     onClick
 }) => {
     const {K} = useStudio();
     const color = portColor(port, K);
-    const opacity = occupied || compatible ? 1 : (dimmed ? 0.2 : 0.92);
-    const title = portTitle(port, {occupied, compatible, dimmed});
+    let opacity = occupied || compatible ? 1 : (dimmed ? 0.2 : 0.92);
+    if (cloudLocked) {
+        opacity = 0.35;
+    }
+    const title = portTitle(port, {occupied, compatible, dimmed, cloudLocked});
     const fp = pos.footprint;
     const onboard = port.kind === 'onboard';
     const label = labelCenter(port, pos);
@@ -234,9 +250,12 @@ const Port = ({
                 </g>
             </g>
             <PortLabel port={port} cx={label.cx} cy={label.cy} color={color} K={K} />
+            {cloudLocked ? (
+                <LockBadge cx={label.cx + (labelWidth(port) / 2) + 6} cy={label.cy} K={K} />
+            ) : null}
         </g>
     );
 };
 
-export {PortLabel, SpareJack, labelCenter, labelWidth, portTitle};
+export {LockBadge, PortLabel, SpareJack, labelCenter, labelWidth, portTitle};
 export default Port;

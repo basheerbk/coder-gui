@@ -75,6 +75,43 @@
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
         { "key": "Content-Security-Policy", "value": "frame-ancestors 'none'" }
       ]
+    },
+    {
+      "source": "/iot",
+      "headers": [
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+        { "key": "Content-Security-Policy", "value": "frame-ancestors 'none'" },
+        { "key": "Cache-Control", "value": "no-cache" }
+      ]
+    },
+    {
+      "source": "/iot/:path*",
+      "headers": [
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+        { "key": "Content-Security-Policy", "value": "frame-ancestors 'none'" },
+        { "key": "Cache-Control", "value": "no-cache" }
+      ]
+    },
+    {
+      "source": "/iot.html",
+      "headers": [
+        { "key": "X-Frame-Options", "value": "DENY" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+        { "key": "Content-Security-Policy", "value": "frame-ancestors 'none'" },
+        { "key": "Cache-Control", "value": "no-cache" }
+      ]
+    },
+    {
+      "source": "/api/iot/:path*",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store" },
+        { "key": "X-Content-Type-Options", "value": "nosniff" }
+      ]
     }
   ],
   "rewrites": [
@@ -119,20 +156,32 @@
       "destination": "/ide.html"
     },
     {
+      "source": "/iot",
+      "destination": "/iot.html"
+    },
+    {
+      "source": "/iot/:path*",
+      "destination": "/iot.html"
+    },
+    {
+      "source": "/api/iot/:path*",
+      "destination": "https://api.tinkerbit.io/iot/v1/:path*"
+    },
+    {
       "source": "/api/compile",
-      "destination": "http://13.217.19.72/api/compile"
+      "destination": "http://13.127.144.30/api/compile"
     },
     {
       "source": "/api/compile/health",
-      "destination": "http://13.217.19.72/api/compile/health"
+      "destination": "http://13.127.144.30/api/compile/health"
     },
     {
       "source": "/devices/:path*",
-      "destination": "http://13.217.19.72/devices/:path*"
+      "destination": "http://13.127.144.30/devices/:path*"
     },
     {
       "source": "/extensions/:path*",
-      "destination": "http://13.217.19.72/extensions/:path*"
+      "destination": "http://13.127.144.30/extensions/:path*"
     }
   ]
 }

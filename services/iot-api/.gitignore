@@ -1,0 +1,6 @@
+node_modules/
+data/
+sim-devices.json
+*.db
+*.db-wal
+*.db-shm

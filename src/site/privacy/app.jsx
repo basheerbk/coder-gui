@@ -29,7 +29,7 @@ const App = () => (
                     In short: if you ask to hear when kits ship, we keep your email address. We also look at how
                     people use this website so we can make it better. Ask us any time and we’ll delete your details.
                 </p>
-                <p className="privacy-updated">Last updated: 26 October 2026</p>
+                <p className="privacy-updated">Last updated: 1 November 2026</p>
 
                 <h2>Who this website is for</h2>
                 <p>
@@ -67,6 +67,25 @@ const App = () => (
                     Google shares your name, email address and profile picture with us so you stay signed in. These
                     are kept in your browser, and signing out clears them. While you’re signed in, Clarity can link
                     your visits to your Google account so we can help if something goes wrong.
+                </p>
+
+                <h2>TinkerBit Cloud (connecting boards to WiFi)</h2>
+                <p>
+                    Cloud is in a small pilot. When you connect a board, we keep under your account: the board’s name,
+                    the readings it sends (for example temperature or distance), when it was last online, its WiFi
+                    signal strength, the switch and slider settings you choose, your dashboards, alert rules and
+                    alerts.
+                </p>
+                <p>
+                    Readings are kept in full detail for 2 days, as minute averages for 30 days and as hourly averages
+                    for a year. Each board keeps its last 100 alerts. The WiFi password you type goes into your board
+                    only; it never reaches our servers. Your browser can remember it on that computer if you tick
+                    “remember”. Cloud runs on our own server in the United States.
+                </p>
+                <p>
+                    On the Cloud “Data” page you can download everything we hold or delete it all at once, which
+                    removes it straight away. Deleting a single board hides it at once and erases its data within
+                    7 days. Copies in our server backups disappear as those backups are replaced.
                 </p>
 
                 <h2>Keeping the website running</h2>
