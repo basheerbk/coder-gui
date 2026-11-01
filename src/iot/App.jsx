@@ -1,7 +1,7 @@
 import React, {useEffect, useState} from 'react';
 
 import {fontFamily, persistTheme, readStoredTheme, tokensFor} from '../beginner-studio/domain/tokens';
-import {errorText} from '../lib/iot-api';
+import {errorText, isTransient} from '../lib/iot-api';
 
 import AccountPage from './components/AccountPage.jsx';
 import AlertsPage from './components/AlertsPage.jsx';
@@ -179,6 +179,7 @@ const App = () => {
         body = (
             <Banner tone="error" action={<Button onClick={() => window.location.reload()}>Try again</Button>}>
                 {errorText(state.configError)}
+                {isTransient({code: state.configError}) ? ' This page keeps trying by itself.' : ''}
             </Banner>
         );
     } else if (!state.config) {

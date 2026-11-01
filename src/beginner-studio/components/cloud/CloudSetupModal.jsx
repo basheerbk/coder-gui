@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
 import {useStudio} from '../../context/StudioContext.jsx';
 import {CLOUD_DEFAULTS, DEVICE_TOKEN_RE, clampInterval, hasCloud, validateWifi} from '../../domain/cloud';
@@ -46,8 +46,9 @@ const CloudSetupModal = () => {
         K
     } = useStudio();
 
-    // phase: loading | signed_out | unreachable | disabled | not_in_pilot | ready
+    // phase: loading | signed_out | offline | unreachable | disabled | not_in_pilot | ready
     const [phase, setPhase] = useState('loading');
+    const loadSeq = useRef(0);
     const [phaseNote, setPhaseNote] = useState('');
     const [config, setConfig] = useState(null);
     const [devices, setDevices] = useState([]);
@@ -64,7 +65,25 @@ const CloudSetupModal = () => {
     const email = config && config.user ? config.user.email : null;
     const minInterval = config && config.limits ? config.limits.minIntervalSec : CLOUD_DEFAULTS.minIntervalSec;
 
+    const failPhase = err => {
+        if (err.status === 401 || err.code === 'unauthenticated') {
+            setPhase('signed_out');
+        } else if (err.code === 'disabled') {
+            setPhase('disabled');
+        } else if (err.code === 'not_in_pilot') {
+            setPhase('not_in_pilot');
+        } else if (err.code === 'offline') {
+            setPhase('offline');
+        } else {
+            setPhase('unreachable');
+            setPhaseNote(errorText(err));
+        }
+    };
+
     const load = useCallback(async () => {
+        // A slow earlier attempt must not overwrite the result of a newer one.
+        const seq = ++loadSeq.current;
+        const stale = () => seq !== loadSeq.current;
         setPhase('loading');
         setError('');
         setPhaseNote('');
@@ -72,14 +91,12 @@ const CloudSetupModal = () => {
         try {
             cfg = await iotApi.config();
         } catch (err) {
-            if (err.status === 401) {
-                setPhase('signed_out');
-            } else if (err.code === 'disabled') {
-                setPhase('disabled');
-            } else {
-                setPhase('unreachable');
-                setPhaseNote(errorText(err));
+            if (!stale()) {
+                failPhase(err);
             }
+            return;
+        }
+        if (stale()) {
             return;
         }
         setConfig(cfg);
@@ -96,8 +113,12 @@ const CloudSetupModal = () => {
             const res = await iotApi.listDevices();
             list = res.devices || [];
         } catch (err) {
-            setPhase('unreachable');
-            setPhaseNote(errorText(err));
+            if (!stale()) {
+                failPhase(err);
+            }
+            return;
+        }
+        if (stale()) {
             return;
         }
         const userEmail = cfg.user ? cfg.user.email : null;
@@ -129,6 +150,14 @@ const CloudSetupModal = () => {
         // Reload only when the dialog opens, not on every Studio state change.
     }, [showCloudSetup]);
 
+    useEffect(() => {
+        if (!showCloudSetup || (phase !== 'offline' && phase !== 'unreachable')) {
+            return undefined;
+        }
+        window.addEventListener('online', load);
+        return () => window.removeEventListener('online', load);
+    }, [showCloudSetup, phase, load]);
+
     const selected = devices.find(d => d.id === deviceId) || null;
     const hasToken = useMemo(
         () => Boolean(selected && DEVICE_TOKEN_RE.test(readToken(email, selected.id) || '')),
@@ -150,7 +179,18 @@ const CloudSetupModal = () => {
         try {
             await fn();
         } catch (err) {
-            setError(errorText(err));
+            if (err.status === 401 || err.code === 'unauthenticated') {
+                setPhase('signed_out');
+            } else if (err.code === 'disabled') {
+                setPhase('disabled');
+            } else if (err.code === 'not_found' && label !== 'create') {
+                // Deleted from the dashboard (or another tab) while this dialog was open.
+                setDevices(prev => prev.filter(d => d.id !== deviceId));
+                setDeviceId('');
+                setError('That board was deleted. Pick another one or make a new one.');
+            } else {
+                setError(errorText(err));
+            }
         } finally {
             setBusy('');
         }
@@ -301,12 +341,26 @@ const CloudSetupModal = () => {
                 </a>
             )
         );
+    } else if (phase === 'offline') {
+        content = message(
+            'You are offline',
+            'Reconnect to the internet. This will try again by itself as soon as you are back online.',
+            <button type="button" style={button(true, false)} onClick={load}>Try again</button>
+        );
     } else if (phase === 'unreachable') {
         content = message(
-            'Cannot reach TinkerBit Cloud',
+            'TinkerBit Cloud is not reachable right now',
             isLocalHost() ?
                 'The Cloud service is not running. Start it with “npm run dev” in services/iot-api, then retry.' :
-                (phaseNote || 'Check your internet connection and try again.'),
+                (
+                    <React.Fragment>
+                        <div>{phaseNote || errorText('unavailable')}</div>
+                        <div style={{marginTop: 8}}>
+                            Everything else in Studio still works: you can keep building and upload programs
+                            that do not use Cloud.
+                        </div>
+                    </React.Fragment>
+                ),
             <button type="button" style={button(true, false)} onClick={load}>Try again</button>
         );
     } else if (phase === 'disabled') {

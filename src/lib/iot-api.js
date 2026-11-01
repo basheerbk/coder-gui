@@ -18,6 +18,7 @@ class IotApiError extends Error {
 const ERROR_TEXT = {
     unauthenticated: 'Please sign in again.',
     not_in_pilot: 'TinkerBit Cloud is in a private pilot. Ask your teacher to add your account.',
+    forbidden: 'Your account cannot do that.',
     device_limit: 'You have reached the device limit. Delete an old device first.',
     create_limit: 'Too many new devices today. Try again tomorrow.',
     rate_limited: 'Slow down a little and try again.',
@@ -26,9 +27,22 @@ const ERROR_TEXT = {
     restarting: 'TinkerBit Cloud is restarting. Try again in a few seconds.',
     broker_unavailable: 'The cloud could not reach the board service. Try again in a minute.',
     not_found: 'That device no longer exists.',
-    network: 'Cannot reach TinkerBit Cloud. Check your internet connection.',
-    rule_limit: 'This device already has the maximum number of alert rules.'
+    rule_limit: 'This device already has the maximum number of alert rules.',
+    too_large: 'That is too much data to send at once.',
+    body_too_large: 'That is too much data to send at once.',
+    unknown_control: 'The board does not have that control any more. Upload the program again.',
+    too_many_tickets: 'Too many dashboards are open. Close a few tabs and try again.',
+    bad_origin: 'Open TinkerBit from www.tinkerbit.io and try again.',
+    internal: 'Something went wrong on our side. Try again; if it keeps happening, tell your teacher.',
+    offline: 'You are offline. Reconnect to the internet and try again.',
+    network: 'Could not connect to TinkerBit Cloud. Check your internet connection and try again.',
+    timeout: 'TinkerBit Cloud is taking too long to answer. Try again in a minute.',
+    unavailable: 'TinkerBit Cloud is not available right now. Your projects are safe; try again later.'
 };
+
+/** Failures where trying again later can succeed without the user changing anything. */
+const TRANSIENT = ['offline', 'network', 'timeout', 'unavailable', 'restarting', 'broker_unavailable', 'rate_limited'];
+const isTransient = err => Boolean(err && TRANSIENT.indexOf(err.code) !== -1);
 
 /** Student-friendly text for an IotApiError, or for a bare error code string. */
 const errorText = err => {
@@ -39,45 +53,122 @@ const errorText = err => {
         return ERROR_TEXT[err] || `Something went wrong (${err}).`;
     }
     if (err instanceof IotApiError) {
+        if (err.code === 'rate_limited' && err.retryAfterSec > 0) {
+            return `Slow down a little and try again in ${Math.ceil(err.retryAfterSec)} s.`;
+        }
         return ERROR_TEXT[err.code] || `Something went wrong (${err.code}).`;
     }
     return ERROR_TEXT.network;
 };
 
-const request = async (method, path, body, {timeoutMs = 15000} = {}) => {
+const isOffline = () => typeof navigator !== 'undefined' && navigator.onLine === false;
+
+/**
+ * Error code for a response without a JSON error body. The IoT service always answers in
+ * JSON, so anything else came from the Vercel edge (upstream down, DNS missing, rewrite not
+ * deployed) and means the service is unavailable rather than that the request was wrong.
+ */
+const gatewayCode = status => {
+    if (status === 401) {
+        return 'unauthenticated';
+    }
+    if (status === 403) {
+        return 'forbidden';
+    }
+    if (status === 408 || status === 504) {
+        return 'timeout';
+    }
+    if (status === 413) {
+        return 'too_large';
+    }
+    if (status === 429) {
+        return 'rate_limited';
+    }
+    if (status === 404 || status >= 500) {
+        return 'unavailable';
+    }
+    return `http_${status}`;
+};
+
+const readJson = async res => {
+    const type = (res.headers.get('Content-Type') || '').toLowerCase();
+    if (type.indexOf('json') === -1) {
+        return null;
+    }
+    try {
+        return await res.json();
+    } catch (err) {
+        return null;
+    }
+};
+
+const attempt = async (method, path, body, timeoutMs) => {
+    if (isOffline()) {
+        throw new IotApiError(0, 'offline', null, 0);
+    }
     const headers = {Accept: 'application/json'};
     if (body !== undefined) {
         headers['Content-Type'] = 'application/json';
     }
     const controller = typeof AbortController === 'undefined' ? null : new AbortController();
-    const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+    let timedOut = false;
+    const timer = controller ? setTimeout(() => {
+        timedOut = true;
+        controller.abort();
+    }, timeoutMs) : null;
     let res;
+    let json;
     try {
         res = await fetch(`${BASE}${path}`, {
             method,
             credentials: 'same-origin',
+            cache: 'no-store',
             headers,
             body: body === undefined ? undefined : JSON.stringify(body),
             signal: controller ? controller.signal : undefined
         });
+        // Read the body under the same deadline: a stalled body would otherwise hang forever.
+        json = res.status === 204 ? null : await readJson(res);
     } catch (err) {
-        throw new IotApiError(0, 'network', null, 0);
+        let code = 'network';
+        if (timedOut) {
+            code = 'timeout';
+        } else if (isOffline()) {
+            code = 'offline';
+        }
+        throw new IotApiError(0, code, null, 0);
     } finally {
         if (timer) {
             clearTimeout(timer);
         }
     }
-    let json = null;
-    try {
-        json = await res.json();
-    } catch (err) {
-        json = null;
-    }
+    const retryAfterSec = Number(res.headers.get('Retry-After')) || 0;
     if (!res.ok) {
-        const code = (json && json.error) || (res.status >= 500 ? 'restarting' : `http_${res.status}`);
-        throw new IotApiError(res.status, code, json, Number(res.headers.get('Retry-After')) || 0);
+        const code = (json && typeof json.error === 'string' && json.error) || gatewayCode(res.status);
+        throw new IotApiError(res.status, code, json, retryAfterSec);
+    }
+    if (res.status !== 204 && (!json || typeof json !== 'object')) {
+        // A 200 that is not JSON is a misrouted request (for example the site's HTML page).
+        throw new IotApiError(res.status, 'unavailable', null, 0);
     }
     return json;
+};
+
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+const request = async (method, path, body, {timeoutMs = 15000} = {}) => {
+    try {
+        return await attempt(method, path, body, timeoutMs);
+    } catch (err) {
+        // Reads are safe to repeat; retry once after a blip. Writes are never repeated
+        // because the first one may have reached the server.
+        const blip = err.code === 'network' || (err.code === 'unavailable' && err.status >= 502);
+        if (method !== 'GET' || !blip) {
+            throw err;
+        }
+        await sleep(800);
+        return attempt(method, path, body, timeoutMs);
+    }
 };
 
 const enc = encodeURIComponent;
@@ -87,7 +178,9 @@ const query = params => Object.keys(params)
     .join('&');
 
 const iotApi = {
-    config: () => request('GET', '/config'),
+    // Short deadline: this is the first call on every page, and a dead upstream makes the
+    // edge hang for 30 s or more before failing.
+    config: () => request('GET', '/config', undefined, {timeoutMs: 8000}),
     listDevices: () => request('GET', '/devices'),
     createDevice: name => request('POST', '/devices', {name}),
     getDevice: id => request('GET', `/devices/${enc(id)}`),
@@ -112,4 +205,4 @@ const iotApi = {
     deleteMe: () => request('DELETE', '/me/data', {confirm: 'DELETE'})
 };
 
-export {IotApiError, errorText, iotApi};
+export {IotApiError, errorText, iotApi, isTransient};

@@ -358,7 +358,7 @@ Flash baud stays **115200**. Faster rates fail on common CP210x chips. Progress 
 
 **Server.** [services/compile-api/server.js](services/compile-api/server.js) listens on localhost. `GET /health` → `{ ok: true }`. `POST /api/compile` accepts only the three FQBNs and a sketch up to 128 KB. It writes a temp sketch, runs `arduino-cli`, deletes the folder. Uno → HEX. ESP32 → flash images plus a cleared OTA-data region so the new app boots. Blynk headers add the Blynk library path if that folder exists on the machine. Sensor libraries (ESP32Servo, SSD1306, MFRC522, MAX3010x) must already be installed there.
 
-> **Open item.** Vercel still rewrites `/api/compile` to `http://13.127.144.30` (plain HTTP). Cloud sketches carry the WiFi password and device key, so once `api.tinkerbit.io` has its certificate, switch both compile rewrites to `https://api.tinkerbit.io/api/compile` (nginx already serves that path). Switching before DNS and TLS exist would break compiling for everyone.
+> **Transport.** Vercel rewrites `/api/compile` to `https://api.tinkerbit.io/api/compile`, so sketches (Cloud sketches carry the WiFi password and device key) are encrypted all the way to the EC2 host. `/devices/*` and `/extensions/*` are public static files and still go to `http://13.127.144.30`.
 
 ### 4.6 TinkerBit Cloud (IoT)
 

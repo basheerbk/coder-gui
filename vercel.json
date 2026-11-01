@@ -169,11 +169,11 @@
     },
     {
       "source": "/api/compile",
-      "destination": "http://13.127.144.30/api/compile"
+      "destination": "https://api.tinkerbit.io/api/compile"
     },
     {
       "source": "/api/compile/health",
-      "destination": "http://13.127.144.30/api/compile/health"
+      "destination": "https://api.tinkerbit.io/api/compile/health"
     },
     {
       "source": "/devices/:path*",

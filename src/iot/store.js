@@ -1,11 +1,13 @@
 import {useCallback, useEffect, useMemo, useReducer, useRef} from 'react';
 
-import {iotApi} from '../lib/iot-api';
+import {iotApi, isTransient} from '../lib/iot-api';
 
 import LiveClient from './live';
 
 const RECENT_CAP = 600;
 const POLL_MS = 10000;
+const BOOT_RETRY_MS = 30000;
+const PAUSED_RETRY_MS = 60000;
 
 const initialState = {
     config: null,
@@ -210,12 +212,15 @@ const useCloudStore = route => {
     const routeRef = useRef(route);
     routeRef.current = route;
 
+    const configErrorRef = useRef(null);
     const loadConfig = useCallback(async () => {
         try {
             const config = await iotApi.config();
+            configErrorRef.current = null;
             dispatch({type: 'config/ok', config});
             return config;
         } catch (err) {
+            configErrorRef.current = err;
             dispatch({type: 'config/error', code: err.status === 401 ? 'unauthenticated' : err.code});
             return null;
         }
@@ -293,17 +298,49 @@ const useCloudStore = route => {
     }), [onEvent, refreshAll]);
 
     useEffect(() => {
+        // Keep trying while the service is unreachable or paused, so an open tab recovers by
+        // itself once it is back (and at once when the browser comes back online).
         let cancelled = false;
-        loadConfig().then(config => {
-            if (cancelled || !config || !config.allowed || !config.enabled) {
-                return;
+        let timer = null;
+        const later = ms => {
+            timer = setTimeout(boot, ms);
+        };
+        function boot () {
+            timer = null;
+            loadConfig().then(config => {
+                if (cancelled) {
+                    return;
+                }
+                if (!config) {
+                    if (isTransient(configErrorRef.current)) {
+                        later(BOOT_RETRY_MS);
+                    }
+                    return;
+                }
+                if (config.allowed && !config.enabled) {
+                    later(PAUSED_RETRY_MS);
+                    return;
+                }
+                if (!config.allowed) {
+                    return;
+                }
+                refreshDevices();
+                loadAlerts();
+                live.start();
+            });
+        }
+        const onOnline = () => {
+            if (timer) {
+                clearTimeout(timer);
+                boot();
             }
-            refreshDevices();
-            loadAlerts();
-            live.start();
-        });
+        };
+        window.addEventListener('online', onOnline);
+        boot();
         return () => {
             cancelled = true;
+            clearTimeout(timer);
+            window.removeEventListener('online', onOnline);
             live.stop();
         };
     }, [live, loadConfig, refreshDevices, loadAlerts]);
