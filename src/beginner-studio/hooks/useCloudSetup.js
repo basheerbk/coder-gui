@@ -1,10 +1,8 @@
-import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
-import {useStudio} from '../../context/StudioContext.jsx';
-import {useUpload} from '../../context/UploadContext.jsx';
-import {CLOUD_DEFAULTS, DEVICE_TOKEN_RE, clampInterval, hasCloud, validateWifi} from '../../domain/cloud';
-import {telemetryReadings, usedCloudControls} from '../../domain/cloudFirmware';
-import {uniqueBoardName} from '../../domain/cloudProgress';
+import {CLOUD_DEFAULTS, DEVICE_TOKEN_RE, clampInterval, validateWifi} from '../domain/cloud';
+import {telemetryReadings, usedCloudControls} from '../domain/cloudFirmware';
+import {uniqueBoardName} from '../domain/cloudProgress';
 import {
     forgetAll,
     readLastDevice,
@@ -13,47 +11,30 @@ import {
     writeLastDevice,
     writeToken,
     writeWifi
-} from '../../domain/cloudSecrets';
-import {errorText, iotApi} from '../../../lib/iot-api';
-import Modal from '../shared/Modal.jsx';
+} from '../domain/cloudSecrets';
+import {errorText, iotApi} from '../../lib/iot-api';
 
-import BoardStep, {NEW} from './BoardStep.jsx';
-import LiveStep from './LiveStep.jsx';
-import PartStep from './PartStep.jsx';
-import UploadStep from './UploadStep.jsx';
-import WifiStep from './WifiStep.jsx';
-import {Button, Note, StepBar, ui} from './wizardUi.jsx';
+const NEW = '__new__';
 
-const isLocalHost = () => {
-    const host = window.location.hostname;
-    return host === 'localhost' || host === '127.0.0.1';
-};
+/** Steps the student is part-way through; coming back to the Cloud tab keeps them there. */
+const MID_FLOW = ['wifi', 'upload'];
 
 /**
- * One guided path from "add Cloud" to "live on my phone": Board, WiFi, Upload, Live.
- * `showCloudSetup` is true to open at the right step, or 'live' to open the checklist.
+ * Board, WiFi and upload setup for the Cloud tab.
+ * step: board | wifi | upload | live ("live" is the board's home once it is set up)
+ * phase: loading | signed_out | offline | unreachable | disabled | not_in_pilot | ready
+ * @param {object} options.studio values from useStudio
+ * @param {object} options.cloudLive live session from UploadContext
+ * @param {boolean} options.active the Cloud tab is showing
+ * @returns {object} phase, step and the `w` bag of state and actions for the step components
  */
-const CloudWizard = () => {
-    const {
-        showCloudSetup,
-        setShowCloudSetup,
-        cloud,
-        setCloud,
-        connections,
-        program,
-        projectName,
-        K
-    } = useStudio();
-    const upload = useUpload();
-    const {cloudLive} = upload;
-    const open = Boolean(showCloudSetup);
-    const cloudPart = hasCloud(connections);
+const useCloudSetup = ({studio, cloudLive, active}) => {
+    const {cloud, setCloud, connections, program, projectName, setView} = studio;
 
-    // phase: loading | signed_out | offline | unreachable | disabled | not_in_pilot | ready
     const [phase, setPhase] = useState('loading');
     const [phaseNote, setPhaseNote] = useState('');
     const loadSeq = useRef(0);
-    const [step, setStep] = useState('board');
+    const [step, setStep] = useState('');
     const [config, setConfig] = useState(null);
     const [devices, setDevices] = useState([]);
     const [choice, setChoice] = useState('');
@@ -83,11 +64,13 @@ const CloudWizard = () => {
         }
     };
 
-    const load = useCallback(async () => {
+    const load = useCallback(async ({quiet} = {}) => {
         // A slow earlier attempt must not overwrite the result of a newer one.
         const seq = ++loadSeq.current;
         const stale = () => seq !== loadSeq.current;
-        setPhase('loading');
+        if (!quiet) {
+            setPhase('loading');
+        }
         setError('');
         setPhaseNote('');
         let cfg;
@@ -142,6 +125,9 @@ const CloudWizard = () => {
         setNewName(uniqueBoardName(projectName || 'My board', list.map(d => d.name)));
         if (last && last.deviceId && !lastFound) {
             setError('The board this project used was deleted. Pick another one or make a new one.');
+            if (sameUser) {
+                setStep('board');
+            }
         }
         setWifi(readWifi(userEmail));
         const fallback = (cfg.limits && cfg.limits.defaultIntervalSec) || CLOUD_DEFAULTS.intervalSec;
@@ -152,52 +138,42 @@ const CloudWizard = () => {
         setPhase('ready');
     }, [cloud, projectName]);
 
+    // Each time the tab opens: pick where to start, unless the student is part-way through.
+    const deviceId = cloud ? cloud.deviceId : '';
+    const shownFor = useRef(null);
     useEffect(() => {
-        if (!open) {
+        if (!active) {
+            return;
+        }
+        const sameBoard = shownFor.current === deviceId;
+        shownFor.current = deviceId;
+        if (sameBoard && phase === 'ready' && MID_FLOW.indexOf(step) >= 0) {
             return;
         }
         setTouched(false);
-        setError('');
-        if (!cloudPart) {
-            setStep('part');
-        } else if (showCloudSetup === 'live' || (cloud && cloudLive.stage !== 'idle')) {
-            setStep(cloudLive.stage === 'uploading' ? 'upload' : 'live');
-        } else if (cloud && cloudLive.device && cloudLive.device.id === cloud.deviceId &&
-            (cloudLive.device.status === 'online' || cloudLive.device.status === 'offline')) {
-            setStep('live');
+        if (cloud && cloudLive.stage === 'uploading') {
+            setStep('upload');
         } else {
-            setStep('board');
+            setStep(cloud ? 'live' : 'board');
         }
-        load();
-        // Reload only when the wizard opens, not on every Studio change.
-    }, [open]);
+        load({quiet: sameBoard && phase === 'ready'});
+        // Only when the tab opens or the project's board changes, not on every Studio change.
+    }, [active, deviceId]);
 
     useEffect(() => {
-        if (open && step === 'part' && cloudPart) {
-            setStep('board');
-        }
-    }, [open, step, cloudPart]);
-
-    useEffect(() => {
-        if (open && step === 'upload' && (cloudLive.stage === 'waiting' || cloudLive.stage === 'live')) {
+        if (cloudLive.stage === 'waiting' || cloudLive.stage === 'live') {
             setStep('live');
-        }
-    }, [open, step, cloudLive.stage]);
-
-    // First upload from the top bar for a board that has never been online: show the checklist.
-    useEffect(() => {
-        if (!open && cloudLive.stage === 'waiting' && cloudLive.device && cloudLive.device.status === 'never') {
-            setShowCloudSetup('live');
         }
     }, [cloudLive.stage]);
 
     useEffect(() => {
-        if (!open || (phase !== 'offline' && phase !== 'unreachable')) {
+        if (!active || (phase !== 'offline' && phase !== 'unreachable')) {
             return undefined;
         }
-        window.addEventListener('online', load);
-        return () => window.removeEventListener('online', load);
-    }, [open, phase, load]);
+        const retry = () => load();
+        window.addEventListener('online', retry);
+        return () => window.removeEventListener('online', retry);
+    }, [active, phase, load]);
 
     const selected = devices.find(d => d.id === choice) || null;
     const hasToken = useMemo(
@@ -208,12 +184,7 @@ const CloudWizard = () => {
     const wifiCheck = validateWifi(wifi);
     const maxDevices = config && config.limits ? config.limits.maxDevices : 0;
     const atLimit = maxDevices > 0 && devices.length >= maxDevices;
-
-    if (!open) {
-        return null;
-    }
-
-    const close = () => setShowCloudSetup(false);
+    const making = choice === NEW || !devices.length;
 
     const run = async (label, fn) => {
         setBusy(label);
@@ -226,7 +197,7 @@ const CloudWizard = () => {
             } else if (err.code === 'disabled') {
                 setPhase('disabled');
             } else if (err.code === 'not_found' && label !== 'create') {
-                // Deleted from the dashboard (or another tab) while the wizard was open.
+                // Deleted from the dashboard (or another tab) while setting up.
                 setDevices(prev => prev.filter(d => d.id !== choice));
                 setChoice(devices.length > 1 ? '' : NEW);
                 setStep('board');
@@ -238,8 +209,6 @@ const CloudWizard = () => {
             setBusy('');
         }
     };
-
-    const making = choice === NEW || !devices.length;
 
     const next = () => run(making ? 'create' : 'next', async () => {
         let board = selected;
@@ -302,6 +271,8 @@ const CloudWizard = () => {
         };
         writeLastDevice(email, link);
         setCloud(link);
+        // The tab would otherwise treat the new link as "a different board" and start over.
+        shownFor.current = selected.id;
         const keys = telemetryReadings(connections, program).map(r => r.key);
         iotApi.suggestDashboard(selected.id, keys, usedCloudControls(program)).catch(() => {});
         setStep('upload');
@@ -316,6 +287,7 @@ const CloudWizard = () => {
     const enable = () => run('enable', async () => {
         const res = await iotApi.enableDevice(selected.id);
         setDevices(prev => prev.map(d => (d.id === res.device.id ? Object.assign({}, d, res.device) : d)));
+        cloudLive.refresh();
     });
 
     const forget = () => {
@@ -327,6 +299,7 @@ const CloudWizard = () => {
         setTokenVersion(v => v + 1);
         writeLastDevice(email, null);
         setCloud(null);
+        setStep('board');
     };
 
     const w = {
@@ -361,11 +334,26 @@ const CloudWizard = () => {
         forget,
         unlink: () => {
             setCloud(null);
-            close();
+            setStep('board');
         },
-        close,
+        close: () => {
+            setError('');
+            if (cloud) {
+                setStep('live');
+            } else {
+                setView('build');
+            }
+        },
         back: () => setStep({wifi: 'board', upload: 'wifi', live: 'upload'}[step] || 'board'),
-        goUpload: () => setStep('upload'),
+        // Straight to Upload when this computer has the key and WiFi, else to the step that is missing.
+        goUpload: () => {
+            setError('');
+            if (!hasToken) {
+                setStep('board');
+            } else {
+                setStep(wifiCheck.ok ? 'upload' : 'wifi');
+            }
+        },
         goBoard: () => setStep('board'),
         fixWifi: () => {
             setTouched(true);
@@ -379,81 +367,8 @@ const CloudWizard = () => {
         })
     };
 
-    const s = ui(K);
-    const message = (title, body, action) => (
-        <div>
-            <h3 style={s.title}>{title}</h3>
-            <div style={s.lead}>{body}</div>
-            {action}
-        </div>
-    );
-
-    let content;
-    if (step === 'part') {
-        content = <PartStep onClose={close} />;
-    } else if (phase === 'loading') {
-        content = <div style={{fontSize: 13, color: K.sub}}>Connecting to TinkerBit Cloud…</div>;
-    } else if (phase === 'signed_out') {
-        content = message(
-            'Sign in to use Cloud',
-            isLocalHost() ?
-                'You are running Studio locally without the sign-in service, so Cloud is off. Everything else works.' :
-                'Cloud keeps your boards under your account, so you need to be signed in.',
-            isLocalHost() ? null : (
-                <a
-                    href={`/login?next=${encodeURIComponent('/beginner')}`}
-                    style={{color: K.accent, fontWeight: 700}}
-                >
-                    Sign in
-                </a>
-            )
-        );
-    } else if (phase === 'offline') {
-        content = message(
-            'You are offline',
-            'Reconnect to the internet. This tries again by itself as soon as you are back online.',
-            <Button K={K} kind="primary" onClick={load}>Try again</Button>
-        );
-    } else if (phase === 'unreachable') {
-        content = message(
-            'TinkerBit Cloud is not reachable right now',
-            isLocalHost() ?
-                'The Cloud service is not running. Start it with “npm start” in services/iot-api, then retry.' :
-                `${phaseNote || errorText('unavailable')} Everything else in Studio still works.`,
-            <Button K={K} kind="primary" onClick={load}>Try again</Button>
-        );
-    } else if (phase === 'disabled') {
-        content = message(
-            'Cloud is paused',
-            'TinkerBit Cloud is down for maintenance. Your boards keep running their programs and reconnect by themselves.',
-            <Button K={K} onClick={load}>Check again</Button>
-        );
-    } else if (phase === 'not_in_pilot') {
-        content = message(
-            'Cloud is in a private pilot',
-            `Your account${email ? ` (${email})` : ''} is not on the pilot list yet. Ask your teacher to add it.`
-        );
-    } else {
-        const body = {
-            board: <BoardStep w={w} />,
-            wifi: <WifiStep w={w} />,
-            upload: <UploadStep w={w} />,
-            live: <LiveStep w={w} />
-        }[step];
-        content = (
-            <React.Fragment>
-                <StepBar K={K} step={step} />
-                {body}
-            </React.Fragment>
-        );
-    }
-
-    return (
-        <Modal title="TinkerBit Cloud" onClose={close} width={520}>
-            {content}
-            {error ? <Note K={K} tone="red" title={error} /> : null}
-        </Modal>
-    );
+    return {phase, phaseNote, step, error, email, load, w};
 };
 
-export default CloudWizard;
+export {NEW};
+export default useCloudSetup;

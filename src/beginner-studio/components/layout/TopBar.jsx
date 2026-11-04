@@ -9,28 +9,25 @@ import AccountMenu from './AccountMenu.jsx';
 import UndoButtons from './UndoButtons.jsx';
 import UploadButton from './UploadButton.jsx';
 
-/** What the Cloud button says: set up, connecting after an upload, needs help, live or offline. */
-const cloudLook = (K, cloudPart, cloud, live) => {
-    if (!cloudPart) {
-        return {text: 'Cloud', dot: K.dim, title: 'Send readings to your phone with TinkerBit Cloud'};
-    }
+/** Status dot on the Cloud tab: set up, connecting after an upload, needs help, online or offline. */
+const cloudLook = (K, cloud, live) => {
     if (!cloud) {
-        return {text: 'Cloud · set up', dot: K.orange, title: 'Finish setting up Cloud', border: K.orange};
+        return {dot: K.orange, title: 'Finish setting up Cloud'};
     }
     const name = cloud.deviceName;
     if (live.stage === 'waiting') {
         return live.progress.problem && live.progress.problem !== 'timeout' ?
-            {text: 'Cloud · needs help', dot: K.red, title: `${name} cannot go online. Click to see why.`, border: K.red} :
-            {text: 'Cloud · connecting…', dot: K.orange, blink: true, title: `${name} is going online`};
+            {dot: K.red, title: `${name} cannot go online. Open to see why.`} :
+            {dot: K.orange, blink: true, title: `${name} is going online`};
     }
     const status = live.device && live.device.id === cloud.deviceId ? live.device.status : null;
     if (status === 'online') {
-        return {text: `Cloud · ${name}`, dot: K.green, title: `${name} is online`};
+        return {dot: K.green, title: `${name} is online`};
     }
     if (status === 'disabled') {
-        return {text: `Cloud · ${name}`, dot: K.red, title: `${name} was turned off`, border: K.red};
+        return {dot: K.red, title: `${name} was turned off`};
     }
-    return {text: `Cloud · ${name}`, dot: K.dim, title: status ? `${name} is offline` : `Cloud: ${name}`};
+    return {dot: K.dim, title: status ? `${name} is offline` : name};
 };
 
 const TopBar = () => {
@@ -49,8 +46,7 @@ const TopBar = () => {
     } = useStudio();
     const cloudPart = hasCloud(connections);
     const {cloudLive} = useUpload();
-    const look = cloudLook(K, cloudPart, cloud, cloudLive);
-    const liveSession = cloudLive.stage === 'waiting' || cloudLive.stage === 'live';
+    const look = cloudLook(K, cloud, cloudLive);
 
     const selectedDef = selectedModule ? moduleById(selectedModule) : null;
 
@@ -147,6 +143,43 @@ const TopBar = () => {
                 </button>
             </div>
 
+            <button
+                type="button"
+                title={cloudPart ? look.title : 'Send readings to your phone and control your board from it'}
+                aria-label={cloudPart ? `IoT: ${look.title}` : 'IoT: add Cloud to this project'}
+                aria-pressed={view === 'cloud'}
+                onClick={() => (cloudPart ? setView('cloud') : setShowCloudSetup(true))}
+                style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    border: `1px solid ${view === 'cloud' ? K.accent : K.border}`,
+                    background: view === 'cloud' ? K.accent : K.surface,
+                    color: view === 'cloud' ? '#fff' : K.text,
+                    borderRadius: 10,
+                    padding: '6px 12px',
+                    fontSize: 12,
+                    fontWeight: 700,
+                    cursor: 'pointer'
+                }}
+            >
+                {cloudPart ? (
+                    <span
+                        aria-hidden="true"
+                        style={{
+                            width: 8,
+                            height: 8,
+                            borderRadius: 4,
+                            flexShrink: 0,
+                            background: look.dot,
+                            boxShadow: view === 'cloud' ? '0 0 0 2px #fff' : 'none',
+                            animation: look.blink ? 'tbDotBlink 1.2s ease-in-out infinite' : 'none'
+                        }}
+                    />
+                ) : null}
+                IoT
+            </button>
+
             <UndoButtons />
 
             <div style={{flex: 1}} />
@@ -184,40 +217,6 @@ const TopBar = () => {
                     </button>
                 </div>
             ) : null}
-
-            <button
-                type="button"
-                onClick={() => setShowCloudSetup(cloudPart && cloud && liveSession ? 'live' : true)}
-                title={look.title}
-                style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    maxWidth: 200,
-                    background: K.surface,
-                    border: `1px solid ${look.border || K.border}`,
-                    color: K.text,
-                    borderRadius: 8,
-                    padding: '6px 10px',
-                    fontSize: 12,
-                    cursor: 'pointer'
-                }}
-            >
-                <span
-                    aria-hidden="true"
-                    style={{
-                        width: 8,
-                        height: 8,
-                        borderRadius: 4,
-                        flexShrink: 0,
-                        background: look.dot,
-                        animation: look.blink ? 'tbDotBlink 1.2s ease-in-out infinite' : 'none'
-                    }}
-                />
-                <span style={{overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
-                    {look.text}
-                </span>
-            </button>
 
             <UploadButton />
 

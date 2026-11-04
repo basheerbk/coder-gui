@@ -1,11 +1,11 @@
 import React from 'react';
 
 import {useStudio} from '../../context/StudioContext.jsx';
+import {NEW} from '../../hooks/useCloudSetup';
 
 import {Button, Disclosure, Footer, Note, Spacer, ui} from './wizardUi.jsx';
 
 const INTERVALS = [5, 10, 15, 30, 60, 300];
-const NEW = '__new__';
 
 const intervalLabel = sec => (sec < 60 ? `every ${sec} seconds` : `every ${sec / 60} minute${sec === 60 ? '' : 's'}`);
 
@@ -178,5 +178,4 @@ const BoardStep = ({w}) => {
     );
 };
 
-export {NEW};
 export default BoardStep;

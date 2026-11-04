@@ -12,13 +12,18 @@ const UploadContext = createContext(null);
 
 /** One board connection and upload state, shared by the top-bar button and the code panel. */
 const UploadProvider = ({children}) => {
-    const {connections, program, cloud, generatedCode} = useStudio();
+    const {connections, program, cloud, generatedCode, view} = useStudio();
     const upload = useBoardUpload();
     const [cloudNote, setCloudNote] = useState('');
     const uploadSecrets = useRef(null);
     const {uploadCode} = upload;
     const cloudOn = hasCloud(connections);
-    const cloudLive = useCloudLive({cloud, uploadPhase: upload.phase, enabled: cloudOn && Boolean(cloud)});
+    const cloudLive = useCloudLive({
+        cloud,
+        uploadPhase: upload.phase,
+        enabled: cloudOn && Boolean(cloud),
+        watching: view === 'cloud'
+    });
     const beginLive = cloudLive.begin;
 
     const handleUpload = useCallback(() => {

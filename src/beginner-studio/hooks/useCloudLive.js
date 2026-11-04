@@ -10,6 +10,7 @@ import {
 import {iotApi} from '../../lib/iot-api';
 
 const FAST_POLL_MS = 3000;
+const WATCH_POLL_MS = 4000;
 const SLOW_POLL_MS = 30000;
 const GIVE_UP_MS = 75000;
 const SERIAL_BAUD = 9600;
@@ -42,18 +43,22 @@ const listenToBoard = onLine => {
 };
 
 /**
- * Follows a Cloud board from "upload started" to "live", and keeps its online status fresh for
- * the top-bar Cloud button.
+ * Follows a Cloud board from "upload started" to "live", and keeps its status, readings and
+ * controls fresh for the Cloud tab and the top bar.
  * stage: idle | uploading | waiting | live | upload_failed
  * @param {object} options.cloud the project's Cloud link (deviceId), or null
  * @param {string} options.uploadPhase phase from useBoardUpload
  * @param {boolean} options.enabled the project has the Cloud part and a linked board
+ * @param {boolean} options.watching the Cloud tab is open, so readings should update quickly
  * @returns {object} live session state and controls
  */
-const useCloudLive = ({cloud, uploadPhase, enabled}) => {
+const useCloudLive = ({cloud, uploadPhase, enabled, watching}) => {
     const deviceId = enabled && cloud ? cloud.deviceId : null;
     const [stage, setStage] = useState('idle');
-    const [device, setDevice] = useState(null);
+    const [detail, setDetail] = useState(null);
+    const [pollTick, setPollTick] = useState(0);
+    const refresh = useCallback(() => setPollTick(t => t + 1), []);
+    const device = detail ? detail.device : null;
     const [progress, dispatch] = useReducer(progressReducer, undefined, initialProgress);
     const before = useRef(undefined);
     const sessionDevice = useRef(null);
@@ -69,7 +74,7 @@ const useCloudLive = ({cloud, uploadPhase, enabled}) => {
         iotApi.getDevice(deviceId).then(res => {
             if (sessionDevice.current === deviceId) {
                 before.current = res.device;
-                setDevice(res.device);
+                setDetail(res);
             }
         }).catch(() => {});
     }, [deviceId]);
@@ -96,10 +101,27 @@ const useCloudLive = ({cloud, uploadPhase, enabled}) => {
         if (sessionDevice.current && sessionDevice.current !== deviceId) {
             dismiss();
         }
-        if (!deviceId) {
-            setDevice(null);
-        }
+        setDetail(prev => (prev && prev.device.id === deviceId ? prev : null));
     }, [deviceId, dismiss]);
+
+    /** Show a control change straight away instead of waiting for the next poll. */
+    const applyControl = useCallback(control => {
+        setDetail(prev => {
+            if (!prev || !control) {
+                return prev;
+            }
+            const controls = prev.controls || [];
+            const current = controls.find(c => c.key === control.key);
+            if (current && current.version > control.version) {
+                return prev;
+            }
+            return Object.assign({}, prev, {
+                controls: current ?
+                    controls.map(c => (c.key === control.key ? control : c)) :
+                    controls.concat([control])
+            });
+        });
+    }, []);
 
     useEffect(() => {
         if (stage !== 'waiting') {
@@ -123,11 +145,17 @@ const useCloudLive = ({cloud, uploadPhase, enabled}) => {
             return undefined;
         }
         const fast = stage === 'waiting';
+        let wait = SLOW_POLL_MS;
+        if (fast) {
+            wait = FAST_POLL_MS;
+        } else if (watching) {
+            wait = WATCH_POLL_MS;
+        }
         let cancelled = false;
         let timer = null;
         const poll = async () => {
             if (!fast && document.visibilityState === 'hidden') {
-                timer = setTimeout(poll, SLOW_POLL_MS);
+                timer = setTimeout(poll, wait);
                 return;
             }
             try {
@@ -135,7 +163,7 @@ const useCloudLive = ({cloud, uploadPhase, enabled}) => {
                 if (cancelled) {
                     return;
                 }
-                setDevice(res.device);
+                setDetail(res);
                 if (fast) {
                     // No baseline (the first fetch failed): a board cannot rejoin WiFi and Cloud
                     // within one poll of flashing, so the first answer is the "before" state.
@@ -151,7 +179,7 @@ const useCloudLive = ({cloud, uploadPhase, enabled}) => {
                 // Offline or Cloud busy: keep trying quietly.
             }
             if (!cancelled) {
-                timer = setTimeout(poll, fast ? FAST_POLL_MS : SLOW_POLL_MS);
+                timer = setTimeout(poll, wait);
             }
         };
         poll();
@@ -159,9 +187,12 @@ const useCloudLive = ({cloud, uploadPhase, enabled}) => {
             cancelled = true;
             clearTimeout(timer);
         };
-    }, [deviceId, stage]);
+    }, [deviceId, stage, watching, pollTick]);
 
-    return useMemo(() => ({stage, progress, device, begin, dismiss}), [stage, progress, device, begin, dismiss]);
+    return useMemo(
+        () => ({stage, progress, device, detail, begin, dismiss, applyControl, refresh}),
+        [stage, progress, device, detail, begin, dismiss, applyControl, refresh]
+    );
 };
 
 export default useCloudLive;

@@ -263,7 +263,7 @@ const useStudioActions = (state, setState) => {
             selectedModule: null,
             addTarget: null,
             showProjectLibrary: false,
-            showCloudSetup: !prev.cloud && tpl.connections.some(c => c.moduleId === 'cloud'),
+            showCloudSetup: false,
             view: 'build'
         }));
     }, [setState]);

@@ -43,38 +43,15 @@ const Mark = ({K, state}) => {
 const STATE_WORDS = {done: 'done', failed: 'needs help', active: 'in progress', waiting: 'waiting'};
 
 /**
- * The going-live checklist after a Cloud upload, ending with a QR code for the phone.
- * @param {object} props.w wizard state and actions from CloudWizard
+ * The going-live checklist while a freshly uploaded board joins WiFi and Cloud.
+ * @param {object} props.w setup state and actions from useCloudSetup
  */
 const LiveStep = ({w}) => {
     const {K} = useStudio();
     const {cloudLive} = useUpload();
     const s = ui(K);
-    const {stage, progress, device} = cloudLive;
+    const {progress} = cloudLive;
     const ssid = w.wifi.ssid;
-
-    if (stage === 'idle' || stage === 'uploading' || stage === 'upload_failed') {
-        const online = device && device.status === 'online';
-        return (
-            <div>
-                <h3 style={s.title}>{online ? `“${w.boardName}” is online` : `“${w.boardName}” is not online right now`}</h3>
-                <p style={s.lead}>
-                    {online ?
-                        'Open the dashboard on your phone to see readings and use its switches.' :
-                        'Upload to it, or plug it in and give it a minute to join WiFi.'}
-                </p>
-                {online ? <PhoneLink K={K} id={w.deviceId} name={w.boardName} /> : null}
-                <Footer>
-                    <Button K={K} onClick={w.goUpload}>Upload again</Button>
-                    <Spacer />
-                    <Button K={K} kind="primary" onClick={w.close}>Done</Button>
-                </Footer>
-                <div style={{marginTop: 10, textAlign: 'right'}}>
-                    <button type="button" style={s.link} onClick={w.goBoard}>Change board or WiFi</button>
-                </div>
-            </div>
-        );
-    }
 
     const steps = [
         {label: 'Program is on the board', state: 'done'},
@@ -115,22 +92,6 @@ const LiveStep = ({w}) => {
         }
     }[progress.problem];
 
-    if (stage === 'live') {
-        return (
-            <div>
-                <h3 style={Object.assign({}, s.title, {fontSize: 18, color: K.green})}>
-                    “{w.boardName}” is live!
-                </h3>
-                <p style={s.lead}>Scan the code with your phone to open its dashboard.</p>
-                <PhoneLink K={K} id={w.deviceId} name={w.boardName} />
-                <Footer>
-                    <Spacer />
-                    <Button K={K} kind="primary" autoFocus onClick={w.close}>Done</Button>
-                </Footer>
-            </div>
-        );
-    }
-
     return (
         <div>
             <h3 style={s.title}>Going live…</h3>
@@ -155,7 +116,7 @@ const LiveStep = ({w}) => {
             <Footer>
                 <Button K={K} onClick={w.goUpload}>Upload again</Button>
                 <Spacer />
-                <Button K={K} onClick={w.close}>Close</Button>
+                <Button K={K} onClick={cloudLive.dismiss}>Stop waiting</Button>
             </Footer>
         </div>
     );
@@ -186,4 +147,5 @@ const PhoneLink = ({K, id, name}) => {
     );
 };
 
+export {PhoneLink};
 export default LiveStep;

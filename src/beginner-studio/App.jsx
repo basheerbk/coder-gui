@@ -1,7 +1,8 @@
 import React from 'react';
 
 import BuildView from './components/build/BuildView.jsx';
-import CloudWizard from './components/cloud/CloudWizard.jsx';
+import CloudAddDialog from './components/cloud/CloudAddDialog.jsx';
+import CloudView from './components/cloud/CloudView.jsx';
 import CodeView from './components/code/CodeView.jsx';
 import QuickStartBar from './components/layout/QuickStartBar.jsx';
 import TopBar from './components/layout/TopBar.jsx';
@@ -9,6 +10,7 @@ import ProjectLibraryModal from './components/projects/ProjectLibraryModal.jsx';
 import Keyframes from './components/shared/Keyframes.jsx';
 import {StudioProvider, useStudio} from './context/StudioContext.jsx';
 import {UploadProvider} from './context/UploadContext.jsx';
+import {hasCloud} from './domain/cloud';
 import {baseApp} from './domain/tokens';
 
 class ErrorBoundary extends React.Component {
@@ -61,15 +63,18 @@ class ErrorBoundary extends React.Component {
 }
 
 const AppShell = () => {
-    const {view, K} = useStudio();
+    const {view, connections, K} = useStudio();
+    const cloudPart = hasCloud(connections);
     return (
         <div style={baseApp(K)}>
             <Keyframes />
             <TopBar />
             <QuickStartBar />
-            {view === 'build' ? <BuildView /> : <CodeView />}
+            {view === 'build' || (view === 'cloud' && !cloudPart) ? <BuildView /> : null}
+            {view === 'code' ? <CodeView /> : null}
+            {cloudPart ? <CloudView /> : null}
             <ProjectLibraryModal />
-            <CloudWizard />
+            <CloudAddDialog />
         </div>
     );
 };

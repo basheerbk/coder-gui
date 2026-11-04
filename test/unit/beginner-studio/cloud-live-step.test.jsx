@@ -73,18 +73,10 @@ describe('Cloud going-live checklist', () => {
         expect(w.newKeyAndUpload).toHaveBeenCalledTimes(1);
     });
 
-    test('going live shows the QR code and dashboard link', () => {
-        render({stage: 'live', progress: progressAfter(['server_online']), device: {id: 'd1', status: 'online'}});
-        expect(root.textContent).toContain('“Garden” is live!');
-        expect(root.querySelector('[role="img"]').getAttribute('aria-label')).toContain('Garden');
-        expect(root.querySelector('a').getAttribute('href')).toBe('/iot/d/d1');
-    });
-
-    test('without an upload it shows the board status and a way back to setup', () => {
-        render({stage: 'idle', progress: initialProgress(), device: {id: 'd1', status: 'offline'}});
-        expect(root.textContent).toContain('“Garden” is not online right now');
-        expect(root.querySelector('[role="img"]')).toBeNull();
-        click(button('Change board or WiFi'));
-        expect(w.goBoard).toHaveBeenCalledTimes(1);
+    test('Stop waiting leaves the checklist', () => {
+        const dismiss = jest.fn();
+        render({stage: 'waiting', progress: progressAfter(['wifi_joining']), device: null, dismiss});
+        click(button('Stop waiting'));
+        expect(dismiss).toHaveBeenCalledTimes(1);
     });
 });
