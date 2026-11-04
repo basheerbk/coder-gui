@@ -4,6 +4,7 @@ import {cloudUploadProblem, hasCloud} from '../domain/cloud';
 import {maskSecrets, readSecrets} from '../domain/cloudSecrets';
 import {generateArduino} from '../domain/codegen';
 import useBoardUpload from '../hooks/useBoardUpload.js';
+import useCloudLive from '../hooks/useCloudLive.js';
 
 import {useStudio} from './StudioContext.jsx';
 
@@ -16,6 +17,9 @@ const UploadProvider = ({children}) => {
     const [cloudNote, setCloudNote] = useState('');
     const uploadSecrets = useRef(null);
     const {uploadCode} = upload;
+    const cloudOn = hasCloud(connections);
+    const cloudLive = useCloudLive({cloud, uploadPhase: upload.phase, enabled: cloudOn && Boolean(cloud)});
+    const beginLive = cloudLive.begin;
 
     const handleUpload = useCallback(() => {
         setCloudNote('');
@@ -31,8 +35,9 @@ const UploadProvider = ({children}) => {
             return;
         }
         uploadSecrets.current = secrets;
+        beginLive();
         uploadCode(generateArduino(connections, program, {cloud, secrets}));
-    }, [connections, program, cloud, generatedCode, uploadCode]);
+    }, [connections, program, cloud, generatedCode, uploadCode, beginLive]);
 
     // The WiFi password and device key must never reach the screen, even inside raw tool output.
     const message = maskSecrets(upload.message, uploadSecrets.current);
@@ -44,8 +49,9 @@ const UploadProvider = ({children}) => {
         cloudNote,
         setCloudNote,
         handleUpload,
+        cloudLive,
         hasCode: Boolean(generatedCode)
-    }), [upload, message, log, cloudNote, handleUpload, generatedCode]);
+    }), [upload, message, log, cloudNote, handleUpload, cloudLive, generatedCode]);
 
     return (
         <UploadContext.Provider value={value}>

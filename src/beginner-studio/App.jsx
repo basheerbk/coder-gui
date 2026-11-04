@@ -1,7 +1,7 @@
 import React from 'react';
 
 import BuildView from './components/build/BuildView.jsx';
-import CloudSetupModal from './components/cloud/CloudSetupModal.jsx';
+import CloudWizard from './components/cloud/CloudWizard.jsx';
 import CodeView from './components/code/CodeView.jsx';
 import QuickStartBar from './components/layout/QuickStartBar.jsx';
 import TopBar from './components/layout/TopBar.jsx';
@@ -69,7 +69,7 @@ const AppShell = () => {
             <QuickStartBar />
             {view === 'build' ? <BuildView /> : <CodeView />}
             <ProjectLibraryModal />
-            <CloudSetupModal />
+            <CloudWizard />
         </div>
     );
 };

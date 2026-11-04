@@ -2,6 +2,8 @@ import {getPort, reopenPort} from './web-serial-port';
 
 const FLASH_START = 'flash-start';
 const FLASH_COMPLETE = 'flash-complete';
+const MONITOR_START = 'monitor-start';
+const MONITOR_STOP = 'monitor-stop';
 
 const webSerialMonitorEvents = new EventTarget();
 
@@ -10,10 +12,14 @@ let monitorWriter = null;
 let isMonitoring = false;
 let currentBaudRate = 9600;
 let dataHandler = null;
+const listeners = new Set();
 
 const delay = ms => new Promise(r => setTimeout(r, ms));
 
 const releaseLocks = async () => {
+    if (isMonitoring) {
+        webSerialMonitorEvents.dispatchEvent(new Event(MONITOR_STOP));
+    }
     isMonitoring = false;
 
     if (monitorReader) {
@@ -57,8 +63,11 @@ const pump = async () => {
             if (done) {
                 break;
             }
-            if (value && value.length && dataHandler) {
-                dataHandler(value);
+            if (value && value.length) {
+                if (dataHandler) {
+                    dataHandler(value);
+                }
+                listeners.forEach(fn => fn(value));
             }
         }
     } catch (e) {
@@ -82,6 +91,12 @@ const setSerialDataHandler = handler => {
     dataHandler = handler;
 };
 
+/** Extra readers (for example the Cloud go-live checklist) that see the same bytes. */
+const addSerialDataListener = fn => {
+    listeners.add(fn);
+    return () => listeners.delete(fn);
+};
+
 const startSerialMonitor = async (baudRate = 9600) => {
     if (!getPort()) {
         throw new Error('Connect your Arduino first (Web Serial).');
@@ -93,6 +108,7 @@ const startSerialMonitor = async (baudRate = 9600) => {
     await delay(50);
 
     isMonitoring = true;
+    webSerialMonitorEvents.dispatchEvent(new Event(MONITOR_START));
     pump();
 };
 
@@ -132,7 +148,10 @@ const notifyFlashComplete = () => {
 export {
     FLASH_START,
     FLASH_COMPLETE,
+    MONITOR_START,
+    MONITOR_STOP,
     webSerialMonitorEvents,
+    addSerialDataListener,
     setSerialDataHandler,
     startSerialMonitor,
     stopSerialMonitor,

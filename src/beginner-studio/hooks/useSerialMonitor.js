@@ -29,6 +29,8 @@ const useSerialMonitor = ({connected} = {}) => {
         let removeHandler = null;
         let flashStart = null;
         let flashDone = null;
+        let monitorOn = null;
+        let monitorOff = null;
 
         (async () => {
             try {
@@ -49,8 +51,14 @@ const useSerialMonitor = ({connected} = {}) => {
                 flashDone = () => {
                     // User restarts monitor after upload (baud back to 9600).
                 };
+                // The Cloud go-live checklist can start reading by itself after an upload.
+                monitorOn = () => setMonitoring(true);
+                monitorOff = () => setMonitoring(false);
                 mon.webSerialMonitorEvents.addEventListener(mon.FLASH_START, flashStart);
                 mon.webSerialMonitorEvents.addEventListener(mon.FLASH_COMPLETE, flashDone);
+                mon.webSerialMonitorEvents.addEventListener(mon.MONITOR_START, monitorOn);
+                mon.webSerialMonitorEvents.addEventListener(mon.MONITOR_STOP, monitorOff);
+                setMonitoring(mon.isSerialMonitoring());
             } catch (err) {
                 // ignore load errors until Start is clicked
             }
@@ -67,6 +75,10 @@ const useSerialMonitor = ({connected} = {}) => {
                 }
                 if (flashDone) {
                     mon.webSerialMonitorEvents.removeEventListener(mon.FLASH_COMPLETE, flashDone);
+                }
+                if (monitorOn) {
+                    mon.webSerialMonitorEvents.removeEventListener(mon.MONITOR_START, monitorOn);
+                    mon.webSerialMonitorEvents.removeEventListener(mon.MONITOR_STOP, monitorOff);
                 }
                 if (mon.isSerialMonitoring()) {
                     mon.stopSerialMonitor();

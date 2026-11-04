@@ -53,7 +53,10 @@ const useStudioActions = (state, setState) => {
                     cloudAddProblem(prev.connections) :
                     (cloudOn ? `${mod.name} can't be used with Cloud. Remove Cloud first.` : null);
                 if (refusal) {
-                    return Object.assign({}, prev, {selectedModule: null, wireHint: refusal});
+                    // The Cloud wizard lists what is in the way, with a Remove button for each.
+                    return Object.assign({}, prev, mod.id === 'cloud' ?
+                        {selectedModule: null, wireHint: null, showCloudSetup: true} :
+                        {selectedModule: null, wireHint: refusal});
                 }
                 const port = portById('ONBOARD');
                 const plug = {id: uid('conn'), moduleId: mod.id, portId: 'ONBOARD', pin: port ? port.pin : '-'};
@@ -73,7 +76,7 @@ const useStudioActions = (state, setState) => {
                     selectedModule: null,
                     flashPortId: 'ONBOARD',
                     wireHint: mod.id === 'cloud' ?
-                        'Cloud added! Click Cloud in the top bar to set it up. A1–A4 are now off.' :
+                        'Cloud added. A1–A4 are now off.' :
                         `${mod.name} is built into the board, no cable needed`,
                     showCloudSetup: prev.showCloudSetup || (mod.id === 'cloud' && !prev.cloud),
                     activeTemplateId: null
@@ -278,7 +281,7 @@ const useStudioActions = (state, setState) => {
         patch({theme: next});
     }, [patch]);
     const setCloud = useCallback(cloud => patch({cloud: cloud || null}), [patch]);
-    const setShowCloudSetup = useCallback(showCloudSetup => patch({showCloudSetup: Boolean(showCloudSetup)}), [patch]);
+    const setShowCloudSetup = useCallback(showCloudSetup => patch({showCloudSetup: showCloudSetup || false}), [patch]);
 
     return {
         selectModule,

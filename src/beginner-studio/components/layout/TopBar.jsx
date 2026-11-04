@@ -1,12 +1,37 @@
 import React from 'react';
 
 import {useStudio} from '../../context/StudioContext.jsx';
+import {useUpload} from '../../context/UploadContext.jsx';
 import {hasCloud} from '../../domain/cloud';
 import {moduleById} from '../../domain/modules';
 
 import AccountMenu from './AccountMenu.jsx';
 import UndoButtons from './UndoButtons.jsx';
 import UploadButton from './UploadButton.jsx';
+
+/** What the Cloud button says: set up, connecting after an upload, needs help, live or offline. */
+const cloudLook = (K, cloudPart, cloud, live) => {
+    if (!cloudPart) {
+        return {text: 'Cloud', dot: K.dim, title: 'Send readings to your phone with TinkerBit Cloud'};
+    }
+    if (!cloud) {
+        return {text: 'Cloud · set up', dot: K.orange, title: 'Finish setting up Cloud', border: K.orange};
+    }
+    const name = cloud.deviceName;
+    if (live.stage === 'waiting') {
+        return live.progress.problem && live.progress.problem !== 'timeout' ?
+            {text: 'Cloud · needs help', dot: K.red, title: `${name} cannot go online. Click to see why.`, border: K.red} :
+            {text: 'Cloud · connecting…', dot: K.orange, blink: true, title: `${name} is going online`};
+    }
+    const status = live.device && live.device.id === cloud.deviceId ? live.device.status : null;
+    if (status === 'online') {
+        return {text: `Cloud · ${name}`, dot: K.green, title: `${name} is online`};
+    }
+    if (status === 'disabled') {
+        return {text: `Cloud · ${name}`, dot: K.red, title: `${name} was turned off`, border: K.red};
+    }
+    return {text: `Cloud · ${name}`, dot: K.dim, title: status ? `${name} is offline` : `Cloud: ${name}`};
+};
 
 const TopBar = () => {
     const {
@@ -23,6 +48,9 @@ const TopBar = () => {
         setShowCloudSetup
     } = useStudio();
     const cloudPart = hasCloud(connections);
+    const {cloudLive} = useUpload();
+    const look = cloudLook(K, cloudPart, cloud, cloudLive);
+    const liveSession = cloudLive.stage === 'waiting' || cloudLive.stage === 'live';
 
     const selectedDef = selectedModule ? moduleById(selectedModule) : null;
 
@@ -159,15 +187,15 @@ const TopBar = () => {
 
             <button
                 type="button"
-                onClick={() => setShowCloudSetup(true)}
-                title={cloud ? `Cloud: ${cloud.deviceName}` : 'Send readings to your phone with TinkerBit Cloud'}
+                onClick={() => setShowCloudSetup(cloudPart && cloud && liveSession ? 'live' : true)}
+                title={look.title}
                 style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: 6,
                     maxWidth: 200,
                     background: K.surface,
-                    border: `1px solid ${cloudPart && !cloud ? K.orange : K.border}`,
+                    border: `1px solid ${look.border || K.border}`,
                     color: K.text,
                     borderRadius: 8,
                     padding: '6px 10px',
@@ -182,11 +210,12 @@ const TopBar = () => {
                         height: 8,
                         borderRadius: 4,
                         flexShrink: 0,
-                        background: cloud ? K.green : (cloudPart ? K.orange : K.dim)
+                        background: look.dot,
+                        animation: look.blink ? 'tbDotBlink 1.2s ease-in-out infinite' : 'none'
                     }}
                 />
                 <span style={{overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
-                    {cloud ? `Cloud · ${cloud.deviceName}` : (cloudPart ? 'Cloud · set up' : 'Cloud')}
+                    {look.text}
                 </span>
             </button>
 
