@@ -61,7 +61,8 @@ holder.add(board.group);
 const boardSvg = objectToTopSVG(holder, {padding: 0, idPrefix: 'hub-', title: 'ESP32 RJ11 Hub'});
 fs.writeFileSync(new URL('board.svg', OUT), boardSvg);
 
-const ids = Object.keys(MODELS).sort();
+// Loose parts (kind 'part', e.g. a motor) have no socket, so the studio cannot plug them in
+const ids = Object.keys(MODELS).filter(id => MODELS[id].kind !== 'part').sort();
 const modules = ids.map(id => {
     const group = buildModule(kit, MODELS[id], {});
     const info = MODULES.find(m => m.id === id);

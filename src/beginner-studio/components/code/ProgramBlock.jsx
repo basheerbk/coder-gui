@@ -121,7 +121,7 @@ const TextField = ({value, maxLength, label, onChange}) => {
     );
 };
 
-const Toggle = ({on, color, label, onChange}) => (
+const Toggle = ({on, color, label, words, onChange}) => (
     <span
         role="group"
         aria-label={label}
@@ -151,7 +151,7 @@ const Toggle = ({on, color, label, onChange}) => (
                     color: on === v ? color : 'rgba(255,255,255,0.9)'
                 }}
             >
-                {v ? 'On' : 'Off'}
+                {(words || ['On', 'Off'])[v ? 0 : 1]}
             </button>
         ))}
     </span>
@@ -331,8 +331,8 @@ const Sentence = ({block, meta, ctx}) => {
     const p = block.params || {};
     const set = ctx.set;
     const part = <Part>{meta.partName || meta.moduleName || ''}</Part>;
-    const onOff = (key, label) => (
-        <Toggle on={p[key] !== false} color={meta.color} label={label} onChange={v => set({[key]: v})} />
+    const onOff = (key, label, words) => (
+        <Toggle on={p[key] !== false} color={meta.color} label={label} words={words} onChange={v => set({[key]: v})} />
     );
     const messages = <Word>{'in Board messages'}</Word>;
     const say = text => <Word fill>{text}</Word>;
@@ -374,6 +374,13 @@ const Sentence = ({block, meta, ctx}) => {
             </React.Fragment>
         );
     case 'set_on':
+        if (meta.onOffWords) {
+            return (
+                <React.Fragment>
+                    <Word>{'set'}</Word>{part}{onOff('on', meta.onOffWords.join(' or '), meta.onOffWords)}
+                </React.Fragment>
+            );
+        }
         return <React.Fragment><Word>{'turn'}</Word>{part}{onOff('on', 'On or off')}</React.Fragment>;
     case 'turn_on':
     case 'turn_off':
@@ -410,6 +417,24 @@ const Sentence = ({block, meta, ctx}) => {
                     onChange={v => set({ms: Math.round(v)})}
                 />
                 <Word>{'sec each'}</Word>
+            </React.Fragment>
+        );
+    case 'beep':
+        return (
+            <React.Fragment>
+                <Word>{'beep'}</Word>{part}<Word>{'for'}</Word>
+                <NumberField
+                    value={p.ms}
+                    fallback={200}
+                    min={20}
+                    max={10000}
+                    step={0.1}
+                    scale={1000}
+                    width={72}
+                    label="Seconds"
+                    onChange={v => set({ms: Math.round(v)})}
+                />
+                <Word>{'sec'}</Word>
             </React.Fragment>
         );
     case 'play_tone':
@@ -599,6 +624,7 @@ const Sentence = ({block, meta, ctx}) => {
         return say('send readings to Cloud now');
     case 'is_pressed':
     case 'is_motion':
+    case 'is_detected':
         return <React.Fragment><Word>{'check'}</Word>{part}</React.Fragment>;
     case 'read_value':
     case 'read_distance':

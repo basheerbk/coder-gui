@@ -1575,7 +1575,7 @@ export const MODULES = [
     },
     {
         "id": "relay4",
-        "name": "4-Ch Relay (MD)",
+        "name": "4-Channel Relay",
         "color": "#f59e0b",
         "category": "output",
         "dir": "out"
@@ -1654,6 +1654,139 @@ export const MODULES = [
         "id": "hc05",
         "name": "HC-05 Bluetooth",
         "color": "#06b6d4",
+        "category": "output",
+        "dir": "out"
+    },
+    {
+        "id": "ir",
+        "name": "IR Sensor",
+        "color": "#ef4444",
+        "category": "sensor",
+        "dir": "in"
+    },
+    {
+        "id": "ldr",
+        "name": "LDR Sensor",
+        "color": "#f59e0b",
+        "category": "sensor",
+        "dir": "in"
+    },
+    {
+        "id": "flame",
+        "name": "Flame Sensor",
+        "color": "#f97316",
+        "category": "sensor",
+        "dir": "in"
+    },
+    {
+        "id": "water",
+        "name": "Water Level Sensor",
+        "color": "#06b6d4",
+        "category": "sensor",
+        "dir": "in"
+    },
+    {
+        "id": "tsop",
+        "name": "TSOP",
+        "color": "#6b7280",
+        "category": "sensor",
+        "dir": "in"
+    },
+    {
+        "id": "irline",
+        "name": "IR Line Sensor Array",
+        "color": "#374151",
+        "category": "sensor",
+        "dir": "in"
+    },
+    {
+        "id": "mpu6050",
+        "name": "MPU6050 Motion Sensor",
+        "color": "#3b82f6",
+        "category": "sensor",
+        "dir": "in"
+    },
+    {
+        "id": "pir",
+        "name": "PIR Motion Sensor",
+        "color": "#10b981",
+        "category": "sensor",
+        "dir": "in"
+    },
+    {
+        "id": "reed",
+        "name": "Reed Switch",
+        "color": "#9ca3af",
+        "category": "sensor",
+        "dir": "in"
+    },
+    {
+        "id": "lcd",
+        "name": "LCD 16x2 (I2C)",
+        "color": "#10b981",
+        "category": "output",
+        "dir": "out"
+    },
+    {
+        "id": "rgb",
+        "name": "RGB Light (NeoPixel)",
+        "color": "#8b5cf6",
+        "category": "output",
+        "dir": "out"
+    },
+    {
+        "id": "strip",
+        "name": "NeoPixel Bar (10 LEDs)",
+        "color": "#ec4899",
+        "category": "output",
+        "dir": "out"
+    },
+    {
+        "id": "matrix",
+        "name": "NeoPixel Matrix 8x8",
+        "color": "#ef4444",
+        "category": "output",
+        "dir": "out"
+    },
+    {
+        "id": "drv8833",
+        "name": "Motor Driver DRV8833",
+        "color": "#dc2626",
+        "category": "output",
+        "dir": "out"
+    },
+    {
+        "id": "bomotor",
+        "name": "BO Motor with Wheel",
+        "color": "#eab308",
+        "category": "output",
+        "dir": "out"
+    },
+    {
+        "id": "buzzer",
+        "name": "Buzzer",
+        "color": "#374151",
+        "category": "output",
+        "dir": "out"
+    },
+    {
+        "id": "i2samp",
+        "name": "I2S Amp + Speaker",
+        "color": "#7c3aed",
+        "category": "output",
+        "dir": "out"
+    },
+    {
+        "id": "pump",
+        "name": "Water Pump",
+        "color": "#0ea5e9",
+        "category": "output",
+        "dir": "out"
+    },
+    {
+        "id": "solenoid",
+        "name": "Solenoid Lock",
+        "color": "#9ca3af",
         "category": "output",
         "dir": "out"
     }

@@ -31,7 +31,7 @@ const SHOW_CARDS = false;
 
 /** Every component: the board, then the modelled modules (and the card-only ones if SHOW_CARDS). */
 const COMPONENTS = [board].concat(MODULES.filter(m => MODELS[m.id] || SHOW_CARDS).map(m => (
-    MODELS[m.id] ? {...MODELS[m.id], kind: 'module', color: m.color} : makeCard(m)
+    MODELS[m.id] ? {...MODELS[m.id], kind: MODELS[m.id].kind || 'module', color: m.color} : makeCard(m)
 )));
 
 const getComponent = id => {
@@ -55,7 +55,7 @@ const defaultKit = () => {
 const onTexturesChanged = fn => defaultKit().tex.onChange(fn);
 
 const buildRaw = (kit, comp, options) => {
-    if (comp.kind === 'board') {
+    if (comp.kind === 'board' || comp.kind === 'part') {
         return comp.buildScene(kit, options);
     }
     if (comp.kind === 'card') {
@@ -125,7 +125,7 @@ const cardCablePoint = (cardX, cardY, side) => {
 const buildPluggedScene = (kit, id, {theme = 'dark', portId, ...options} = {}) => {
     const scene = buildBoardScene(kit, {theme});
     const comp = getComponent(id);
-    if (comp.kind === 'board') {
+    if (comp.kind === 'board' || comp.kind === 'part') {
         return scene;
     }
     const port = PORTS.find(p => p.id === (portId || comp.defaultPort)) || PORTS[0];

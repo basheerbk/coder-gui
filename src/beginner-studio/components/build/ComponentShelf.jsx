@@ -4,7 +4,7 @@ import {useStudio} from '../../context/StudioContext.jsx';
 import {hasBle, hasCloud} from '../../domain/cloud';
 import {MODULES} from '../../domain/modules';
 import {fitsWithCloud} from '../../domain/ports';
-import ModuleIcon from '../shared/ModuleIcon.jsx';
+import PartIcon from '../shared/PartIcon.jsx';
 
 const FILTERS = [
     {id: 'all', label: 'All', categories: null},
@@ -99,17 +99,17 @@ const ComponentTile = ({mod, connected, unavailable, selected, onSelect, K}) => 
         >
             <span
                 style={{
-                    width: 38,
-                    height: 38,
+                    width: 44,
+                    height: 44,
                     borderRadius: 10,
-                    background: `${mod.color}${lit ? '40' : '24'}`,
+                    background: lit ? `${mod.color}30` : 'transparent',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     transition: 'background 0.15s ease'
                 }}
             >
-                <ModuleIcon id={mod.id} color={mod.color} size={24} title={mod.name} />
+                <PartIcon id={mod.id} color={mod.color} size={40} muted={Boolean(unavailable)} />
             </span>
             <span
                 style={{

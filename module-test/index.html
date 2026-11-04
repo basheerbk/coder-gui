@@ -88,7 +88,15 @@ const $ = id => document.getElementById(id);
 const stage = $('stage');
 const topView = $('top');
 const viewButtons = Array.from(document.querySelectorAll('[data-view]'));
-const GROUPS = [['board', 'Board'], ['module', 'Modules'], ['card', 'Not modelled yet (cards)']];
+const GROUPS = [['board', 'Board'], ['input', 'Inputs'], ['output', 'Outputs'], ['card', 'Not modelled yet (cards)']];
+/** Sidebar group of a component: board, card, or a module/part by its category. */
+const groupOf = c => {
+    const kind = c.kind || 'module';
+    if (kind === 'board' || kind === 'card') {
+        return kind;
+    }
+    return c.category === 'output' ? 'output' : 'input';
+};
 const VIEWS = ['top', '3d', 'plugged'];
 
 const state = {id: 'pot', view: '3d', port: null, theme: 'dark'};
@@ -126,7 +134,7 @@ try {
 
 const list = $('list');
 GROUPS.forEach(([kind, heading]) => {
-    const items = COMPONENTS.filter(c => (c.kind || 'module') === kind);
+    const items = COMPONENTS.filter(c => groupOf(c) === kind);
     if (!items.length) {
         return;
     }
@@ -164,7 +172,7 @@ const render = () => {
         }
     });
     $('title').textContent = comp.name;
-    const canPlug = comp.kind !== 'board';
+    const canPlug = comp.kind !== 'board' && comp.kind !== 'part';
     let view = state.view === 'plugged' && !canPlug ? '3d' : state.view;
     if (!viewer) {
         view = 'top';

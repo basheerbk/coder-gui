@@ -11,12 +11,13 @@ const READ_BLOCKS = {
     print_climate: true,
     is_pressed: true,
     is_motion: true,
+    is_detected: true,
     rfid_read: true,
     hc05_read: true
 };
 
 /** Reads that only refresh a variable. Beginners never place these: codegen adds them where needed. */
-const SILENT_READS = ['is_pressed', 'is_motion', 'read_value', 'read_distance', 'read_temp', 'read_humidity'];
+const SILENT_READS = ['is_pressed', 'is_motion', 'is_detected', 'read_value', 'read_distance', 'read_temp', 'read_humidity'];
 
 const READER_ORDER = SILENT_READS.concat(['rfid_read', 'hc05_read']);
 

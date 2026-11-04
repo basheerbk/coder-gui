@@ -1,3 +1,4 @@
+import {isOnOffSensor} from './condition';
 import {uid} from './ids';
 import {moduleById} from './modules';
 import {pickPortForModule, portById} from './ports';
@@ -70,7 +71,7 @@ const readAction = moduleId => {
     return mod.actions[0].type;
 };
 
-const isBoolSensor = moduleId => moduleId === 'btn';
+const isBoolSensor = moduleId => isOnOffSensor(moduleById(moduleId));
 
 /** Build a kid-ready program from a short pattern id. */
 const programFor = (spec, m, act, blk) => {
@@ -118,8 +119,8 @@ const programFor = (spec, m, act, blk) => {
     if (pattern === 'cloud_lamp') {
         return [
             ifElse({sensor: 'cloudSwitch1', op: 'is', value: 0},
-                [act(m.led, 'set_on', {on: true})],
-                [act(m.led, 'set_on', {on: false})]),
+                [act(m[onOff], 'set_on', {on: true})],
+                [act(m[onOff], 'set_on', {on: false})]),
             blk('wait', {params: {seconds: 0.1}})
         ];
     }
@@ -143,12 +144,15 @@ const programFor = (spec, m, act, blk) => {
     }
 
     if (pattern === 'cloud_doorbell') {
+        const alert = [
+            act(m.cloud, 'cloud_alert', {text: spec.alertText || 'Someone is at the door!'}),
+            blk('wait', {params: {seconds: spec.cooldown || 2}})
+        ];
         return [
-            act(m.btn, 'is_pressed'),
-            ifElse({sensor: 'buttonState', op: 'is', value: 0}, [
-                act(m.cloud, 'cloud_alert', {text: spec.alertText || 'Someone is at the door!'}),
-                blk('wait', {params: {seconds: 2}})
-            ]),
+            act(m[sensor], readAction(sensor)),
+            spec.invert ?
+                ifElse({sensor: sensorVar(sensor), op: 'is', value: 0}, [], alert) :
+                ifElse({sensor: sensorVar(sensor), op: 'is', value: 0}, alert),
             blk('wait', {params: {seconds: 0.05}})
         ];
     }
@@ -227,7 +231,7 @@ const programFor = (spec, m, act, blk) => {
         if (onOff && onOff !== 'relay') {
             thenKids.push(act(m[onOff], 'set_on', {on: true}));
         }
-        thenKids.push(blk('wait', {params: {seconds: 0.3}}));
+        thenKids.push(blk('wait', {params: {seconds: spec.hold || 0.3}}));
         if (relay) {
             thenKids.push(act(m.relay, 'set_on', {on: false}));
         }
@@ -264,19 +268,20 @@ const programFor = (spec, m, act, blk) => {
     }
 
     if (pattern === 'relay_burst') {
+        const burstOut = m[spec.burstOut || 'relay'];
         return [
             act(m[sensor], readAction(sensor)),
             Object.assign(blk('if_then', {
                 params: {sensor: sensorVar(sensor), op, value: threshold}
             }), {
                 children: [
-                    act(m.relay, 'set_on', {on: true}),
+                    act(burstOut, 'set_on', {on: true}),
                     blk('wait', {params: {seconds: spec.burst != null ? spec.burst : 2}}),
-                    act(m.relay, 'set_on', {on: false})
+                    act(burstOut, 'set_on', {on: false})
                 ],
-                elseChildren: [act(m.relay, 'set_on', {on: false})]
+                elseChildren: [act(burstOut, 'set_on', {on: false})]
             }),
-            blk('wait', {params: {seconds: 1}})
+            blk('wait', {params: {seconds: spec.rest || 1}})
         ];
     }
 
@@ -320,7 +325,7 @@ const programFor = (spec, m, act, blk) => {
         }
         if (onOff && onOff !== 'relay') {
             unlock.push(act(m[onOff], 'set_on', {on: true}));
-            unlock.push(blk('wait', {params: {seconds: 0.4}}));
+            unlock.push(blk('wait', {params: {seconds: spec.hold || 0.4}}));
             unlock.push(act(m[onOff], 'set_on', {on: false}));
         }
         if (m.ultra && unlock.length) {
@@ -455,8 +460,9 @@ const programFor = (spec, m, act, blk) => {
                     ? {sensor: sensorVar(sensor), op: 'is', value: 0}
                     : {sensor: sensorVar(sensor), op, value: threshold}
             }), {
-                children: thenKids,
-                elseChildren: elseKids
+                // invert: act when the sensor stops seeing its thing (a door alarm fires when the magnet leaves)
+                children: spec.invert ? elseKids : thenKids,
+                elseChildren: spec.invert ? thenKids : elseKids
             }),
             blk('wait', {params: {seconds: waitSec}})
         ];
@@ -475,7 +481,8 @@ const programFor = (spec, m, act, blk) => {
 /**
  * Kit-only Project Library.
  * Modules: btn, relay, relay4 (MD), stepper, mq2, ble, led, mic, pulse (HW-605), oled,
- *          dht, soil, servo, l293d, ultra (HC-SR04), rfid, pot
+ *          dht, soil, servo, l293d, ultra (HC-SR04), rfid, pot, ir, pir, reed, ldr, flame,
+ *          water, buzzer, pump, solenoid
  */
 const SENSOR_GATES = [
     {id: 'pot', label: 'Knob', noun: 'knob number', when: 'you turn the knob up', op: '>', value: 2000,
@@ -615,6 +622,23 @@ const EXTRA_SPECS = [
     {id: 'mic-meter', name: 'Mic Meter', description: 'Show how loud it is on a screen', difficulty: 'Beginner', modules: ['mic', 'oled'], pattern: 'display'}
 ];
 
+/** Alarms and helpers for the on/off sensors, buzzer, pump and door lock. */
+const SENSOR_KIT_SPECS = [
+    {id: 'doorbell', name: 'Doorbell', description: 'Press the button to ring the buzzer', difficulty: 'Beginner', modules: ['btn', 'buzzer'], pattern: 'button_burst'},
+    {id: 'motion-alarm', name: 'Intruder Alarm', description: 'The buzzer sounds when someone walks past', difficulty: 'Beginner', modules: ['pir', 'buzzer']},
+    {id: 'motion-lamp', name: 'Motion Lamp', description: 'The LED turns on when something moves', difficulty: 'Beginner', modules: ['pir', 'led']},
+    {id: 'hand-detector', name: 'Hand Detector', description: 'The LED lights up when your hand is in front of the sensor', difficulty: 'Beginner', modules: ['ir', 'led']},
+    {id: 'hand-gate', name: 'Wave Gate', description: 'Wave your hand in front of the sensor to open the gate', difficulty: 'Medium', modules: ['ir', 'servo']},
+    {id: 'door-alarm', name: 'Door Alarm', description: 'The buzzer sounds when the door opens and the magnet moves away', difficulty: 'Beginner', modules: ['reed', 'buzzer'], invert: true},
+    {id: 'night-light', name: 'Night Light', description: 'The LED turns on when it gets dark', difficulty: 'Beginner', modules: ['ldr', 'led']},
+    {id: 'fire-alarm', name: 'Fire Alarm', description: 'The buzzer sounds when it sees a flame', difficulty: 'Beginner', modules: ['flame', 'buzzer']},
+    {id: 'flood-alarm', name: 'Flood Alarm', description: 'The buzzer sounds when the water gets high', difficulty: 'Beginner', modules: ['water', 'buzzer'], op: '>', value: 1000},
+    {id: 'water-meter', name: 'Water Tank Meter', description: 'Show how high the water is on a screen', difficulty: 'Beginner', modules: ['water', 'oled'], pattern: 'display'},
+    {id: 'plant-waterer', name: 'Plant Waterer', description: 'The pump waters the plant for a moment when the soil gets dry', difficulty: 'Medium', modules: ['soil', 'pump'], pattern: 'relay_burst', burstOut: 'pump', op: '<', value: 40, burst: 2, rest: 5},
+    {id: 'card-lock', name: 'Card Door Lock', description: 'Tap a card to open the door lock for a few seconds', difficulty: 'Medium', modules: ['rfid', 'solenoid'], pattern: 'rfid_gate', hold: 3},
+    {id: 'button-lock', name: 'Button Lock', description: 'Press the button to open the door lock', difficulty: 'Beginner', modules: ['btn', 'solenoid'], pattern: 'button_burst', hold: 3}
+];
+
 const ADVANCED_SPECS = [
     {id: 'adv-garden', name: 'Garden Station', description: 'Waters dry soil and shows the temperature on a screen', difficulty: 'Advanced', modules: ['soil', 'dht', 'relay', 'oled', 'led'], pattern: 'advanced_scene', primary: 'soil', op: '<', value: 40, burstRelay: true},
     {id: 'adv-parking', name: 'Parking Pro', description: 'The screen says STOP when you get too close', difficulty: 'Advanced', modules: ['ultra', 'mic', 'led', 'oled'], pattern: 'advanced_scene', primary: 'ultra', op: '<', value: 25, blink: true, thenText: 'STOP', elseText: 'CLEAR'},
@@ -641,7 +665,10 @@ const CLOUD_SPECS = [
     {id: 'cloud-relays', name: 'Phone Relays', description: 'Four phone switches control the 4-switch relay', difficulty: 'Medium', modules: ['cloud', 'relay4'], pattern: 'cloud_relays'},
     {id: 'cloud-parking', name: 'Cloud Parking Sensor', description: 'Distance on your phone, LED when close', difficulty: 'Medium', modules: ['cloud', 'ultra', 'led'], op: '<', value: 20, blink: true},
     {id: 'cloud-heart', name: 'Heartbeat Monitor', description: 'Your heartbeat on a screen and on your phone', difficulty: 'Medium', modules: ['cloud', 'pulse', 'oled'], pattern: 'display'},
-    {id: 'cloud-fan', name: 'Smart Fan', description: 'Dashboard slider sets the fan speed', difficulty: 'Medium', modules: ['cloud', 'l293d'], pattern: 'cloud_fan'}
+    {id: 'cloud-fan', name: 'Smart Fan', description: 'Dashboard slider sets the fan speed', difficulty: 'Medium', modules: ['cloud', 'l293d'], pattern: 'cloud_fan'},
+    {id: 'cloud-motion', name: 'Motion Alert', description: 'Your phone gets an alert when something moves', difficulty: 'Beginner', modules: ['cloud', 'pir'], pattern: 'cloud_doorbell', alertText: 'Something moved!', cooldown: 10},
+    {id: 'cloud-door', name: 'Door Watcher', description: 'Your phone gets an alert when the door opens', difficulty: 'Beginner', modules: ['cloud', 'reed'], pattern: 'cloud_doorbell', invert: true, alertText: 'The door opened!', cooldown: 10},
+    {id: 'cloud-pump', name: 'Phone Plant Waterer', description: 'A dashboard switch runs the water pump', difficulty: 'Beginner', modules: ['cloud', 'pump'], pattern: 'cloud_lamp'}
 ];
 
 const dedupeSpecs = specs => {
@@ -655,7 +682,7 @@ const dedupeSpecs = specs => {
     });
 };
 
-const PROJECT_SPECS = dedupeSpecs(FEATURED_SPECS.concat(EXTRA_SPECS).concat(expandPairs()));
+const PROJECT_SPECS = dedupeSpecs(FEATURED_SPECS.concat(SENSOR_KIT_SPECS).concat(EXTRA_SPECS).concat(expandPairs()));
 
 const TEMPLATES = PROJECT_SPECS.concat(ADVANCED_SPECS).concat(CLOUD_SPECS).reduce((list, spec) => {
     try {

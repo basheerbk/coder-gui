@@ -247,12 +247,21 @@ const setupLinesForConnection = c => {
     }
     if (mod.dir === 'out') {
         const lines = [`pinMode(${pin}, OUTPUT);`];
+        if (mod.offAtStart) {
+            lines.push(`digitalWrite(${pin}, LOW);`);
+        }
         if (port.boot) {
             lines.unshift('// IO0 (A4) is a boot pin — do not hold LOW during reset.');
         }
         return lines;
     }
     const mode = mod.pinMode || 'INPUT';
+    if (mod.id === 'pir') {
+        return [
+            `pinMode(${pin}, ${mode});`,
+            'Serial.println(F("Motion sensor warming up — it settles after about a minute"));'
+        ];
+    }
     return [`pinMode(${pin}, ${mode});`];
 };
 
@@ -428,6 +437,14 @@ const emitLeaf = (block, connById, level) => {
             : String(Math.round(num(p.brightness, 128, 0, 255)));
         lines.push(indent(level, `analogWrite(${pin}, ${brightnessExpr});`));
         serialLabel(`${modLabel}: brightness=`, brightnessExpr);
+        break;
+    }
+    case 'beep': {
+        const ms = Math.round(num(p.ms, 200, 20, 10000));
+        lines.push(indent(level, `digitalWrite(${pin}, HIGH);`));
+        lines.push(indent(level, `delay(${ms});`));
+        lines.push(indent(level, `digitalWrite(${pin}, LOW);`));
+        serialLabel(`${modLabel}: beep ${ms}ms`);
         break;
     }
     case 'play_tone': {
@@ -716,6 +733,12 @@ const emitLeaf = (block, connById, level) => {
         lines.push(indent(level, `${(mod && mod.valueName) || 'motionDetected'} = digitalRead(${pin});`));
         serialLabel(`${modLabel}: `, (mod && mod.valueName) || 'motionDetected');
         break;
+    case 'is_detected': {
+        const v = (mod && mod.valueName) || 'detected';
+        lines.push(indent(level, `${v} = digitalRead(${pin}) == ${mod && mod.activeLow ? 'LOW' : 'HIGH'};`));
+        serialLabel(`${modLabel}: `, `${v} ? "YES" : "no"`);
+        break;
+    }
     case 'cloud_alert': {
         const text = String(p.text == null ? '' : p.text).slice(0, 120);
         lines.push(indent(level, `cloudAlert("${cEscape(text)}");`));

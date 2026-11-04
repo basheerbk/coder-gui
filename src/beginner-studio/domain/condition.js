@@ -25,12 +25,21 @@ const SENSOR_INFO = {
     temperature: {label: 'Temperature', unit: '°C'},
     humidity: {label: 'Humidity', unit: '%'},
     distance: {label: 'Distance', unit: 'cm'},
-    hc05Line: {label: 'Bluetooth message'}
+    hc05Line: {label: 'Bluetooth message'},
+    obstacleNear: {label: 'Obstacle sensor', phrase: 'sees something'},
+    motionSeen: {label: 'Motion sensor', phrase: 'sees movement'},
+    magnetNear: {label: 'Reed switch', phrase: 'feels a magnet'},
+    isDark: {label: 'Light sensor', phrase: 'says it is dark'},
+    flameSeen: {label: 'Flame sensor', phrase: 'sees a flame'},
+    waterLevel: {label: 'Water level', hint: '0–4095'}
 };
 
-const isBooleanModule = mod =>
-    (mod.actions || []).some(a => a.type === 'is_pressed' || a.type === 'is_motion') ||
-    Boolean(mod.valueName && TEXT_VALUES[mod.valueName]);
+const ON_OFF_READS = {is_pressed: true, is_motion: true, is_detected: true};
+
+/** Sensors that only say yes or no (button, motion, magnet, ...). */
+const isOnOffSensor = mod => Boolean(mod) && (mod.actions || []).some(a => ON_OFF_READS[a.type]);
+
+const isBooleanModule = mod => isOnOffSensor(mod) || Boolean(mod.valueName && TEXT_VALUES[mod.valueName]);
 
 /** A starting comparison that does something visible with each sensor. */
 const SENSOR_DEFAULTS = {
@@ -41,7 +50,8 @@ const SENSOR_DEFAULTS = {
     heartRate: {op: '>', value: 60},
     distance: {op: '<', value: 25},
     temperature: {op: '>', value: 30},
-    humidity: {op: '>', value: 70}
+    humidity: {op: '>', value: 70},
+    waterLevel: {op: '>', value: 1000}
 };
 
 const withDefaults = (id, option) => {
@@ -165,5 +175,6 @@ export {
     defaultIfParams,
     formatCondition,
     ifParamsFor,
-    isBooleanModule
+    isBooleanModule,
+    isOnOffSensor
 };

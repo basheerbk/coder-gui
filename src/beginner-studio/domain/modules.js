@@ -5,7 +5,11 @@ import {K} from './tokens';
  * Jack rules (see ports.js):
  *   OLED / HW-605 (MAX30102) → I2C (shared bus) | L293D / 4-ch relay → MD | Stepper → ST | HC-SR04 → D5
  *   RFID → 3D (SPI) | BLE → onboard (no RJ11) | HC-05 → UART RX=3 TX=1 | analogs → A1–A4
+ *   One-wire on/off parts (IR, PIR, reed, LDR, flame, buzzer, pump, solenoid) → D13 or A1–A4
  *   Cloud → onboard WiFi; A1–A4 are locked while it is wired (ADC2 + WiFi) and it excludes BLE.
+ *
+ * `activeLow` sensors pull their output LOW when they detect something; `offAtStart` outputs are
+ * driven LOW in setup so a pump or lock never runs while the board boots.
  */
 const MODULES = [
     {
@@ -61,6 +65,47 @@ const MODULES = [
         description: 'A switch that turns a bigger gadget on or off',
         actions: [
             {type: 'set_on', label: 'On / Off', params: {on: true}}
+        ]
+    },
+    {
+        id: 'buzzer',
+        name: 'Buzzer',
+        signal: 'digital',
+        dir: 'out',
+        category: 'output',
+        color: K.orange,
+        description: 'Beeps loudly when you turn it on',
+        offAtStart: true,
+        actions: [
+            {type: 'beep', label: 'Beep', params: {ms: 200}},
+            {type: 'set_on', label: 'On / Off', params: {on: true}}
+        ]
+    },
+    {
+        id: 'pump',
+        name: 'Water Pump',
+        signal: 'digital',
+        dir: 'out',
+        category: 'output',
+        color: K.cyan,
+        description: 'A small water pump for plants (plug its power adapter in too)',
+        offAtStart: true,
+        actions: [
+            {type: 'set_on', label: 'On / Off', params: {on: true}}
+        ]
+    },
+    {
+        id: 'solenoid',
+        name: 'Solenoid Lock',
+        signal: 'digital',
+        dir: 'out',
+        category: 'output',
+        color: K.dim,
+        description: 'A door lock that opens while it is on (needs its 12 V power plug; open it for a few seconds at a time)',
+        offAtStart: true,
+        onOffWords: ['Open', 'Closed'],
+        actions: [
+            {type: 'set_on', label: 'Open / Close', params: {on: true}}
         ]
     },
     {
@@ -225,6 +270,93 @@ const MODULES = [
         ]
     },
     {
+        id: 'ir',
+        name: 'IR Obstacle Sensor',
+        signal: 'digital',
+        dir: 'in',
+        category: 'sensor',
+        color: K.red,
+        description: 'Sees when something is right in front of it (its little screw sets how close)',
+        valueName: 'obstacleNear',
+        valueType: 'int',
+        activeLow: true,
+        actions: [
+            {type: 'is_detected', label: 'Something in front?'}
+        ]
+    },
+    {
+        id: 'pir',
+        name: 'PIR Motion Sensor',
+        signal: 'digital',
+        dir: 'in',
+        category: 'sensor',
+        color: K.green,
+        description: 'Notices a person or pet moving nearby (give it a minute to wake up)',
+        valueName: 'motionSeen',
+        valueType: 'int',
+        actions: [
+            {type: 'is_detected', label: 'Motion?'}
+        ]
+    },
+    {
+        id: 'reed',
+        name: 'Reed Switch',
+        signal: 'digital',
+        dir: 'in',
+        category: 'sensor',
+        color: K.accent,
+        description: 'Feels when a magnet is close, great for door and window alarms',
+        valueName: 'magnetNear',
+        valueType: 'int',
+        activeLow: true,
+        actions: [
+            {type: 'is_detected', label: 'Magnet near?'}
+        ]
+    },
+    {
+        id: 'ldr',
+        name: 'LDR Light Sensor',
+        signal: 'digital',
+        dir: 'in',
+        category: 'sensor',
+        color: K.orange,
+        description: 'Tells when it gets dark (its little screw sets how dark)',
+        valueName: 'isDark',
+        valueType: 'int',
+        actions: [
+            {type: 'is_detected', label: 'Is it dark?'}
+        ]
+    },
+    {
+        id: 'flame',
+        name: 'Flame Sensor',
+        signal: 'digital',
+        dir: 'in',
+        category: 'sensor',
+        color: K.red,
+        description: 'Spots the light of a flame nearby',
+        valueName: 'flameSeen',
+        valueType: 'int',
+        activeLow: true,
+        actions: [
+            {type: 'is_detected', label: 'Fire seen?'}
+        ]
+    },
+    {
+        id: 'water',
+        name: 'Water Level Sensor',
+        signal: 'analog',
+        dir: 'in',
+        category: 'sensor',
+        color: K.cyan,
+        description: 'Tells how high the water is (only dip the striped part in)',
+        valueName: 'waterLevel',
+        valueType: 'int',
+        actions: [
+            {type: 'read_value', label: 'Read water level'}
+        ]
+    },
+    {
         id: 'rfid',
         name: 'RFID RC522',
         signal: 'digital',
@@ -292,12 +424,8 @@ const MODULE_ALIASES = {
     gas: 'mq2',
     sound: 'mic',
     dc: 'l293d',
-    buzz: 'relay',
-    rgb: 'led',
-    ldr: 'pot',
-    flame: 'mq2',
-    pir: 'btn',
-    pump: 'relay'
+    buzz: 'buzzer',
+    rgb: 'led'
 };
 
 const CONTROL_BLOCKS = [

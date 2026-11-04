@@ -20,6 +20,9 @@ const PART_COLORS = {
     led: '#7c3aed',
     relay: '#2563eb',
     relay4: '#2563eb',
+    buzzer: '#9333ea',
+    pump: '#0369a1',
+    solenoid: '#475569',
     servo: '#4f46e5',
     l293d: '#4f46e5',
     stepper: '#4f46e5',
@@ -46,6 +49,15 @@ const PART_NAMES = {
     soil: 'soil sensor',
     dht: 'climate sensor',
     ultra: 'distance sensor',
+    ir: 'obstacle sensor',
+    pir: 'motion sensor',
+    reed: 'reed switch',
+    ldr: 'light sensor',
+    flame: 'flame sensor',
+    water: 'water sensor',
+    buzzer: 'buzzer',
+    pump: 'pump',
+    solenoid: 'door lock',
     rfid: 'card reader',
     ble: 'Bluetooth',
     cloud: 'Cloud',
@@ -72,9 +84,12 @@ const partColor = mod => (mod.dir === 'in' ? SENSE_COLOR : (PART_COLORS[mod.id] 
 
 /** Palette wording mirrors the sentence the block shows once it is placed. */
 const PALETTE_LABELS = {
-    set_on: n => `Turn ${n} on or off`,
+    set_on: (n, mod) => (mod && mod.onOffWords ?
+        `${mod.onOffWords[0]} or close ${n}` :
+        `Turn ${n} on or off`),
     set_brightness: n => `Set ${n} brightness`,
     blink: n => `Blink ${n}`,
+    beep: n => `Beep ${n}`,
     set_angle: n => `Turn ${n} to an angle`,
     motor_speed: () => 'Spin a motor',
     motor_stop: () => 'Stop motors',
@@ -138,7 +153,8 @@ const blockMeta = (block, connections) => {
             label: `${actionLabel} · ${mod.name}`,
             kind: mod.dir === 'in' ? 'sensor' : 'action',
             moduleName: mod.name,
-            partName: PART_NAMES[mod.id] || mod.name
+            partName: PART_NAMES[mod.id] || mod.name,
+            onOffWords: mod.onOffWords || null
         };
     }
 
@@ -153,7 +169,8 @@ const blockMeta = (block, connections) => {
             label: `${actionLabel} · ${orphanMod.name}`,
             kind: 'orphan',
             moduleName: orphanMod.name,
-            partName: PART_NAMES[orphanMod.id] || orphanMod.name
+            partName: PART_NAMES[orphanMod.id] || orphanMod.name,
+            onOffWords: orphanMod.onOffWords || null
         };
     }
 
@@ -177,7 +194,7 @@ const paletteChipMeta = (type, options) => {
         color,
         soft: `${color}18`,
         iconId: moduleId || type,
-        label: overrideLabel || (PALETTE_LABELS[type] ? PALETTE_LABELS[type](name) : fallback)
+        label: overrideLabel || (PALETTE_LABELS[type] ? PALETTE_LABELS[type](name, mod) : fallback)
     };
 };
 

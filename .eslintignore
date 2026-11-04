@@ -2,3 +2,4 @@ node_modules/*
 build/*
 dist/*
 module-test/*
+src/beginner-studio/components/module-icons/module-icons.js
