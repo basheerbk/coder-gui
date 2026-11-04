@@ -1,6 +1,7 @@
 import {uid} from './ids';
 import {moduleById} from './modules';
 import {pickPortForModule, portById} from './ports';
+import {stripSilentReads} from './sensorReads';
 import {createBlock} from './tree';
 
 const wire = (moduleId, portId) => {
@@ -52,7 +53,7 @@ const buildTemplate = (meta, wiring, buildProgram) => {
     });
     return Object.assign({}, meta, {
         connections,
-        program: buildProgram(byModule, actionBlock, createBlock)
+        program: stripSilentReads(buildProgram(byModule, actionBlock, createBlock))
     });
 };
 
@@ -300,15 +301,11 @@ const programFor = (spec, m, act, blk) => {
     }
 
     if (pattern === 'rfid_gate') {
-        const kids = [];
-        if (m.ultra) {
-            kids.push(act(m.ultra, 'read_distance'));
-        }
-        kids.push(act(m.rfid, 'rfid_read'));
+        const onCard = [];
         if (oled) {
-            kids.push(act(m.oled, 'show_text', {text: spec.thenText || 'Card OK'}));
+            onCard.push(act(m.oled, 'show_text', {text: spec.thenText || 'Card OK'}));
         } else {
-            kids.push(blk('serial_print', {params: {text: 'Card OK'}}));
+            onCard.push(blk('serial_print', {params: {text: 'Card OK'}}));
         }
         const unlock = [];
         if (servo) {
@@ -327,17 +324,22 @@ const programFor = (spec, m, act, blk) => {
             unlock.push(act(m[onOff], 'set_on', {on: false}));
         }
         if (m.ultra && unlock.length) {
-            kids.push(Object.assign(blk('if_then', {
+            onCard.push(Object.assign(blk('if_then', {
                 params: {sensor: 'distance', op: spec.op || '<', value: threshold}
             }), {
                 children: unlock,
                 elseChildren: []
             }));
         } else {
-            unlock.forEach(b => kids.push(b));
+            unlock.forEach(b => onCard.push(b));
         }
-        kids.push(blk('wait', {params: {seconds: 0.3}}));
-        return kids;
+        return [
+            Object.assign(blk('if_then', {params: {sensor: 'rfidUid', op: 'is', value: 0}}), {
+                children: onCard,
+                elseChildren: []
+            }),
+            blk('wait', {params: {seconds: 0.3}})
+        ];
     }
 
     if (pattern === 'ble_beacon') {
@@ -476,43 +478,55 @@ const programFor = (spec, m, act, blk) => {
  *          dht, soil, servo, l293d, ultra (HC-SR04), rfid, pot
  */
 const SENSOR_GATES = [
-    {id: 'pot', label: 'Knob', noun: 'knob', op: '>', value: 2000, difficulty: 'Beginner'},
-    {id: 'soil', label: 'Soil', noun: 'soil', op: '<', value: 40, difficulty: 'Beginner'},
-    {id: 'mq2', label: 'Gas', noun: 'gas', op: '>', value: 700, difficulty: 'Beginner'},
-    {id: 'mic', label: 'Mic', noun: 'sound', op: '>', value: 600, difficulty: 'Beginner'},
-    {id: 'pulse', label: 'Pulse', noun: 'heartbeat', op: '>', value: 60, difficulty: 'Medium'},
-    {id: 'ultra', label: 'Range', noun: 'distance', op: '<', value: 25, difficulty: 'Medium'},
-    {id: 'dht', label: 'Temp', noun: 'temperature', op: '>', value: 30, difficulty: 'Medium'}
+    {id: 'pot', label: 'Knob', noun: 'knob number', when: 'you turn the knob up', op: '>', value: 2000,
+        difficulty: 'Beginner'},
+    {id: 'soil', label: 'Soil', noun: 'soil wetness', when: 'the soil gets dry', op: '<', value: 40,
+        difficulty: 'Beginner'},
+    {id: 'mq2', label: 'Gas', noun: 'gas level', when: 'it smells gas or smoke', op: '>', value: 700,
+        difficulty: 'Beginner'},
+    {id: 'mic', label: 'Sound', noun: 'loudness', when: 'it gets loud', op: '>', value: 600, difficulty: 'Beginner'},
+    {id: 'pulse', label: 'Heartbeat', noun: 'heartbeat', when: 'it feels a heartbeat', op: '>', value: 60,
+        difficulty: 'Medium'},
+    {id: 'ultra', label: 'Distance', noun: 'distance', when: 'something comes close', op: '<', value: 25,
+        difficulty: 'Medium'},
+    {id: 'dht', label: 'Temp', noun: 'temperature', when: 'it gets hot', op: '>', value: 30, difficulty: 'Medium'}
 ];
 
 const OUT_ACTIONS = [
-    {id: 'led', label: 'LED', verb: 'lights LED', blink: true},
-    {id: 'relay', label: 'Relay', verb: 'clicks relay', burst: true},
-    {id: 'servo', label: 'Servo', verb: 'moves servo'},
-    {id: 'l293d', label: 'Motor', verb: 'runs motor', speed: 200},
-    {id: 'oled', label: 'OLED', verb: 'shows on OLED', display: true}
+    {id: 'led', label: 'Light', verb: 'The LED lights up', blink: true},
+    {id: 'relay', label: 'Relay', verb: 'The relay clicks on', burst: true},
+    {id: 'servo', label: 'Servo', verb: 'The servo arm moves'},
+    {id: 'l293d', label: 'Motor', verb: 'The motor spins', speed: 200},
+    {id: 'oled', label: 'Screen', display: true}
 ];
 
 const FEATURED_SPECS = [
-    {id: 'led-blink', name: 'LED Blink', description: 'Blink the LED', difficulty: 'Beginner', modules: ['led'], pattern: 'blink'},
+    {id: 'led-blink', name: 'LED Blink', description: 'Make the LED blink on and off', difficulty: 'Beginner', modules: ['led'], pattern: 'blink'},
     {id: 'button-lamp', name: 'Button Lamp', description: 'Press to light the LED', difficulty: 'Beginner', modules: ['btn', 'led'], pattern: 'button_burst'},
-    {id: 'smart-lock', name: 'Smart Lock', description: 'Button unlocks a servo', difficulty: 'Beginner', modules: ['btn', 'servo', 'led'], pattern: 'button_burst'},
-    {id: 'relay-switch', name: 'Relay Switch', description: 'Button clicks the relay', difficulty: 'Beginner', modules: ['btn', 'relay'], pattern: 'button_burst'},
-    {id: 'md-relay-ch1', name: 'MD Relay CH1', description: 'Button clicks 4-ch relay channel 1 on MD', difficulty: 'Beginner', modules: ['btn', 'relay4'], pattern: 'button_burst', channel: 1},
-    {id: 'md-relay-sweep', name: 'MD Relay Sweep', description: 'Cycle 4-ch relay channel 1 on MD', difficulty: 'Beginner', modules: ['relay4'], pattern: 'relay4_seq', channel: 1},
-    {id: 'smart-garden', name: 'Smart Garden', description: 'Relay waters when soil moisture is below 40%', difficulty: 'Beginner', modules: ['soil', 'relay'], pattern: 'relay_burst', op: '<', value: 40},
-    {id: 'temp-display', name: 'Temp Display', description: 'DHT11 temperature on OLED', difficulty: 'Beginner', modules: ['dht', 'oled'], pattern: 'display_temp'},
-    {id: 'parking-sensor', name: 'Parking Sensor', description: 'HC-SR04 lights LED when close', difficulty: 'Medium', modules: ['ultra', 'led'], op: '<', value: 20, blink: true},
-    {id: 'speed-fan', name: 'Speed Fan', description: 'Knob controls L293D motor', difficulty: 'Beginner', modules: ['pot', 'l293d'], pattern: 'pot_motor'},
-    {id: 'knob-servo', name: 'Knob Servo', description: 'Aim servo with the knob', difficulty: 'Beginner', modules: ['pot', 'servo'], pattern: 'pot_servo'},
-    {id: 'humid-display', name: 'Humidity Display', description: 'DHT11 humidity on OLED', difficulty: 'Beginner', modules: ['dht', 'oled'], pattern: 'display_humid'},
-    {id: 'heart-monitor', name: 'Heart Monitor', description: 'HW-605 pulse on OLED', difficulty: 'Medium', modules: ['pulse', 'oled'], pattern: 'display'},
-    {id: 'smart-dustbin', name: 'Smart Dustbin', description: 'Distance opens a servo lid', difficulty: 'Medium', modules: ['ultra', 'servo'], op: '<', value: 25},
-    {id: 'stepper-jog', name: 'Stepper Jog', description: 'Button steps the motor', difficulty: 'Medium', modules: ['btn', 'stepper'], pattern: 'stepper_demo'},
-    {id: 'rfid-scan', name: 'RFID Scan', description: 'Read RC522 cards on OLED', difficulty: 'Medium', modules: ['rfid', 'oled'], pattern: 'rfid_gate'},
-    {id: 'rfid-door', name: 'RFID Door', description: 'Card unlocks a servo', difficulty: 'Medium', modules: ['rfid', 'servo', 'led'], pattern: 'rfid_gate'},
-    {id: 'ble-beacon', name: 'BLE Beacon', description: 'Advertise and send over Bluetooth', difficulty: 'Medium', modules: ['ble'], pattern: 'ble_beacon'}
+    {id: 'smart-lock', name: 'Smart Lock', description: 'Press the button to open the lock', difficulty: 'Beginner', modules: ['btn', 'servo', 'led'], pattern: 'button_burst'},
+    {id: 'relay-switch', name: 'Relay Switch', description: 'Press the button to click the relay on', difficulty: 'Beginner', modules: ['btn', 'relay'], pattern: 'button_burst'},
+    {id: 'md-relay-ch1', name: 'Relay Switch 1', description: 'Press the button to turn on switch 1 of the 4-switch relay', difficulty: 'Beginner', modules: ['btn', 'relay4'], pattern: 'button_burst', channel: 1},
+    {id: 'md-relay-sweep', name: 'Relay Blinker', description: 'Switch 1 of the 4-switch relay clicks on and off', difficulty: 'Beginner', modules: ['relay4'], pattern: 'relay4_seq', channel: 1},
+    {id: 'smart-garden', name: 'Smart Garden', description: 'Waters the plant when the soil gets dry', difficulty: 'Beginner', modules: ['soil', 'relay'], pattern: 'relay_burst', op: '<', value: 40},
+    {id: 'temp-display', name: 'Temp Display', description: 'Show the temperature on a screen', difficulty: 'Beginner', modules: ['dht', 'oled'], pattern: 'display_temp'},
+    {id: 'parking-sensor', name: 'Parking Sensor', description: 'The LED lights up when something is close', difficulty: 'Medium', modules: ['ultra', 'led'], op: '<', value: 20, blink: true},
+    {id: 'speed-fan', name: 'Speed Fan', description: 'Turn the knob to change the motor speed', difficulty: 'Beginner', modules: ['pot', 'l293d'], pattern: 'pot_motor'},
+    {id: 'knob-servo', name: 'Knob Servo', description: 'Turn the knob to move the servo arm', difficulty: 'Beginner', modules: ['pot', 'servo'], pattern: 'pot_servo'},
+    {id: 'humid-display', name: 'Humidity Display', description: 'Show how damp the air is on a screen', difficulty: 'Beginner', modules: ['dht', 'oled'], pattern: 'display_humid'},
+    {id: 'heart-monitor', name: 'Heart Monitor', description: 'Show your heartbeat on a screen', difficulty: 'Medium', modules: ['pulse', 'oled'], pattern: 'display'},
+    {id: 'smart-dustbin', name: 'Smart Dustbin', description: 'The lid opens when your hand comes close', difficulty: 'Medium', modules: ['ultra', 'servo'], op: '<', value: 25},
+    {id: 'stepper-jog', name: 'Stepper Jog', description: 'Press the button to turn the stepper motor', difficulty: 'Medium', modules: ['btn', 'stepper'], pattern: 'stepper_demo'},
+    {id: 'rfid-scan', name: 'Card Scanner', description: 'Tap a card and see it on the screen', difficulty: 'Medium', modules: ['rfid', 'oled'], pattern: 'rfid_gate'},
+    {id: 'rfid-door', name: 'Card Door', description: 'Tap a card to open the lock', difficulty: 'Medium', modules: ['rfid', 'servo', 'led'], pattern: 'rfid_gate'},
+    {id: 'ble-beacon', name: 'Bluetooth Beacon', description: 'Send a hello to your phone over Bluetooth', difficulty: 'Medium', modules: ['ble'], pattern: 'ble_beacon'}
 ];
+
+/** True when a hand-written project already covers this sensor + output pair or name. */
+const coveredByHandWritten = (id, name, sensorId, outId) => FEATURED_SPECS.concat(EXTRA_SPECS).some(s => (
+    s.id === id ||
+    s.name === name ||
+    (s.modules.length === 2 && s.modules.indexOf(sensorId) !== -1 && s.modules.indexOf(outId) !== -1)
+));
 
 const expandPairs = () => {
     const list = [];
@@ -522,14 +536,15 @@ const expandPairs = () => {
                 return;
             }
             const id = `p-${sensor.id}-${out.id}`;
-            if (FEATURED_SPECS.some(s => s.id === id || (s.modules.length === 2 && s.modules[0] === sensor.id && s.modules[1] === out.id))) {
+            const name = out.display ? `${sensor.label} Meter` : `${sensor.label} ${out.label}`;
+            if (coveredByHandWritten(id, name, sensor.id, out.id)) {
                 return;
             }
             if (out.display) {
                 list.push({
                     id,
-                    name: `${sensor.label} Meter`,
-                    description: `Show ${sensor.noun} on OLED`,
+                    name,
+                    description: `Show the ${sensor.noun} on a screen`,
                     difficulty: sensor.difficulty,
                     modules: [sensor.id, 'oled'],
                     pattern: 'display'
@@ -539,8 +554,8 @@ const expandPairs = () => {
             if (out.burst && out.id === 'relay') {
                 list.push({
                     id,
-                    name: `${sensor.label} Relay`,
-                    description: `Relay when ${sensor.noun} crosses limit`,
+                    name,
+                    description: `${out.verb} when ${sensor.when}`,
                     difficulty: sensor.difficulty === 'Beginner' ? 'Medium' : sensor.difficulty,
                     modules: [sensor.id, 'relay'],
                     pattern: 'relay_burst',
@@ -551,8 +566,8 @@ const expandPairs = () => {
             }
             list.push({
                 id,
-                name: `${sensor.label} ${out.label}`,
-                description: `${out.verb} when ${sensor.noun} crosses limit`,
+                name,
+                description: `${out.verb} when ${sensor.when}`,
                 difficulty: sensor.difficulty,
                 modules: [sensor.id, out.id],
                 op: sensor.op,
@@ -566,66 +581,66 @@ const expandPairs = () => {
 };
 
 const EXTRA_SPECS = [
-    {id: 'btn-relay-led', name: 'Button Power', description: 'Button clicks relay and LED', difficulty: 'Beginner', modules: ['btn', 'relay', 'led'], pattern: 'button_burst'},
+    {id: 'btn-relay-led', name: 'Button Power', description: 'Press to click the relay and light the LED', difficulty: 'Beginner', modules: ['btn', 'relay', 'led'], pattern: 'button_burst'},
     {id: 'btn-servo', name: 'Button Servo', description: 'Press to swing the servo', difficulty: 'Beginner', modules: ['btn', 'servo'], pattern: 'button_burst'},
-    {id: 'btn-motor', name: 'Button Motor', description: 'Press to run the L293D', difficulty: 'Beginner', modules: ['btn', 'l293d'], pattern: 'button_burst'},
-    {id: 'btn-stepper-led', name: 'Stepper Click', description: 'Button steps motor with LED', difficulty: 'Medium', modules: ['btn', 'stepper', 'led'], pattern: 'stepper_demo'},
-    {id: 'pot-led', name: 'Knob Lamp', description: 'LED when knob is high', difficulty: 'Beginner', modules: ['pot', 'led'], op: '>', value: 2000},
-    {id: 'pot-relay', name: 'Knob Relay', description: 'Relay when knob is high', difficulty: 'Beginner', modules: ['pot', 'relay'], op: '>', value: 2200},
-    {id: 'pot-oled', name: 'Knob Meter', description: 'Show knob value on OLED', difficulty: 'Beginner', modules: ['pot', 'oled'], pattern: 'display'},
-    {id: 'hot-fan', name: 'Hot Fan', description: 'Fan when temperature is high', difficulty: 'Medium', modules: ['dht', 'l293d'], op: '>', value: 30, speed: 200},
-    {id: 'hot-relay', name: 'Hot Relay', description: 'Relay when room is hot', difficulty: 'Medium', modules: ['dht', 'relay'], pattern: 'relay_burst', op: '>', value: 32},
-    {id: 'cool-led', name: 'Cool LED', description: 'LED when temperature is low', difficulty: 'Medium', modules: ['dht', 'led'], op: '<', value: 20},
-    {id: 'soil-led', name: 'Dry Soil Lamp', description: 'LED when soil moisture is below 40%', difficulty: 'Beginner', modules: ['soil', 'led'], op: '<', value: 40},
-    {id: 'soil-servo', name: 'Soil Gate', description: 'Servo when soil moisture is below 40%', difficulty: 'Medium', modules: ['soil', 'servo'], op: '<', value: 40},
+    {id: 'btn-motor', name: 'Button Motor', description: 'Press to spin the motor', difficulty: 'Beginner', modules: ['btn', 'l293d'], pattern: 'button_burst'},
+    {id: 'btn-stepper-led', name: 'Stepper Click', description: 'Press to turn the stepper motor, with a light', difficulty: 'Medium', modules: ['btn', 'stepper', 'led'], pattern: 'stepper_demo'},
+    {id: 'pot-led', name: 'Knob Lamp', description: 'Turn the knob up to light the LED', difficulty: 'Beginner', modules: ['pot', 'led'], op: '>', value: 2000},
+    {id: 'pot-relay', name: 'Knob Relay', description: 'Turn the knob up to click the relay', difficulty: 'Beginner', modules: ['pot', 'relay'], op: '>', value: 2200},
+    {id: 'pot-oled', name: 'Knob Meter', description: 'Show the knob number on a screen', difficulty: 'Beginner', modules: ['pot', 'oled'], pattern: 'display'},
+    {id: 'hot-fan', name: 'Hot Fan', description: 'The fan spins when it gets hot', difficulty: 'Medium', modules: ['dht', 'l293d'], op: '>', value: 30, speed: 200},
+    {id: 'hot-relay', name: 'Hot Relay', description: 'The relay clicks on when the room is hot', difficulty: 'Medium', modules: ['dht', 'relay'], pattern: 'relay_burst', op: '>', value: 32},
+    {id: 'cool-led', name: 'Cool LED', description: 'The LED lights up when it gets cold', difficulty: 'Medium', modules: ['dht', 'led'], op: '<', value: 20},
+    {id: 'soil-led', name: 'Dry Soil Lamp', description: 'The LED lights up when the plant needs water', difficulty: 'Beginner', modules: ['soil', 'led'], op: '<', value: 40},
+    {id: 'soil-servo', name: 'Soil Gate', description: 'The servo moves when the soil is dry', difficulty: 'Medium', modules: ['soil', 'servo'], op: '<', value: 40},
     {id: 'clap-lamp', name: 'Clap Lamp', description: 'Mic turns the LED on', difficulty: 'Beginner', modules: ['mic', 'led'], op: '>', value: 600},
     {id: 'clap-servo', name: 'Clap Servo', description: 'Loud sound swings servo', difficulty: 'Medium', modules: ['mic', 'servo'], op: '>', value: 650},
-    {id: 'clap-motor', name: 'Clap Motor', description: 'Mic runs the L293D', difficulty: 'Medium', modules: ['mic', 'l293d'], op: '>', value: 640, speed: 210},
-    {id: 'gas-alert', name: 'MQ-2 Alert', description: 'LED when gas is high', difficulty: 'Beginner', modules: ['mq2', 'led'], op: '>', value: 700},
-    {id: 'gas-servo', name: 'Gas Vent', description: 'Servo opens when gas is high', difficulty: 'Medium', modules: ['mq2', 'servo'], op: '>', value: 720},
-    {id: 'gas-motor', name: 'Gas Fan', description: 'L293D fan when gas is high', difficulty: 'Medium', modules: ['mq2', 'l293d'], op: '>', value: 710, speed: 220},
+    {id: 'clap-motor', name: 'Clap Motor', description: 'A loud sound spins the motor', difficulty: 'Medium', modules: ['mic', 'l293d'], op: '>', value: 640, speed: 210},
+    {id: 'gas-alert', name: 'Gas Alarm', description: 'The LED lights up when it smells gas or smoke', difficulty: 'Beginner', modules: ['mq2', 'led'], op: '>', value: 700},
+    {id: 'gas-servo', name: 'Gas Vent', description: 'Opens a vent when it smells gas', difficulty: 'Medium', modules: ['mq2', 'servo'], op: '>', value: 720},
+    {id: 'gas-motor', name: 'Gas Fan', description: 'The fan spins when it smells gas', difficulty: 'Medium', modules: ['mq2', 'l293d'], op: '>', value: 710, speed: 220},
     {id: 'pulse-led', name: 'Pulse LED', description: 'LED blinks with heartbeat', difficulty: 'Beginner', modules: ['pulse', 'led'], op: '>', value: 60, blink: true},
     {id: 'pulse-relay', name: 'Pulse Relay', description: 'Relay ticks with heartbeat', difficulty: 'Medium', modules: ['pulse', 'relay'], op: '>', value: 60},
     {id: 'near-relay', name: 'Near Relay', description: 'Relay when something is close', difficulty: 'Medium', modules: ['ultra', 'relay'], pattern: 'relay_burst', op: '<', value: 22},
     {id: 'near-motor', name: 'Near Motor', description: 'Motor when object is close', difficulty: 'Medium', modules: ['ultra', 'l293d'], op: '<', value: 30, speed: 180},
-    {id: 'range-display', name: 'Range Display', description: 'Show distance on OLED', difficulty: 'Beginner', modules: ['ultra', 'oled'], pattern: 'display'},
-    {id: 'rfid-relay', name: 'RFID Relay', description: 'Card clicks the relay', difficulty: 'Medium', modules: ['rfid', 'relay'], pattern: 'rfid_gate'},
-    {id: 'rfid-led', name: 'RFID Lamp', description: 'Card lights the LED', difficulty: 'Medium', modules: ['rfid', 'led'], pattern: 'rfid_gate'},
-    {id: 'rfid-gate-oled', name: 'RFID Gate', description: 'Card unlocks servo + OLED', difficulty: 'Medium', modules: ['rfid', 'servo', 'oled'], pattern: 'rfid_gate'},
-    {id: 'ble-desk', name: 'BLE Desk', description: 'BLE plus OLED status', difficulty: 'Advanced', modules: ['ble', 'oled'], pattern: 'ble_beacon', bleText: 'Desk OK'},
-    {id: 'ble-led', name: 'BLE Lamp', description: 'Advertise BLE and blink LED', difficulty: 'Medium', modules: ['ble', 'led'], pattern: 'ble_beacon'},
-    {id: 'stepper-spin', name: 'Stepper Spin', description: 'Button spins 400 steps', difficulty: 'Medium', modules: ['btn', 'stepper'], pattern: 'stepper_demo', steps: 400, rpm: 15},
-    {id: 'garden-meter', name: 'Garden Meter', description: 'Soil moisture % on OLED', difficulty: 'Beginner', modules: ['soil', 'oled'], pattern: 'display'},
-    {id: 'gas-panel', name: 'Gas Panel', description: 'MQ-2 level on OLED', difficulty: 'Medium', modules: ['mq2', 'oled'], pattern: 'display'},
-    {id: 'mic-meter', name: 'Mic Meter', description: 'Show loudness on OLED', difficulty: 'Beginner', modules: ['mic', 'oled'], pattern: 'display'}
+    {id: 'range-display', name: 'Distance Display', description: 'Show how far away things are on a screen', difficulty: 'Beginner', modules: ['ultra', 'oled'], pattern: 'display'},
+    {id: 'rfid-relay', name: 'Card Relay', description: 'Tap a card to click the relay', difficulty: 'Medium', modules: ['rfid', 'relay'], pattern: 'rfid_gate'},
+    {id: 'rfid-led', name: 'Card Lamp', description: 'Tap a card to light the LED', difficulty: 'Medium', modules: ['rfid', 'led'], pattern: 'rfid_gate'},
+    {id: 'rfid-gate-oled', name: 'Card Gate', description: 'Tap a card to open the gate, with a screen', difficulty: 'Medium', modules: ['rfid', 'servo', 'oled'], pattern: 'rfid_gate'},
+    {id: 'ble-desk', name: 'Bluetooth Desk', description: 'Bluetooth plus a status screen', difficulty: 'Advanced', modules: ['ble', 'oled'], pattern: 'ble_beacon', bleText: 'Desk OK'},
+    {id: 'ble-led', name: 'Bluetooth Lamp', description: 'Bluetooth hello and a blinking LED', difficulty: 'Medium', modules: ['ble', 'led'], pattern: 'ble_beacon'},
+    {id: 'stepper-spin', name: 'Stepper Spin', description: 'Press to spin the stepper a long way', difficulty: 'Medium', modules: ['btn', 'stepper'], pattern: 'stepper_demo', steps: 400, rpm: 15},
+    {id: 'garden-meter', name: 'Garden Meter', description: 'Show how wet the soil is on a screen', difficulty: 'Beginner', modules: ['soil', 'oled'], pattern: 'display'},
+    {id: 'gas-panel', name: 'Gas Panel', description: 'Show the gas level on a screen', difficulty: 'Medium', modules: ['mq2', 'oled'], pattern: 'display'},
+    {id: 'mic-meter', name: 'Mic Meter', description: 'Show how loud it is on a screen', difficulty: 'Beginner', modules: ['mic', 'oled'], pattern: 'display'}
 ];
 
 const ADVANCED_SPECS = [
-    {id: 'adv-garden', name: 'Garden Station', description: 'Soil % + DHT drive relay and OLED', difficulty: 'Advanced', modules: ['soil', 'dht', 'relay', 'oled', 'led'], pattern: 'advanced_scene', primary: 'soil', op: '<', value: 40, burstRelay: true},
-    {id: 'adv-parking', name: 'Parking Pro', description: 'HC-SR04 + mic + OLED coach', difficulty: 'Advanced', modules: ['ultra', 'mic', 'led', 'oled'], pattern: 'advanced_scene', primary: 'ultra', op: '<', value: 25, blink: true, thenText: 'STOP', elseText: 'CLEAR'},
-    {id: 'adv-climate', name: 'Climate Lab', description: 'DHT fan with OLED and LED', difficulty: 'Advanced', modules: ['dht', 'l293d', 'led', 'oled'], pattern: 'advanced_scene', primary: 'dht', op: '>', value: 30, speed: 220},
-    {id: 'adv-gas-lab', name: 'Gas Lab', description: 'MQ-2 + OLED + relay safety', difficulty: 'Advanced', modules: ['mq2', 'oled', 'relay', 'led'], pattern: 'advanced_scene', primary: 'mq2', op: '>', value: 700, thenText: 'GAS!', elseText: 'OK'},
-    {id: 'adv-console', name: 'Maker Console', description: 'Button + knob command center', difficulty: 'Advanced', modules: ['btn', 'pot', 'led', 'servo', 'oled'], pattern: 'command_center', hold: 2},
-    {id: 'adv-access', name: 'Access Gate', description: 'RFID + button + servo gate', difficulty: 'Advanced', modules: ['rfid', 'btn', 'servo', 'led', 'oled'], pattern: 'command_center', hold: 2},
-    {id: 'adv-pulse-lab', name: 'Pulse Lab', description: 'HW-605 + OLED + LED', difficulty: 'Advanced', modules: ['pulse', 'oled', 'led'], pattern: 'advanced_scene', primary: 'pulse', op: '>', value: 60, blink: true},
-    {id: 'adv-step-rig', name: 'Stepper Rig', description: 'Button + stepper + LED feedback', difficulty: 'Advanced', modules: ['btn', 'stepper', 'led'], pattern: 'stepper_demo'},
-    {id: 'adv-sound-stage', name: 'Sound Stage', description: 'Mic + pot + LED + servo show', difficulty: 'Advanced', modules: ['mic', 'pot', 'led', 'servo', 'oled'], pattern: 'advanced_scene', primary: 'mic', op: '>', value: 620, blink: true, thenText: 'LOUD', elseText: 'QUIET'},
-    {id: 'adv-soil-fan', name: 'Soil Fan Lab', description: 'Dry soil % runs L293D + OLED', difficulty: 'Advanced', modules: ['soil', 'l293d', 'led', 'oled'], pattern: 'advanced_scene', primary: 'soil', op: '<', value: 40, speed: 200},
-    {id: 'adv-range-lock', name: 'Range Lock', description: 'HC-SR04 + RFID + servo door', difficulty: 'Advanced', modules: ['ultra', 'rfid', 'servo', 'led'], pattern: 'rfid_gate'},
-    {id: 'adv-ble-garden', name: 'BLE Garden', description: 'Soil % relay with BLE beacon', difficulty: 'Advanced', modules: ['soil', 'relay', 'ble', 'oled'], pattern: 'advanced_scene', primary: 'soil', op: '<', value: 40, burstRelay: true},
-    {id: 'adv-hot-gate', name: 'Hot Gate', description: 'Temp opens servo and lights LED', difficulty: 'Advanced', modules: ['dht', 'servo', 'led', 'oled'], pattern: 'advanced_scene', primary: 'dht', op: '>', value: 31, thenText: 'HOT', elseText: 'OK'},
-    {id: 'adv-gas-step', name: 'Gas Stepper', description: 'MQ-2 + stepper vent demo', difficulty: 'Advanced', modules: ['mq2', 'stepper', 'led'], pattern: 'advanced_scene', primary: 'mq2', op: '>', value: 700, steps: 120},
-    {id: 'adv-heart-stage', name: 'Heart Stage', description: 'Pulse + mic + OLED monitor', difficulty: 'Advanced', modules: ['pulse', 'mic', 'oled', 'led'], pattern: 'advanced_scene', primary: 'pulse', op: '>', value: 60, blink: true},
-    {id: 'adv-kit-tour', name: 'Kit Tour', description: 'Button tours LED, servo, OLED', difficulty: 'Advanced', modules: ['btn', 'led', 'servo', 'oled'], pattern: 'command_center', hold: 1.5}
+    {id: 'adv-garden', name: 'Garden Station', description: 'Waters dry soil and shows the temperature on a screen', difficulty: 'Advanced', modules: ['soil', 'dht', 'relay', 'oled', 'led'], pattern: 'advanced_scene', primary: 'soil', op: '<', value: 40, burstRelay: true},
+    {id: 'adv-parking', name: 'Parking Pro', description: 'The screen says STOP when you get too close', difficulty: 'Advanced', modules: ['ultra', 'mic', 'led', 'oled'], pattern: 'advanced_scene', primary: 'ultra', op: '<', value: 25, blink: true, thenText: 'STOP', elseText: 'CLEAR'},
+    {id: 'adv-climate', name: 'Climate Lab', description: 'Fan, light and screen react to the temperature', difficulty: 'Advanced', modules: ['dht', 'l293d', 'led', 'oled'], pattern: 'advanced_scene', primary: 'dht', op: '>', value: 30, speed: 220},
+    {id: 'adv-gas-lab', name: 'Gas Lab', description: 'Gas alarm with a screen and a safety switch', difficulty: 'Advanced', modules: ['mq2', 'oled', 'relay', 'led'], pattern: 'advanced_scene', primary: 'mq2', op: '>', value: 700, thenText: 'GAS!', elseText: 'OK'},
+    {id: 'adv-console', name: 'Maker Console', description: 'Button and knob control a light, servo and screen', difficulty: 'Advanced', modules: ['btn', 'pot', 'led', 'servo', 'oled'], pattern: 'command_center', hold: 2},
+    {id: 'adv-access', name: 'Access Gate', description: 'The button opens the gate; tapped cards show their ID in Board messages', difficulty: 'Advanced', modules: ['rfid', 'btn', 'servo', 'led', 'oled'], pattern: 'command_center', hold: 2},
+    {id: 'adv-pulse-lab', name: 'Pulse Lab', description: 'Your heartbeat on a screen with a blinking LED', difficulty: 'Advanced', modules: ['pulse', 'oled', 'led'], pattern: 'advanced_scene', primary: 'pulse', op: '>', value: 60, blink: true},
+    {id: 'adv-step-rig', name: 'Stepper Rig', description: 'Press to turn the stepper, with a light', difficulty: 'Advanced', modules: ['btn', 'stepper', 'led'], pattern: 'stepper_demo'},
+    {id: 'adv-sound-stage', name: 'Sound Stage', description: 'Lights and a servo react to loud sounds', difficulty: 'Advanced', modules: ['mic', 'pot', 'led', 'servo', 'oled'], pattern: 'advanced_scene', primary: 'mic', op: '>', value: 620, blink: true, thenText: 'LOUD', elseText: 'QUIET'},
+    {id: 'adv-soil-fan', name: 'Soil Fan Lab', description: 'A fan runs when the soil is dry, with a screen', difficulty: 'Advanced', modules: ['soil', 'l293d', 'led', 'oled'], pattern: 'advanced_scene', primary: 'soil', op: '<', value: 40, speed: 200},
+    {id: 'adv-range-lock', name: 'Range Lock', description: 'Come close and tap a card to open the door', difficulty: 'Advanced', modules: ['ultra', 'rfid', 'servo', 'led'], pattern: 'rfid_gate'},
+    {id: 'adv-ble-garden', name: 'Bluetooth Garden', description: 'Waters dry soil and tells your phone over Bluetooth', difficulty: 'Advanced', modules: ['soil', 'relay', 'ble', 'oled'], pattern: 'advanced_scene', primary: 'soil', op: '<', value: 40, burstRelay: true},
+    {id: 'adv-hot-gate', name: 'Hot Gate', description: 'Opens a vent and lights the LED when it is hot', difficulty: 'Advanced', modules: ['dht', 'servo', 'led', 'oled'], pattern: 'advanced_scene', primary: 'dht', op: '>', value: 31, thenText: 'HOT', elseText: 'OK'},
+    {id: 'adv-gas-step', name: 'Gas Stepper', description: 'A stepper motor opens a vent when it smells gas', difficulty: 'Advanced', modules: ['mq2', 'stepper', 'led'], pattern: 'advanced_scene', primary: 'mq2', op: '>', value: 700, steps: 120},
+    {id: 'adv-heart-stage', name: 'Heart Stage', description: 'Heartbeat and loudness on a screen', difficulty: 'Advanced', modules: ['pulse', 'mic', 'oled', 'led'], pattern: 'advanced_scene', primary: 'pulse', op: '>', value: 60, blink: true},
+    {id: 'adv-kit-tour', name: 'Kit Tour', description: 'One button shows off the LED, servo and screen', difficulty: 'Advanced', modules: ['btn', 'led', 'servo', 'oled'], pattern: 'command_center', hold: 1.5}
 ];
 
 /** WiFi projects: A1–A4 are off while Cloud is on, so every part here uses D13, D5, MD or I2C. */
 const CLOUD_SPECS = [
     {id: 'cloud-lamp', name: 'Phone Lamp', description: 'Dashboard switch turns the LED on', difficulty: 'Beginner', modules: ['cloud', 'led'], pattern: 'cloud_lamp'},
     {id: 'cloud-doorbell', name: 'Phone Doorbell', description: 'Button sends an alert to your phone', difficulty: 'Beginner', modules: ['cloud', 'btn'], pattern: 'cloud_doorbell'},
-    {id: 'cloud-relays', name: 'Phone Relays', description: 'Four dashboard switches drive the 4-ch relay', difficulty: 'Medium', modules: ['cloud', 'relay4'], pattern: 'cloud_relays'},
+    {id: 'cloud-relays', name: 'Phone Relays', description: 'Four phone switches control the 4-switch relay', difficulty: 'Medium', modules: ['cloud', 'relay4'], pattern: 'cloud_relays'},
     {id: 'cloud-parking', name: 'Cloud Parking Sensor', description: 'Distance on your phone, LED when close', difficulty: 'Medium', modules: ['cloud', 'ultra', 'led'], op: '<', value: 20, blink: true},
-    {id: 'cloud-heart', name: 'Heartbeat Monitor', description: 'Heart rate on OLED and your phone', difficulty: 'Medium', modules: ['cloud', 'pulse', 'oled'], pattern: 'display'},
+    {id: 'cloud-heart', name: 'Heartbeat Monitor', description: 'Your heartbeat on a screen and on your phone', difficulty: 'Medium', modules: ['cloud', 'pulse', 'oled'], pattern: 'display'},
     {id: 'cloud-fan', name: 'Smart Fan', description: 'Dashboard slider sets the fan speed', difficulty: 'Medium', modules: ['cloud', 'l293d'], pattern: 'cloud_fan'}
 ];
 

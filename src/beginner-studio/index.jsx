@@ -23,7 +23,8 @@ ensureIdeAuth().then(session => {
     } catch (err) {
         // ignore analytics failures
     }
-    ReactDOM.render(<App />, document.getElementById('root'));
+    const user = session && session.authenticated && session.user ? session.user : null;
+    ReactDOM.render(<App user={user} />, document.getElementById('root'));
 }).catch(() => {
     ReactDOM.render(<App />, document.getElementById('root'));
 });

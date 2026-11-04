@@ -1,10 +1,7 @@
-import React, {useRef, useState} from 'react';
+import React, {useState} from 'react';
 
 import {useStudio} from '../../context/StudioContext.jsx';
-import {cloudUploadProblem, hasCloud} from '../../domain/cloud';
-import {maskSecrets, readSecrets} from '../../domain/cloudSecrets';
-import {generateArduino} from '../../domain/codegen';
-import useBoardUpload from '../../hooks/useBoardUpload.js';
+import {useUpload} from '../../context/UploadContext.jsx';
 
 import SerialMonitorPanel from './SerialMonitorPanel.jsx';
 
@@ -27,126 +24,49 @@ const colorize = (line, K) => {
     return {color: K.sub};
 };
 
-const LiveCodePanel = () => {
-    const {
-        generatedCode,
-        showCodePanel,
-        setShowCodePanel,
-        connections,
-        program,
-        cloud,
-        setShowCloudSetup,
-        K
-    } = useStudio();
-    const [copied, setCopied] = useState(false);
-    const [cloudNote, setCloudNote] = useState('');
-    const uploadSecrets = useRef(null);
-    const upload = useBoardUpload();
-
-    if (!showCodePanel) {
-        return (
-            <button
-                type="button"
-                onClick={() => setShowCodePanel(true)}
-                style={{
-                    position: 'absolute',
-                    right: 10,
-                    top: 10,
-                    zIndex: 2,
-                    background: K.panel,
-                    color: K.text,
-                    borderRadius: 8,
-                    padding: '6px 10px',
-                    fontSize: 11,
-                    cursor: 'pointer',
-                    border: `1px solid ${K.border}`
-                }}
-            >
-                Show code
-            </button>
-        );
+const copyText = (text, done) => {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done)
+            .catch(() => {});
+        return;
     }
+    try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        done();
+    } catch (err) {
+        // ignore
+    }
+};
 
+const CodeSection = ({K}) => {
+    const {generatedCode} = useStudio();
+    const upload = useUpload();
+    const [copied, setCopied] = useState(false);
     const lines = (generatedCode || '').split('\n');
+    const showDetails = Boolean(upload.log) || upload.phase === 'error';
 
-    const handleCopy = () => {
-        const done = () => {
-            setCopied(true);
-            setTimeout(() => setCopied(false), 1200);
-        };
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(generatedCode).then(done).catch(() => {});
-            return;
-        }
-        try {
-            const ta = document.createElement('textarea');
-            ta.value = generatedCode;
-            document.body.appendChild(ta);
-            ta.select();
-            document.execCommand('copy');
-            document.body.removeChild(ta);
-            done();
-        } catch (err) {
-            // ignore
-        }
-    };
-
-    const handleUpload = () => {
-        setCloudNote('');
-        if (!hasCloud(connections)) {
-            uploadSecrets.current = null;
-            upload.uploadCode(generatedCode);
-            return;
-        }
-        const secrets = cloud ? readSecrets(cloud.email, cloud.deviceId) : null;
-        const problem = cloudUploadProblem(connections, cloud, secrets);
-        if (problem) {
-            setCloudNote(problem);
-            return;
-        }
-        uploadSecrets.current = secrets;
-        upload.uploadCode(generateArduino(connections, program, {cloud, secrets}));
-    };
-
-    const shownMessage = maskSecrets(upload.message, uploadSecrets.current);
-    const shownLog = maskSecrets(upload.log, uploadSecrets.current);
-
-    const statusColor = () => {
-        if (upload.phase === 'success') {
-            return K.green;
-        }
-        if (upload.phase === 'error') {
-            return K.red;
-        }
-        if (upload.phase === 'uploading' || upload.phase === 'connecting') {
-            return K.orange;
-        }
-        return K.dim;
-    };
+    const handleCopy = () => copyText(generatedCode, () => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1200);
+    });
 
     return (
-        <aside
-            style={{
-                width: 300,
-                flexShrink: 0,
-                background: K.codeBg,
-                borderLeft: `1px solid ${K.border}`,
-                display: 'flex',
-                flexDirection: 'column',
-                minHeight: 0
-            }}
-        >
+        <div style={{flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0}}>
             <div
                 style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: 6,
-                    padding: '8px 10px',
-                    borderBottom: `1px solid ${K.border}`,
-                    flexWrap: 'wrap'
+                    padding: '6px 10px',
+                    borderBottom: `1px solid ${K.border}`
                 }}
             >
-                <div style={{fontSize: 12, fontWeight: 700, flex: 1, minWidth: 70}}>Arduino C++</div>
+                <div style={{fontSize: 12, fontWeight: 700, flex: 1}}>Your program as code</div>
                 <button
                     type="button"
                     onClick={handleCopy}
@@ -162,159 +82,31 @@ const LiveCodePanel = () => {
                 >
                     {copied ? 'Copied' : 'Copy'}
                 </button>
-                <button
-                    type="button"
-                    onClick={() => setShowCodePanel(false)}
-                    style={{
-                        border: 'none',
-                        background: 'transparent',
-                        color: K.dim,
-                        cursor: 'pointer',
-                        fontSize: 12
-                    }}
-                >
-                    Close
-                </button>
             </div>
 
-            <div
-                style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 6,
-                    padding: '8px 10px',
-                    borderBottom: `1px solid ${K.border}`,
-                    background: K.panel
-                }}
-            >
-                <div style={{display: 'flex', gap: 6, flexWrap: 'wrap'}}>
-                    <button
-                        type="button"
-                        disabled={upload.busy}
-                        onClick={upload.connectBoard}
-                        style={{
-                            border: `1px solid ${K.border}`,
-                            background: upload.connected ? `${K.green}22` : K.surface,
-                            color: upload.connected ? K.green : K.text,
-                            borderRadius: 8,
-                            padding: '6px 10px',
-                            fontSize: 11,
-                            fontWeight: 700,
-                            cursor: upload.busy ? 'wait' : 'pointer',
-                            opacity: upload.busy ? 0.6 : 1
-                        }}
-                    >
-                        {upload.connected ? 'Connected' : 'Connect board'}
-                    </button>
-                    <button
-                        type="button"
-                        disabled={upload.busy || !generatedCode}
-                        onClick={handleUpload}
-                        style={{
-                            border: 'none',
-                            background: K.accent,
-                            color: '#fff',
-                            borderRadius: 8,
-                            padding: '6px 12px',
-                            fontSize: 11,
-                            fontWeight: 800,
-                            cursor: upload.busy || !generatedCode ? 'not-allowed' : 'pointer',
-                            opacity: upload.busy || !generatedCode ? 0.55 : 1,
-                            flex: 1,
-                            minWidth: 100
-                        }}
-                    >
-                        {upload.phase === 'uploading' ? 'Uploading…' : 'Upload'}
-                    </button>
-                    {upload.phase === 'uploading' ? (
-                        <button
-                            type="button"
-                            onClick={upload.cancelUpload}
-                            style={{
-                                border: `1px solid ${K.border}`,
-                                background: K.surface,
-                                color: K.red,
-                                borderRadius: 8,
-                                padding: '6px 10px',
-                                fontSize: 11,
-                                fontWeight: 700,
-                                cursor: 'pointer'
-                            }}
-                        >
-                            Cancel
-                        </button>
-                    ) : null}
-                </div>
-                <div style={{fontSize: 10, color: statusColor(), fontWeight: 600, lineHeight: 1.35}}>
-                    {!upload.supported
-                        ? 'Upload needs Chrome or Edge on a computer.'
-                        : (shownMessage ||
-                            (upload.connected
-                                ? `Ready · ${upload.portLabel || 'Maker ESP32'}`
-                                : 'Connect your Maker ESP32, then Upload.'))}
-                </div>
-                {cloudNote ? (
-                    <div
-                        role="alert"
-                        style={{
-                            fontSize: 11,
-                            color: K.text,
-                            background: `${K.orange}22`,
-                            border: `1px solid ${K.orange}`,
-                            borderRadius: 6,
-                            padding: '6px 8px',
-                            lineHeight: 1.4
-                        }}
-                    >
-                        {cloudNote}
-                        <button
-                            type="button"
-                            onClick={() => {
-                                setCloudNote('');
-                                setShowCloudSetup(true);
-                            }}
-                            style={{
-                                display: 'block',
-                                marginTop: 6,
-                                border: 'none',
-                                background: K.accent,
-                                color: '#fff',
-                                borderRadius: 6,
-                                padding: '4px 8px',
-                                fontSize: 10,
-                                fontWeight: 700,
-                                cursor: 'pointer'
-                            }}
-                        >
-                            Open Cloud setup
-                        </button>
-                    </div>
-                ) : null}
-                {upload.phase === 'uploading' || upload.phase === 'error' ? (
-                    <div style={{fontSize: 10, color: K.muted, lineHeight: 1.35, marginTop: 2}}>
-                        Some laptops need you to hold BOOT during Upload (then release). Prefer a USB2 port if auto-reset fails.
-                    </div>
-                ) : null}
-                {shownLog ? (
+            {showDetails ? (
+                <details style={{padding: '6px 10px', borderBottom: `1px solid ${K.border}`, fontSize: 11}}>
+                    <summary style={{cursor: 'pointer', color: K.sub}}>Details</summary>
                     <pre
                         style={{
-                            margin: 0,
-                            maxHeight: 72,
+                            margin: '6px 0 0',
+                            maxHeight: 120,
                             overflow: 'auto',
                             fontSize: 9,
                             lineHeight: 1.35,
                             color: K.muted,
-                            background: K.codeBg,
+                            background: K.panel,
                             borderRadius: 6,
                             padding: 6,
                             whiteSpace: 'pre-wrap',
                             wordBreak: 'break-word'
                         }}
                     >
-                        {shownLog.slice(-1200)}
+                        {[upload.message, upload.log.slice(-1200)].filter(Boolean)
+                            .join('\n')}
                     </pre>
-                ) : null}
-            </div>
+                </details>
+            ) : null}
 
             <pre
                 style={{
@@ -349,8 +141,38 @@ const LiveCodePanel = () => {
                     </div>
                 ))}
             </pre>
+        </div>
+    );
+};
 
-            <SerialMonitorPanel connected={upload.connected} />
+// Optional side panel: generated C++ and the board's serial output, both hidden by default.
+const LiveCodePanel = () => {
+    const {showCodePanel, showSerial, K} = useStudio();
+    const upload = useUpload();
+
+    if (!showCodePanel && !showSerial) {
+        return null;
+    }
+
+    return (
+        <aside
+            style={{
+                width: 300,
+                flexShrink: 0,
+                background: K.codeBg,
+                borderLeft: `1px solid ${K.border}`,
+                display: 'flex',
+                flexDirection: 'column',
+                minHeight: 0
+            }}
+        >
+            {showCodePanel ? <CodeSection K={K} /> : null}
+            {showSerial ? (
+                <SerialMonitorPanel
+                    connected={upload.connected}
+                    fill={!showCodePanel}
+                />
+            ) : null}
         </aside>
     );
 };

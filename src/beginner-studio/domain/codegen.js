@@ -2,9 +2,25 @@ import {cEscape, hasCloud} from './cloud';
 import {cloudFirmware} from './cloudFirmware';
 import {moduleById} from './modules';
 import {portById} from './ports';
-import {formatCondition} from './condition';
+import {buildValueOptions, formatCondition} from './condition';
+import {sensorReaders, varsReadBy, varsUsedBy} from './sensorReads';
 
 const indent = (level, text) => `${'  '.repeat(level)}${text}`;
+
+/** A number setting clamped to what the hardware accepts; empty or garbage falls back. */
+const num = (value, fallback, min, max) => {
+    const n = Number(value);
+    const v = value === '' || value === null || typeof value === 'undefined' || !Number.isFinite(n) ? fallback : n;
+    return Math.min(max, Math.max(min, v));
+};
+
+const IDENT_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
+
+/** Value names the generated sketch declares for these parts. */
+const knownValues = connections => buildValueOptions(connections).reduce((acc, o) => {
+    acc[o.id] = true;
+    return acc;
+}, {});
 
 const connectionLookup = connections => {
     const byId = {};
@@ -376,10 +392,10 @@ const emitLeaf = (block, connById, level) => {
     const modLabel = mod ? mod.name : (block.type || 'block');
     const serialLabel = (msg, valueExpr) => {
         if (valueExpr == null) {
-            lines.push(indent(level, `Serial.println(F("${String(msg).replace(/"/g, '\\"')}"));`));
+            lines.push(indent(level, `Serial.println(F("${cEscape(msg)}"));`));
             return;
         }
-        lines.push(indent(level, `Serial.print(F("${String(msg).replace(/"/g, '\\"')}"));`));
+        lines.push(indent(level, `Serial.print(F("${cEscape(msg)}"));`));
         lines.push(indent(level, `Serial.println(${valueExpr});`));
     };
 
@@ -396,26 +412,30 @@ const emitLeaf = (block, connById, level) => {
         lines.push(indent(level, `digitalWrite(${pin}, LOW);`));
         serialLabel(`${modLabel}: OFF`);
         break;
-    case 'blink':
+    case 'blink': {
+        const ms = Math.round(num(p.ms, 500, 20, 60000));
         lines.push(indent(level, `digitalWrite(${pin}, HIGH);`));
-        lines.push(indent(level, `delay(${Number(p.ms) || 500});`));
+        lines.push(indent(level, `delay(${ms});`));
         lines.push(indent(level, `digitalWrite(${pin}, LOW);`));
-        lines.push(indent(level, `delay(${Number(p.ms) || 500});`));
-        serialLabel(`${modLabel}: blink ${Number(p.ms) || 500}ms`);
+        lines.push(indent(level, `delay(${ms});`));
+        serialLabel(`${modLabel}: blink ${ms}ms`);
         break;
+    }
     case 'set_brightness': {
         // ESP32 PWM via analogWrite — 0 = off, 255 = full (same jack as On/Off).
         const brightnessExpr = p.brightnessVar
             ? `map(constrain((int)${p.brightnessVar}, 0, 4095), 0, 4095, 0, 255)`
-            : String(Math.max(0, Math.min(255, Number(p.brightness) != null ? Number(p.brightness) : 128)));
+            : String(Math.round(num(p.brightness, 128, 0, 255)));
         lines.push(indent(level, `analogWrite(${pin}, ${brightnessExpr});`));
         serialLabel(`${modLabel}: brightness=`, brightnessExpr);
         break;
     }
-    case 'play_tone':
-        lines.push(indent(level, `tone(${pin}, ${Number(p.freq) || 1000});`));
-        serialLabel(`${modLabel}: tone `, String(Number(p.freq) || 1000));
+    case 'play_tone': {
+        const freq = Math.round(num(p.freq, 1000, 31, 20000));
+        lines.push(indent(level, `tone(${pin}, ${freq});`));
+        serialLabel(`${modLabel}: tone `, String(freq));
         break;
+    }
     case 'stop_tone':
         lines.push(indent(level, `noTone(${pin});`));
         serialLabel(`${modLabel}: tone off`);
@@ -423,11 +443,15 @@ const emitLeaf = (block, connById, level) => {
     case 'show_text':
         lines.push(indent(level, 'display.clearDisplay();'));
         lines.push(indent(level, 'display.setCursor(0, 0);'));
-        lines.push(indent(level, `display.println(F("${String(p.text || '').replace(/"/g, '\\"')}"));`));
+        lines.push(indent(level, `display.println(F("${cEscape(p.text || '')}"));`));
         lines.push(indent(level, 'display.display();'));
-        serialLabel(`OLED: ${String(p.text || '').replace(/"/g, '\\"')}`);
+        serialLabel(`OLED: ${p.text || ''}`);
         break;
     case 'show_number':
+        if (!IDENT_RE.test(p.varName || '') || !knownValues(Object.keys(connById).map(id => connById[id]))[p.varName]) {
+            lines.push(indent(level, '// Show number: pick a value to show'));
+            break;
+        }
         lines.push(indent(level, 'display.clearDisplay();'));
         lines.push(indent(level, 'display.setCursor(0, 0);'));
         lines.push(indent(level, `display.println(${p.varName || 'value'});`));
@@ -435,31 +459,31 @@ const emitLeaf = (block, connById, level) => {
         serialLabel(`OLED ${p.varName || 'value'}=`, p.varName || 'value');
         break;
     case 'set_angle':
-        lines.push(indent(level, `servo_${pin}.write(${Number(p.angle) || 90});`));
-        serialLabel(`${modLabel}: angle=`, String(Number(p.angle) || 90));
+        lines.push(indent(level, `servo_${pin}.write(${Math.round(num(p.angle, 90, 0, 180))});`));
+        serialLabel(`${modLabel}: angle=`, String(Math.round(num(p.angle, 90, 0, 180))));
         break;
     case 'relay_channel': {
-        const ch = Math.min(4, Math.max(1, Number(p.channel) || 1));
+        const ch = Math.round(num(p.channel, 1, 1, 4));
         const pinName = ch === 1 ? 'MOTOR_A1' : ch === 2 ? 'MOTOR_A2' : ch === 3 ? 'MOTOR_B1' : 'MOTOR_B2';
         // Active-LOW: ON drives pin LOW
-        const level = p.on === false ? 'HIGH' : 'LOW';
-        lines.push(indent(level, `digitalWrite(${pinName}, ${level});`));
+        const state = p.on === false ? 'HIGH' : 'LOW';
+        lines.push(indent(level, `digitalWrite(${pinName}, ${state});`));
         serialLabel(`Relay CH${ch}: `, p.on === false ? '"OFF"' : '"ON"');
         break;
     }
     case 'relay_all': {
-        const level = p.on === false ? 'HIGH' : 'LOW';
-        lines.push(indent(level, `digitalWrite(MOTOR_A1, ${level});`));
-        lines.push(indent(level, `digitalWrite(MOTOR_A2, ${level});`));
-        lines.push(indent(level, `digitalWrite(MOTOR_B1, ${level});`));
-        lines.push(indent(level, `digitalWrite(MOTOR_B2, ${level});`));
+        const state = p.on === false ? 'HIGH' : 'LOW';
+        lines.push(indent(level, `digitalWrite(MOTOR_A1, ${state});`));
+        lines.push(indent(level, `digitalWrite(MOTOR_A2, ${state});`));
+        lines.push(indent(level, `digitalWrite(MOTOR_B1, ${state});`));
+        lines.push(indent(level, `digitalWrite(MOTOR_B2, ${state});`));
         serialLabel('Relay ALL: ', p.on === false ? '"OFF"' : '"ON"');
         break;
     }
     case 'motor_speed': {
         const speedExpr = p.speedVar
             ? `map(constrain((int)${p.speedVar}, 0, 4095), 0, 4095, 0, 255)`
-            : String(Number(p.speed) || 0);
+            : String(Math.round(num(p.speed, 0, 0, 255)));
         const channel = (p.motor === 'B' || p.channel === 'B') ? 'B' : 'A';
         const reverse = p.dir === 'backward' || p.reverse === true;
         if (port && (port.kind === 'motor' || (mod && mod.id === 'l293d'))) {
@@ -491,11 +515,14 @@ const emitLeaf = (block, connById, level) => {
             serialLabel(`${modLabel}: STOP`);
         }
         break;
-    case 'stepper_move':
-        lines.push(indent(level, `stepperMotor.setSpeed(${Number(p.rpm) || 12});`));
-        lines.push(indent(level, `stepperMotor.step(${Number(p.steps) || 100});`));
-        serialLabel(`Stepper: ${Number(p.steps) || 100} steps @ ${Number(p.rpm) || 12} RPM`);
+    case 'stepper_move': {
+        const rpm = Math.round(num(p.rpm, 12, 1, 60));
+        const steps = Math.round(num(p.steps, 100, -10000, 10000));
+        lines.push(indent(level, `stepperMotor.setSpeed(${rpm});`));
+        lines.push(indent(level, `stepperMotor.step(${steps});`));
+        serialLabel(`Stepper: ${steps} steps @ ${rpm} RPM`);
         break;
+    }
     case 'rfid_read':
         lines.push(indent(level, 'if (mfrc522.PICC_IsNewCardPresent() && mfrc522.PICC_ReadCardSerial()) {'));
         lines.push(indent(level + 1, 'rfidUid = "";'));
@@ -507,6 +534,7 @@ const emitLeaf = (block, connById, level) => {
         lines.push(indent(level + 1, 'Serial.print(F("RFID UID="));'));
         lines.push(indent(level + 1, 'Serial.println(rfidUid);'));
         lines.push(indent(level, '} else {'));
+        lines.push(indent(level + 1, 'rfidUid = "";'));
         lines.push(indent(level + 1, 'Serial.println(F("RFID: no card"));'));
         lines.push(indent(level, '}'));
         break;
@@ -522,13 +550,13 @@ const emitLeaf = (block, connById, level) => {
     }
     case 'ble_send':
         lines.push(indent(level, `if (bleReady && pBleCharacteristic) {`));
-        lines.push(indent(level + 1, `pBleCharacteristic->setValue("${String(p.text || '').replace(/"/g, '\\"')}");`));
+        lines.push(indent(level + 1, `pBleCharacteristic->setValue("${cEscape(String(p.text || '').slice(0, 20))}");`));
         lines.push(indent(level + 1, 'pBleCharacteristic->notify();'));
-        lines.push(indent(level + 1, `Serial.println(F("BLE send: ${String(p.text || '').replace(/"/g, '\\"')}"));`));
+        lines.push(indent(level + 1, `Serial.println(F("BLE send: ${cEscape(String(p.text || '').slice(0, 20))}"));`));
         lines.push(indent(level, '}'));
         break;
     case 'hc05_send':
-        lines.push(indent(level, `Serial.println(F("${String(p.text || '').replace(/"/g, '\\"')}"));`));
+        lines.push(indent(level, `Serial.println(F("${cEscape(p.text || '')}"));`));
         break;
     case 'hc05_read':
         lines.push(indent(level, 'if (Serial.available()) {'));
@@ -697,12 +725,16 @@ const emitLeaf = (block, connById, level) => {
         lines.push(indent(level, 'cloudSendNow();'));
         break;
     case 'wait':
-        lines.push(indent(level, `delay(${Math.round((Number(p.seconds) || 1) * 1000)});`));
+        lines.push(indent(level, `delay(${Math.round(num(p.seconds, 1, 0, 3600) * 1000)});`));
         break;
     case 'serial_print':
-        lines.push(indent(level, `Serial.println(F("${String(p.text || '').replace(/"/g, '\\"')}"));`));
+        lines.push(indent(level, `Serial.println(F("${cEscape(p.text || '')}"));`));
         break;
     case 'serial_var':
+        if (!IDENT_RE.test(p.varName || '') || !knownValues(Object.keys(connById).map(id => connById[id]))[p.varName]) {
+            lines.push(indent(level, '// Print value: pick a value to print'));
+            break;
+        }
         lines.push(indent(level, `Serial.println(${p.varName || 'value'});`));
         break;
     default:
@@ -711,22 +743,51 @@ const emitLeaf = (block, connById, level) => {
     return lines;
 };
 
-const emitBlocks = (blocks, connById, level) => {
+/**
+ * @param {Array} blocks program list
+ * @param {object} connById connection id -> connection
+ * @param {number} level indent level
+ * @param {object} [readers] sensor variable -> reader from sensorReaders()
+ * @param {object} [fresh] variables already read earlier in this pass of the list
+ * @returns {Array<string>} C++ lines
+ */
+const emitBlocks = (blocks, connById, level, readers = {}, fresh = {}) => {
     let lines = [];
+    const seen = Object.assign({}, fresh);
+    const connections = Object.keys(connById).map(id => connById[id]);
     (blocks || []).forEach(block => {
+        // Conditions and shown values read their sensor right here unless it was just read.
+        varsUsedBy(block).forEach(v => {
+            const reader = readers[v];
+            if (!reader || seen[v] || !connById[reader.cid]) {
+                return;
+            }
+            lines = lines.concat(emitLeaf({type: reader.type, cid: reader.cid, params: {}}, connById, level));
+            reader.vars.forEach(r => {
+                seen[r] = true;
+            });
+        });
+        varsReadBy(block, connections).forEach(v => {
+            seen[v] = true;
+        });
         if (block.type === 'repeat') {
-            const n = Number(block.params && block.params.count) || 1;
+            const n = Math.round(num(block.params && block.params.count, 1, 0, 1000));
             lines.push(indent(level, `for (int i = 0; i < ${n}; i++) {`));
-            lines = lines.concat(emitBlocks(block.children, connById, level + 1));
+            lines = lines.concat(emitBlocks(block.children, connById, level + 1, readers, {}));
             lines.push(indent(level, '}'));
             return;
         }
         if (block.type === 'if_then') {
-            const cond = formatCondition(block.params);
+            const sensor = block.params && block.params.sensor;
+            const missing = sensor && !(block.params.condition) && !knownValues(connections)[sensor];
+            if (missing) {
+                lines.push(indent(level, '// This If uses a sensor that is not on the board any more'));
+            }
+            const cond = missing ? 'false' : formatCondition(block.params);
             lines.push(indent(level, `if (${cond}) {`));
-            lines = lines.concat(emitBlocks(block.children, connById, level + 1));
+            lines = lines.concat(emitBlocks(block.children, connById, level + 1, readers, seen));
             lines.push(indent(level, '} else {'));
-            lines = lines.concat(emitBlocks(block.elseChildren, connById, level + 1));
+            lines = lines.concat(emitBlocks(block.elseChildren, connById, level + 1, readers, seen));
             lines.push(indent(level, '}'));
             return;
         }
@@ -789,7 +850,7 @@ const generateArduino = (connections, program, options = {}) => {
     if (cloud) {
         cloud.setup.forEach(line => setupBody.push(line));
     }
-    const loopBody = emitBlocks(program, connById, 1);
+    const loopBody = emitBlocks(program, connById, 1, sensorReaders(connections));
     if (!loopBody.length) {
         loopBody.push(indent(1, '// Add blocks in the Code tab'));
         loopBody.push(indent(1, 'delay(100);'));
@@ -799,15 +860,8 @@ const generateArduino = (connections, program, options = {}) => {
     }
 
     const out = [];
-    out.push('// TinkerBit Beginner Studio — Maker ESP32 RJ11 map');
-    out.push('// D5 jack Trig=IO26 Echo=IO25  D13=33  3D SS=32 RST=33 MISO=34');
-    out.push('// RFID SPI bus SCK=16 MOSI=23 (D5 free for HC-SR04)  ST=12,13,14,27');
-    out.push('// MD jack: IO17/IO5/IO18/IO19 — L293D motors or 4-ch relay (active-LOW)');
-    out.push('// I2C SDA=21 SCL=22 (OLED + HW-605/MAX30102)  BLE=onboard');
-    out.push('// Analog ADC2: A1=4 A2=15 A3=2 A4=0 (A4 is BOOT — do not hold LOW at reset)');
-    out.push('// Requires ESP32Servo + SparkFun MAX3010x (for HW-605) libraries');
-    out.push('// DHT11 uses built-in bit-bang (no DHT.h) — sample every 2s');
-    out.push('// Use Upload in the Code tab (Chrome/Edge + Web Serial).');
+    out.push('// Made with TinkerBit Beginner Studio for the Maker ESP32 RJ11 kit.');
+    out.push('// Arduino IDE users: install the ESP32Servo and SparkFun MAX3010x libraries.');
     out.push('');
     out.push('#define SDA_PIN 21');
     out.push('#define SCL_PIN 22');

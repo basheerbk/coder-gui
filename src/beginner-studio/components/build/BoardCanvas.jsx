@@ -12,8 +12,14 @@ import Port, {SpareJack} from './Port.jsx';
 /** Screen pixels per world unit: the scene fills the canvas, within limits. */
 const fitScale = (w, h) => Math.max(0.7, Math.min(1.8, Math.min(w / SCENE.w, h / SCENE.h)));
 
-const centeredPan = (w, h) => {
-    const s = fitScale(w, h);
+/** Zoom is relative to the fitted scale: 1 = fit. */
+const ZOOM_MIN = 0.5;
+const ZOOM_MAX = 3;
+const ZOOM_STEP = 1.2;
+const clampZoom = z => Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, z));
+
+const centeredPan = (w, h, zoom = 1) => {
+    const s = fitScale(w, h) * zoom;
     return {
         x: (((w / s) - SCENE.w) / 2) - SCENE.x,
         y: (((h / s) - SCENE.h) / 2) - SCENE.y
@@ -56,20 +62,91 @@ const BoardCanvas = () => {
     const userMovedRef = useRef(false);
     const skipClickRef = useRef(false);
 
+    const zoomRef = useRef(1);
+    const sizeRef = useRef({w: 800, h: 520});
+
     const [size, setSize] = useState({w: 800, h: 520});
     const [pan, setPan] = useState({x: 0, y: 0});
+    const [zoom, setZoom] = useState(1);
     const [dragging, setDragging] = useState(false);
     const [dragModule, setDragModule] = useState(null);
     const [dragBend, setDragBend] = useState(null);
 
     const selectedDef = selectedModule ? moduleById(selectedModule) : null;
-    const scale = fitScale(size.w, size.h);
+    const scale = fitScale(size.w, size.h) * zoom;
     const usedPorts = useMemo(() => usedPortMap(connections), [connections]);
     const liveLinks = useMemo(() => portLinks(connections, K), [connections, K]);
 
     useEffect(() => {
         panRef.current = pan;
     }, [pan]);
+
+    /** Zoom keeping the world point under (sx, sy) — canvas pixels, default centre — in place. */
+    const zoomTo = useCallback((nextZoom, sx, sy) => {
+        const {w, h} = sizeRef.current;
+        const z = clampZoom(nextZoom);
+        const oldScale = fitScale(w, h) * zoomRef.current;
+        const newScale = fitScale(w, h) * z;
+        const ax = typeof sx === 'number' ? sx : w / 2;
+        const ay = typeof sy === 'number' ? sy : h / 2;
+        const p = panRef.current;
+        const next = {
+            x: (ax / newScale) - ((ax / oldScale) - p.x),
+            y: (ay / newScale) - ((ay / oldScale) - p.y)
+        };
+        zoomRef.current = z;
+        panRef.current = next;
+        userMovedRef.current = true;
+        setZoom(z);
+        setPan(next);
+    }, []);
+
+    const zoomIn = useCallback(() => zoomTo(zoomRef.current * ZOOM_STEP), [zoomTo]);
+    const zoomOut = useCallback(() => zoomTo(zoomRef.current / ZOOM_STEP), [zoomTo]);
+    const zoomFit = useCallback(() => {
+        const {w, h} = sizeRef.current;
+        const centered = centeredPan(w, h, 1);
+        zoomRef.current = 1;
+        panRef.current = centered;
+        userMovedRef.current = false;
+        setZoom(1);
+        setPan(centered);
+    }, []);
+
+    useEffect(() => {
+        const el = wrapRef.current;
+        if (!el) {
+            return undefined;
+        }
+        // Non-passive so the page does not scroll while zooming the board.
+        const onWheel = event => {
+            event.preventDefault();
+            const rect = el.getBoundingClientRect();
+            const factor = Math.exp(-event.deltaY * (event.ctrlKey ? 0.01 : 0.0015));
+            zoomTo(zoomRef.current * factor, event.clientX - rect.left, event.clientY - rect.top);
+        };
+        el.addEventListener('wheel', onWheel, {passive: false});
+        return () => el.removeEventListener('wheel', onWheel);
+    }, [zoomTo]);
+
+    useEffect(() => {
+        const onKey = event => {
+            const t = event.target;
+            if (event.ctrlKey || event.metaKey || event.altKey ||
+                (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)))) {
+                return;
+            }
+            if (event.key === '+' || event.key === '=') {
+                zoomIn();
+            } else if (event.key === '-' || event.key === '_') {
+                zoomOut();
+            } else if (event.key === '0') {
+                zoomFit();
+            }
+        };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+    }, [zoomIn, zoomOut, zoomFit]);
 
     useEffect(() => {
         const el = wrapRef.current;
@@ -81,9 +158,10 @@ const BoardCanvas = () => {
             if (next.w < 8 || next.h < 8) {
                 return;
             }
+            sizeRef.current = next;
             setSize(next);
             if (!userMovedRef.current) {
-                const centered = centeredPan(next.w, next.h);
+                const centered = centeredPan(next.w, next.h, zoomRef.current);
                 panRef.current = centered;
                 setPan(centered);
             }
@@ -314,6 +392,124 @@ const BoardCanvas = () => {
                     />
                 </g>
             </svg>
+            <ZoomControls
+                K={K}
+                zoom={zoom}
+                onZoomIn={zoomIn}
+                onZoomOut={zoomOut}
+                onFit={zoomFit}
+            />
+        </div>
+    );
+};
+
+const ZoomButton = ({K, label, title, disabled, onClick, children, wide}) => (
+    <button
+        type="button"
+        aria-label={label}
+        title={title}
+        disabled={disabled}
+        onClick={onClick}
+        style={{
+            font: 'inherit',
+            fontSize: wide ? 11 : 18,
+            fontWeight: 700,
+            lineHeight: 1,
+            minWidth: wide ? 48 : 32,
+            height: 32,
+            padding: wide ? '0 6px' : 0,
+            borderRadius: 8,
+            border: 0,
+            background: 'transparent',
+            color: K.text,
+            opacity: disabled ? 0.35 : 1,
+            cursor: disabled ? 'default' : 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+        }}
+    >
+        {children}
+    </button>
+);
+
+const ICON_PROPS = {
+    'width': 16,
+    'height': 16,
+    'viewBox': '0 0 16 16',
+    'fill': 'none',
+    'stroke': 'currentColor',
+    'strokeWidth': 1.8,
+    'strokeLinecap': 'round',
+    'strokeLinejoin': 'round',
+    'aria-hidden': true
+};
+
+// Clicks and drags on the toolbar must not pan the board or clear the selection.
+const stopEvent = event => event.stopPropagation();
+
+const ZoomControls = ({K, zoom, onZoomIn, onZoomOut, onFit}) => {
+    const iconProps = ICON_PROPS;
+    return (
+        <div
+            role="toolbar"
+            aria-label="Zoom"
+            onClick={stopEvent}
+            onPointerDown={stopEvent}
+            style={{
+                position: 'absolute',
+                right: 12,
+                bottom: 12,
+                zIndex: 3,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 2,
+                padding: 3,
+                background: K.panel,
+                border: `1px solid ${K.border}`,
+                borderRadius: 10,
+                boxShadow: '0 4px 14px rgba(0,0,0,0.15)',
+                cursor: 'default'
+            }}
+        >
+            <ZoomButton
+                K={K}
+                label="Zoom out"
+                title="Zoom out (−)"
+                disabled={zoom <= ZOOM_MIN + 1e-3}
+                onClick={onZoomOut}
+            >
+                <svg {...iconProps}><path d="M3.5 8h9" /></svg>
+            </ZoomButton>
+            <ZoomButton
+                wide
+                K={K}
+                label="Reset zoom"
+                title="Reset zoom (0)"
+                onClick={onFit}
+            >
+                {`${Math.round(zoom * 100)}%`}
+            </ZoomButton>
+            <ZoomButton
+                K={K}
+                label="Zoom in"
+                title="Zoom in (+)"
+                disabled={zoom >= ZOOM_MAX - 1e-3}
+                onClick={onZoomIn}
+            >
+                <svg {...iconProps}><path d="M3.5 8h9M8 3.5v9" /></svg>
+            </ZoomButton>
+            <div style={{width: 1, height: 20, background: K.border, margin: '0 2px'}} />
+            <ZoomButton
+                K={K}
+                label="Fit board to screen"
+                title="Fit to screen (0)"
+                onClick={onFit}
+            >
+                <svg {...iconProps}>
+                    <path d="M2.5 6V2.5H6M10 2.5h3.5V6M13.5 10v3.5H10M6 13.5H2.5V10" />
+                </svg>
+            </ZoomButton>
         </div>
     );
 };

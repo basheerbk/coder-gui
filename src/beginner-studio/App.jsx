@@ -4,11 +4,11 @@ import BuildView from './components/build/BuildView.jsx';
 import CloudSetupModal from './components/cloud/CloudSetupModal.jsx';
 import CodeView from './components/code/CodeView.jsx';
 import QuickStartBar from './components/layout/QuickStartBar.jsx';
-import StatusBar from './components/layout/StatusBar.jsx';
 import TopBar from './components/layout/TopBar.jsx';
 import ProjectLibraryModal from './components/projects/ProjectLibraryModal.jsx';
 import Keyframes from './components/shared/Keyframes.jsx';
 import {StudioProvider, useStudio} from './context/StudioContext.jsx';
+import {UploadProvider} from './context/UploadContext.jsx';
 import {baseApp} from './domain/tokens';
 
 class ErrorBoundary extends React.Component {
@@ -24,13 +24,35 @@ class ErrorBoundary extends React.Component {
     render () {
         if (this.state.error) {
             return (
-                <div style={{padding: 24, fontFamily: 'system-ui', color: '#111'}}>
-                    <h2>Beginner Studio hit an error</h2>
-                    <pre style={{whiteSpace: 'pre-wrap', color: '#b91c1c'}}>
-                        {String(this.state.error && this.state.error.stack ?
-                            this.state.error.stack :
-                            this.state.error)}
-                    </pre>
+                <div style={{padding: 32, fontFamily: 'system-ui', color: '#111', maxWidth: 560}}>
+                    <h2 style={{margin: '0 0 8px'}}>Oops, something went wrong</h2>
+                    <p style={{margin: '0 0 16px', color: '#444'}}>
+                        Reload the page to keep going.
+                    </p>
+                    <button
+                        type="button"
+                        onClick={() => window.location.reload()}
+                        style={{
+                            border: 'none',
+                            background: '#3b82f6',
+                            color: '#fff',
+                            borderRadius: 8,
+                            padding: '8px 16px',
+                            fontSize: 14,
+                            fontWeight: 600,
+                            cursor: 'pointer'
+                        }}
+                    >
+                        Reload
+                    </button>
+                    <details style={{marginTop: 20, color: '#666', fontSize: 12}}>
+                        <summary style={{cursor: 'pointer'}}>Details</summary>
+                        <pre style={{whiteSpace: 'pre-wrap', color: '#b91c1c'}}>
+                            {String(this.state.error && this.state.error.stack ?
+                                this.state.error.stack :
+                                this.state.error)}
+                        </pre>
+                    </details>
                 </div>
             );
         }
@@ -46,17 +68,18 @@ const AppShell = () => {
             <TopBar />
             <QuickStartBar />
             {view === 'build' ? <BuildView /> : <CodeView />}
-            <StatusBar />
             <ProjectLibraryModal />
             <CloudSetupModal />
         </div>
     );
 };
 
-const App = () => (
+const App = ({user}) => (
     <ErrorBoundary>
-        <StudioProvider>
-            <AppShell />
+        <StudioProvider user={user || null}>
+            <UploadProvider>
+                <AppShell />
+            </UploadProvider>
         </StudioProvider>
     </ErrorBoundary>
 );

@@ -2,7 +2,9 @@ import React from 'react';
 
 import {paletteChipMeta} from '../../domain/blockMeta';
 import {useStudio} from '../../context/StudioContext.jsx';
+import {buildSensorOptions, ifParamsFor} from '../../domain/condition';
 import {CONTROL_BLOCKS, moduleById} from '../../domain/modules';
+import {SILENT_READS} from '../../domain/sensorReads';
 import EmptyState from '../shared/EmptyState.jsx';
 import ModuleIcon from '../shared/ModuleIcon.jsx';
 
@@ -23,15 +25,15 @@ const MiniNode = ({color, iconId, label, onClick}) => (
             display: 'flex',
             alignItems: 'center',
             gap: 8,
-            minHeight: 40,
+            minHeight: 44,
             color: '#fff'
         }}
     >
         <div
             style={{
-                width: 24,
-                height: 24,
-                borderRadius: 7,
+                width: 28,
+                height: 28,
+                borderRadius: 8,
                 background: 'rgba(255,255,255,0.22)',
                 display: 'flex',
                 alignItems: 'center',
@@ -39,11 +41,11 @@ const MiniNode = ({color, iconId, label, onClick}) => (
                 flexShrink: 0
             }}
         >
-            <ModuleIcon id={iconId} color="#fff" size={13} />
+            <ModuleIcon id={iconId} color="#fff" size={15} />
         </div>
         <span
             style={{
-                fontSize: 11,
+                fontSize: 13,
                 fontWeight: 800,
                 color: '#fff',
                 lineHeight: 1.25,
@@ -56,44 +58,83 @@ const MiniNode = ({color, iconId, label, onClick}) => (
     </button>
 );
 
+const tabStyle = (active, K) => ({
+    flex: 1,
+    border: 'none',
+    borderRadius: 8,
+    padding: '7px 4px',
+    fontSize: 12,
+    fontWeight: 700,
+    cursor: 'pointer',
+    background: active ? K.accent : K.surface,
+    color: active ? '#fff' : K.sub
+});
+
+const GroupTitle = ({mod, K}) => (
+    <div
+        style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            margin: '6px 2px 6px',
+            fontSize: 11,
+            fontWeight: 700,
+            letterSpacing: 0.4,
+            color: K.dim
+        }}
+    >
+        <ModuleIcon id={mod.id} color={K.dim} size={12} />
+        {mod.name}
+    </div>
+);
+
 const BlockPalette = () => {
     const {
         connections,
         blockPaletteCategory,
         setBlockPaletteCategory,
         addBlock,
+        addTarget,
+        setAddTarget,
         setView,
         K
     } = useStudio();
 
-    const actionButtons = [];
-    connections.forEach(conn => {
+    const sensorOptions = buildSensorOptions(connections);
+    const groups = connections.map(conn => {
         const mod = moduleById(conn.moduleId);
         if (!mod) {
-            return;
+            return null;
         }
-        (mod.actions || []).forEach(action => {
-            const meta = paletteChipMeta(action.type, {
-                cid: conn.id,
-                moduleId: mod.id,
-                color: mod.color,
-                label: `${action.label} · ${mod.name}`
-            }, K);
-            actionButtons.push({
+        const buttons = [];
+        // Sensors are used through an If block that reads them; no separate "read" step.
+        sensorOptions.filter(opt => opt.moduleId === mod.id).forEach(opt => {
+            const label = opt.boolean ?
+                `When ${opt.label.toLowerCase()} ${opt.phrase}` :
+                `If ${opt.label.toLowerCase()} is…`;
+            buttons.push({
+                key: `${conn.id}_if_${opt.id}`,
+                meta: paletteChipMeta('if_then', {label, moduleId: mod.id}),
+                onClick: () => addBlock('if_then', {params: ifParamsFor(opt)})
+            });
+        });
+        (mod.actions || []).filter(action => SILENT_READS.indexOf(action.type) === -1).forEach(action => {
+            buttons.push({
                 key: `${conn.id}_${action.type}`,
-                meta,
+                meta: paletteChipMeta(action.type, {moduleId: mod.id}),
                 onClick: () => addBlock(action.type, {
                     cid: conn.id,
                     params: Object.assign({}, action.params || {})
                 })
             });
         });
-    });
+        return buttons.length ? {key: conn.id, mod, buttons} : null;
+    }).filter(Boolean);
 
     return (
         <aside
             style={{
-                width: 220,
+                width: 232,
                 flexShrink: 0,
                 background: K.panel,
                 borderRight: `1px solid ${K.border}`,
@@ -102,85 +143,87 @@ const BlockPalette = () => {
                 minHeight: 0
             }}
         >
-            <div style={{padding: '10px 10px 6px', fontSize: 10, fontWeight: 700, color: K.muted, letterSpacing: 0.6}}>
-                HARDWARE
-            </div>
-            <div style={{display: 'flex', flexWrap: 'wrap', gap: 4, padding: '0 10px 10px'}}>
-                {connections.length === 0 ? (
-                    <span style={{fontSize: 11, color: K.dim}}>No modules yet</span>
-                ) : connections.map(conn => {
-                    const mod = moduleById(conn.moduleId);
-                    if (!mod) {
-                        return null;
-                    }
-                    return (
-                        <span
-                            key={conn.id}
-                            style={{
-                                fontSize: 10,
-                                background: K.surface,
-                                borderRadius: 999,
-                                padding: '3px 8px',
-                                color: K.sub,
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 5
-                            }}
-                        >
-                            <ModuleIcon id={mod.id} color={mod.color} size={12} />
-                            {mod.name}
-                        </span>
-                    );
-                })}
+            <div style={{display: 'flex', gap: 4, padding: '10px 10px 8px'}}>
+                <button
+                    type="button"
+                    onClick={() => setBlockPaletteCategory('actions')}
+                    style={tabStyle(blockPaletteCategory === 'actions', K)}
+                >
+                    {'Parts'}
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setBlockPaletteCategory('control')}
+                    style={tabStyle(blockPaletteCategory === 'control', K)}
+                >
+                    {'Control'}
+                </button>
             </div>
 
-            <div style={{display: 'flex', gap: 4, padding: '0 10px 8px'}}>
-                {[
-                    {id: 'actions', label: 'Actions'},
-                    {id: 'control', label: 'Control'}
-                ].map(tab => (
+            {addTarget ? (
+                <div
+                    role="status"
+                    style={{
+                        margin: '0 10px 8px',
+                        padding: '8px 10px',
+                        borderRadius: 10,
+                        background: `${K.accent}1f`,
+                        border: `1px solid ${K.accent}66`,
+                        color: K.text,
+                        fontSize: 12,
+                        fontWeight: 600,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8
+                    }}
+                >
+                    <span style={{flex: 1}}>
+                        {addTarget.branch === 'else' ? 'Next block goes in “otherwise”' : 'Next block goes inside'}
+                    </span>
                     <button
-                        key={tab.id}
                         type="button"
-                        onClick={() => setBlockPaletteCategory(tab.id)}
+                        onClick={() => setAddTarget(null)}
                         style={{
-                            flex: 1,
                             border: 'none',
-                            borderRadius: 8,
-                            padding: '6px 4px',
-                            fontSize: 10,
+                            background: 'transparent',
+                            color: K.accent,
+                            fontSize: 12,
                             fontWeight: 700,
                             cursor: 'pointer',
-                            background: blockPaletteCategory === tab.id ? K.accent : K.surface,
-                            color: blockPaletteCategory === tab.id ? '#fff' : K.sub
+                            padding: 0
                         }}
                     >
-                        {tab.label}
+                        {'Cancel'}
                     </button>
-                ))}
-            </div>
+                </div>
+            ) : null}
 
             <div style={{overflowY: 'auto', padding: '0 10px 12px', flex: 1}}>
                 {blockPaletteCategory === 'actions' ? (
-                    connections.length === 0 ? (
+                    groups.length === 0 ? (
                         <EmptyState
-                            title="Wire something first"
-                            hint="Go to Build, pick a module, and click a port."
+                            title="Add a part first"
+                            hint="Go to Build, pick a part, and click a glowing port."
                             actionLabel="Open Build"
                             onAction={() => setView('build')}
                         />
-                    ) : actionButtons.map(btn => (
-                        <MiniNode
-                            key={btn.key}
-                            color={btn.meta.color}
-                            iconId={btn.meta.iconId}
-                            label={btn.meta.label}
-                            onClick={btn.onClick}
-                        />
+                    ) : groups.map(group => (
+                        <div key={group.key} style={{marginBottom: 6}}>
+                            {groups.length > 1 ? <GroupTitle mod={group.mod} K={K} /> : null}
+                            {group.buttons.map(btn => (
+                                <MiniNode
+                                    key={btn.key}
+                                    color={btn.meta.color}
+                                    iconId={btn.meta.iconId}
+                                    label={btn.meta.label}
+                                    onClick={btn.onClick}
+                                />
+                            ))}
+                        </div>
                     ))
                 ) : (
                     CONTROL_BLOCKS.map(ctrl => {
-                        const meta = paletteChipMeta(ctrl.type, {label: ctrl.label}, K);
+                        const meta = paletteChipMeta(ctrl.type);
                         return (
                             <MiniNode
                                 key={ctrl.type}

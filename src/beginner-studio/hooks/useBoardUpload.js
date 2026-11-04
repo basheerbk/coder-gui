@@ -12,6 +12,7 @@ const BEGINNER_DEVICE_ID = 'arduinoEsp32';
 const useBoardUpload = () => {
     const [phase, setPhase] = useState('idle'); // idle | connecting | uploading | success | error
     const [message, setMessage] = useState('');
+    const [progress, setProgress] = useState(null);
     const [log, setLog] = useState('');
     const [connected, setConnected] = useState(false);
     const [portLabel, setPortLabel] = useState('');
@@ -89,7 +90,8 @@ const useBoardUpload = () => {
         }
 
         setPhase('uploading');
-        setMessage('Compiling… then hold BOOT if progress stalls near 5%');
+        setMessage('Compiling…');
+        setProgress(null);
         setLog('');
 
         try {
@@ -98,8 +100,10 @@ const useBoardUpload = () => {
                 BEGINNER_DEVICE_ID,
                 source,
                 (text, pct) => {
-                    const suffix = pct != null ? ` (${pct}%)` : '';
-                    setMessage(`${text}${suffix}`);
+                    setMessage(text);
+                    if (pct != null) {
+                        setProgress(pct);
+                    }
                 },
                 chunk => {
                     setLog(prev => `${prev}${chunk}`);
@@ -128,6 +132,7 @@ const useBoardUpload = () => {
     return {
         phase,
         message,
+        progress,
         log,
         connected,
         portLabel,

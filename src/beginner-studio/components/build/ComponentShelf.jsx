@@ -7,12 +7,13 @@ import {fitsWithCloud} from '../../domain/ports';
 import ModuleIcon from '../shared/ModuleIcon.jsx';
 
 const FILTERS = [
-    {id: 'all', label: 'All'},
-    {id: 'sensor', label: 'Sensors'},
-    {id: 'input', label: 'Inputs'},
-    {id: 'output', label: 'Outputs'},
-    {id: 'cloud', label: 'Cloud'}
+    {id: 'all', label: 'All', categories: null},
+    {id: 'sense', label: 'Sense', title: 'Parts that feel, hear or measure things', categories: ['sensor', 'input']},
+    {id: 'do', label: 'Do', title: 'Parts that light up, move or show things', categories: ['output']},
+    {id: 'cloud', label: 'Cloud', title: 'Talk to your phone over WiFi', categories: ['cloud']}
 ];
+
+const filterById = id => FILTERS.find(f => f.id === id) || FILTERS[0];
 
 /** Why a part cannot be picked right now (shown instead of its description), or null. */
 const unavailableReason = (mod, cloudOn, bleOn) => {
@@ -28,11 +29,12 @@ const unavailableReason = (mod, cloudOn, bleOn) => {
     return null;
 };
 
-const FilterPill = ({active, label, onClick, K}) => {
+const FilterPill = ({active, label, title, onClick, K}) => {
     const [hover, setHover] = useState(false);
     return (
         <button
             type="button"
+            title={title}
             onClick={onClick}
             onMouseEnter={() => setHover(true)}
             onMouseLeave={() => setHover(false)}
@@ -54,111 +56,96 @@ const FilterPill = ({active, label, onClick, K}) => {
     );
 };
 
-const ComponentRow = ({mod, connected, unavailable, selected, onSelect, K}) => {
+const ComponentTile = ({mod, connected, unavailable, selected, onSelect, K}) => {
     const [hover, setHover] = useState(false);
-    const liveHover = hover && !connected && !unavailable;
-    const bg = selected ?
-        `${mod.color}22` :
-        (liveHover ? `${mod.color}18` : 'transparent');
-    const bar = selected || liveHover ? `inset 3px 0 0 ${mod.color}` : 'none';
+    const live = !connected && !unavailable;
+    const lit = selected || (hover && live);
+    const tip = unavailable || (connected ? `${mod.name} is already on the board` : mod.description);
 
     return (
-        <tr
+        <button
+            type="button"
+            aria-pressed={selected}
+            aria-label={`${mod.name}: ${tip}`}
+            title={tip}
             onClick={() => {
-                // Unavailable rows still call onSelect so the board explains why.
+                // Unavailable tiles still call onSelect so the board explains why.
                 if (!connected) {
                     onSelect(mod.id);
                 }
             }}
             onMouseEnter={() => setHover(true)}
             onMouseLeave={() => setHover(false)}
-            title={unavailable || undefined}
             style={{
+                position: 'relative',
+                font: 'inherit',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'flex-start',
+                gap: 6,
+                minHeight: 82,
+                padding: '10px 6px 8px',
+                borderRadius: 12,
+                border: `1.5px solid ${selected ? mod.color : (lit ? `${mod.color}88` : K.border)}`,
+                background: selected ? `${mod.color}22` : (lit ? `${mod.color}12` : K.panel),
                 cursor: connected ? 'default' : (unavailable ? 'not-allowed' : 'pointer'),
-                background: bg,
-                boxShadow: bar,
-                opacity: connected || unavailable ? 0.45 : 1,
-                transform: liveHover ? 'translateX(3px)' : 'none',
-                transition: 'background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease, opacity 0.15s ease'
+                opacity: connected || unavailable ? 0.5 : 1,
+                transform: hover && live ? 'translateY(-2px)' : 'none',
+                boxShadow: hover && live ? `0 6px 16px ${mod.color}33` : 'none',
+                transition: 'background 0.15s ease, border-color 0.15s ease, transform 0.15s ease, ' +
+                    'box-shadow 0.15s ease, opacity 0.15s ease'
             }}
         >
-            <td style={{padding: '7px 4px 7px 10px', verticalAlign: 'middle'}}>
-                <div
-                    style={{
-                        width: 24,
-                        height: 24,
-                        borderRadius: 6,
-                        background: `${mod.color}${liveHover || selected ? '44' : '22'}`,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        transform: liveHover ? 'scale(1.12)' : 'scale(1)',
-                        transition: 'transform 0.15s ease, background 0.15s ease'
-                    }}
-                >
-                    <ModuleIcon id={mod.id} color={mod.color} size={16} title={mod.name} />
-                </div>
-            </td>
-            <td style={{padding: '7px 6px 7px 10px', verticalAlign: 'middle'}}>
-                <div style={{fontSize: 11, fontWeight: 700, color: K.text, lineHeight: 1.2}}>
-                    {mod.name}
-                </div>
-                <div
-                    style={{
-                        fontSize: 9,
-                        color: unavailable ? K.orange : (liveHover ? K.sub : K.dim),
-                        lineHeight: 1.3,
-                        marginTop: 2,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                        transition: 'color 0.15s ease'
-                    }}
-                >
-                    {unavailable || mod.description}
-                </div>
-            </td>
-            <td style={{padding: '7px 4px', verticalAlign: 'middle'}}>
-                <span
-                    style={{
-                        fontSize: 8,
-                        padding: '2px 5px',
-                        borderRadius: 4,
-                        fontWeight: 700,
-                        background: mod.signal === 'analog' ? `${K.analog}33` : `${K.digital}33`,
-                        color: mod.signal === 'analog' ? K.analog : K.digital
-                    }}
-                >
-                    {mod.signal === 'analog' ? 'ANA' : (mod.category === 'cloud' ? 'WIFI' : 'DIG')}
-                </span>
-            </td>
-            <td style={{padding: '7px 4px', verticalAlign: 'middle'}}>
-                <span
-                    style={{
-                        fontSize: 8,
-                        padding: '2px 5px',
-                        borderRadius: 4,
-                        fontWeight: 700,
-                        background: K.surface,
-                        color: K.dim
-                    }}
-                >
-                    {mod.dir === 'in' ? 'IN' : 'OUT'}
-                </span>
-            </td>
-            <td
+            <span
                 style={{
-                    padding: '7px 8px 7px 0',
-                    verticalAlign: 'middle',
-                    textAlign: 'center',
-                    fontSize: 11,
-                    color: connected ? K.green : K.accent,
-                    fontWeight: 700
+                    width: 38,
+                    height: 38,
+                    borderRadius: 10,
+                    background: `${mod.color}${lit ? '40' : '24'}`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'background 0.15s ease'
                 }}
             >
-                {connected ? 'On' : (liveHover ? 'Use' : '')}
-            </td>
-        </tr>
+                <ModuleIcon id={mod.id} color={mod.color} size={24} title={mod.name} />
+            </span>
+            <span
+                style={{
+                    fontSize: 12,
+                    fontWeight: 700,
+                    color: K.text,
+                    lineHeight: 1.25,
+                    textAlign: 'center',
+                    overflowWrap: 'anywhere'
+                }}
+            >
+                {mod.name}
+            </span>
+            {connected ? (
+                <span
+                    aria-hidden
+                    style={{
+                        position: 'absolute',
+                        top: 6,
+                        right: 6,
+                        width: 18,
+                        height: 18,
+                        borderRadius: 9,
+                        background: K.green,
+                        color: '#fff',
+                        fontSize: 11,
+                        fontWeight: 800,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                    }}
+                >
+                    ✓
+                </span>
+            ) : null}
+        </button>
     );
 };
 
@@ -172,17 +159,6 @@ const ComponentShelf = () => {
         K
     } = useStudio();
 
-    const th = {
-        fontSize: 9,
-        fontWeight: 700,
-        letterSpacing: 0.4,
-        color: K.muted,
-        textAlign: 'left',
-        padding: '6px 6px',
-        borderBottom: `1px solid ${K.border}`,
-        whiteSpace: 'nowrap'
-    };
-
     const used = {};
     connections.forEach(c => {
         used[c.moduleId] = true;
@@ -190,7 +166,8 @@ const ComponentShelf = () => {
 
     const cloudOn = hasCloud(connections);
     const bleOn = hasBle(connections);
-    const list = MODULES.filter(m => categoryFilter === 'all' || m.category === categoryFilter);
+    const filter = filterById(categoryFilter);
+    const list = MODULES.filter(m => !filter.categories || filter.categories.indexOf(m.category) !== -1);
 
     return (
         <aside
@@ -211,8 +188,9 @@ const ComponentShelf = () => {
                 {FILTERS.map(f => (
                     <FilterPill
                         key={f.id}
-                        active={categoryFilter === f.id}
+                        active={filter.id === f.id}
                         label={f.label}
+                        title={f.title}
                         onClick={() => setCategoryFilter(f.id)}
                         K={K}
                     />
@@ -222,76 +200,24 @@ const ComponentShelf = () => {
                 style={{
                     flex: 1,
                     minHeight: 0,
-                    overflowY: 'scroll',
-                    overflowX: 'hidden'
+                    overflowY: 'auto',
+                    overflowX: 'hidden',
+                    padding: '2px 10px 12px'
                 }}
             >
-                <table
-                    style={{
-                        width: '100%',
-                        borderCollapse: 'collapse',
-                        tableLayout: 'fixed'
-                    }}
-                >
-                    <thead>
-                        <tr>
-                            <th style={Object.assign({}, th, {
-                                width: 32,
-                                paddingLeft: 10,
-                                position: 'sticky',
-                                top: 0,
-                                zIndex: 1,
-                                background: K.panel
-                            })}
-                            > </th>
-                            <th style={Object.assign({}, th, {
-                                position: 'sticky',
-                                top: 0,
-                                zIndex: 1,
-                                background: K.panel
-                            })}
-                            >Name</th>
-                            <th style={Object.assign({}, th, {
-                                width: 40,
-                                position: 'sticky',
-                                top: 0,
-                                zIndex: 1,
-                                background: K.panel
-                            })}
-                            >Sig</th>
-                            <th style={Object.assign({}, th, {
-                                width: 36,
-                                position: 'sticky',
-                                top: 0,
-                                zIndex: 1,
-                                background: K.panel
-                            })}
-                            >Dir</th>
-                            <th style={Object.assign({}, th, {
-                                width: 36,
-                                paddingRight: 8,
-                                position: 'sticky',
-                                top: 0,
-                                zIndex: 1,
-                                background: K.panel
-                            })}
-                            > </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {list.map(mod => (
-                            <ComponentRow
-                                key={mod.id}
-                                mod={mod}
-                                connected={Boolean(used[mod.id])}
-                                unavailable={used[mod.id] ? null : unavailableReason(mod, cloudOn, bleOn)}
-                                selected={selectedModule === mod.id}
-                                onSelect={selectModule}
-                                K={K}
-                            />
-                        ))}
-                    </tbody>
-                </table>
+                <div style={{display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8}}>
+                    {list.map(mod => (
+                        <ComponentTile
+                            key={mod.id}
+                            mod={mod}
+                            connected={Boolean(used[mod.id])}
+                            unavailable={used[mod.id] ? null : unavailableReason(mod, cloudOn, bleOn)}
+                            selected={selectedModule === mod.id}
+                            onSelect={selectModule}
+                            K={K}
+                        />
+                    ))}
+                </div>
             </div>
         </aside>
     );

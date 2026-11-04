@@ -169,6 +169,14 @@ describe('Cloud firmware codegen', () => {
         expect(withRead).toContain('  if (withReadings) {');
     });
 
+    test('recovers by itself from a stuck WiFi driver or a stuck cloud connection', () => {
+        const code = generateArduino(connections, program, {cloud: CLOUD});
+        expect(code).toContain('Cloud: WiFi stuck - restarting WiFi');
+        expect(code).toContain('Cloud: reconnect stuck - starting a fresh connection');
+        expect(code.indexOf('static void cloudWifiBegin()')).toBeLessThan(code.indexOf('static void cloudTask('));
+        expect(code.match(/WiFi\.begin\(CLOUD_WIFI_SSID/g)).toHaveLength(2);
+    });
+
     test('wires setup, loop, controls and alert blocks', () => {
         const code = generateArduino(connections, program, {cloud: CLOUD});
         expect(code).toContain('  cloudSetup();');

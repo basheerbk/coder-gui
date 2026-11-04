@@ -5,6 +5,53 @@ const CONTROL_BY_TYPE = CONTROL_BLOCKS.reduce((acc, block) => {
     return acc;
 }, {});
 
+/*
+ * One calm palette: orange = control, teal family = sensing and messages, cool blues/purples = parts
+ * that do things. Every colour keeps white bold text readable in both themes.
+ */
+const CONTROL_COLOR = '#d97706';
+const WAIT_COLOR = '#56739e';
+const MESSAGE_COLOR = '#0f766e';
+const SENSE_COLOR = '#0891b2';
+const DEFAULT_PART_COLOR = '#6d28d9';
+const MISSING_COLOR = '#6b7280';
+const MESSAGE_TYPES = {serial_print: true, serial_var: true};
+const PART_COLORS = {
+    led: '#7c3aed',
+    relay: '#2563eb',
+    relay4: '#2563eb',
+    servo: '#4f46e5',
+    l293d: '#4f46e5',
+    stepper: '#4f46e5',
+    oled: '#0369a1',
+    ble: '#1d4ed8',
+    hc05: '#1d4ed8',
+    cloud: '#059669'
+};
+
+/** Short names that read naturally inside a block sentence ("turn LED on", "show … on screen"). */
+const PART_NAMES = {
+    btn: 'button',
+    pot: 'knob',
+    led: 'LED',
+    relay: 'relay',
+    servo: 'servo',
+    l293d: 'motor',
+    relay4: 'relay board',
+    stepper: 'stepper',
+    oled: 'screen',
+    mq2: 'gas sensor',
+    mic: 'microphone',
+    pulse: 'heartbeat sensor',
+    soil: 'soil sensor',
+    dht: 'climate sensor',
+    ultra: 'distance sensor',
+    rfid: 'card reader',
+    ble: 'Bluetooth',
+    cloud: 'Cloud',
+    hc05: 'Bluetooth'
+};
+
 const actionLabelForType = (moduleDef, type) => {
     if (!moduleDef || !moduleDef.actions) {
         return null;
@@ -13,13 +60,66 @@ const actionLabelForType = (moduleDef, type) => {
     return action ? action.label : null;
 };
 
-/** Friendly title + accent color for canvas nodes and palette chips. */
-const blockMeta = (block, connections, K) => {
+/** Control blocks: If / Repeat orange; Wait and Board-message blocks get their own colour. */
+const controlColor = type => {
+    if (type === 'wait') {
+        return WAIT_COLOR;
+    }
+    return MESSAGE_TYPES[type] ? MESSAGE_COLOR : CONTROL_COLOR;
+};
+
+const partColor = mod => (mod.dir === 'in' ? SENSE_COLOR : (PART_COLORS[mod.id] || DEFAULT_PART_COLOR));
+
+/** Palette wording mirrors the sentence the block shows once it is placed. */
+const PALETTE_LABELS = {
+    set_on: n => `Turn ${n} on or off`,
+    set_brightness: n => `Set ${n} brightness`,
+    blink: n => `Blink ${n}`,
+    set_angle: n => `Turn ${n} to an angle`,
+    motor_speed: () => 'Spin a motor',
+    motor_stop: () => 'Stop motors',
+    relay_channel: () => 'Set one switch',
+    relay_all: () => 'Set every switch',
+    stepper_move: n => `Turn ${n}`,
+    show_text: () => 'Show text on screen',
+    show_number: () => 'Show a value on screen',
+    print_gas: () => 'Write gas level',
+    print_soil: () => 'Write soil moisture',
+    print_climate: () => 'Write temperature & humidity',
+    rfid_read: () => 'Check for a card',
+    ble_advertise: () => 'Turn on Bluetooth',
+    ble_send: () => 'Send over Bluetooth',
+    hc05_send: () => 'Send over Bluetooth',
+    hc05_read: () => 'Check for a message',
+    cloud_alert: () => 'Send alert to phone',
+    cloud_send_now: () => 'Send readings now',
+    wait: () => 'Wait',
+    repeat: () => 'Repeat',
+    if_then: () => 'If … then',
+    serial_print: () => 'Write text',
+    serial_var: () => 'Write a value'
+};
+
+const findModuleForType = type => {
+    let found = null;
+    MODULES.some(m => {
+        const hit = (m.actions || []).some(a => a.type === type);
+        if (hit) {
+            found = m;
+        }
+        return hit;
+    });
+    return found;
+};
+
+/** Friendly title, part name and accent color for canvas blocks. */
+const blockMeta = (block, connections) => {
     const control = CONTROL_BY_TYPE[block.type];
     if (control) {
+        const color = controlColor(block.type);
         return {
-            color: K.orange,
-            soft: `${K.orange}22`,
+            color,
+            soft: `${color}22`,
             iconId: block.type,
             label: control.label,
             kind: 'control'
@@ -29,82 +129,56 @@ const blockMeta = (block, connections, K) => {
     const conn = connections.find(c => c.id === block.cid);
     const mod = conn ? moduleById(conn.moduleId) : null;
     if (mod) {
-        const color = mod.dir === 'in' ? K.cyan : (mod.color || K.purple);
-        let actionLabel = actionLabelForType(mod, block.type) || block.type.replace(/_/g, ' ');
-        if (block.type === 'set_on') {
-            actionLabel = block.params && block.params.on === false ? 'Off' : 'On';
-        }
-        if (block.type === 'set_brightness') {
-            const b = block.params && block.params.brightness != null ? block.params.brightness : 128;
-            actionLabel = `Brightness ${b}`;
-        }
-        if (block.type === 'relay_channel') {
-            const ch = (block.params && block.params.channel) || 1;
-            const on = !(block.params && block.params.on === false);
-            actionLabel = `CH${ch} ${on ? 'On' : 'Off'}`;
-        }
-        if (block.type === 'relay_all') {
-            actionLabel = block.params && block.params.on === false ? 'All Off' : 'All On';
-        }
+        const color = partColor(mod);
+        const actionLabel = actionLabelForType(mod, block.type) || block.type.replace(/_/g, ' ');
         return {
             color,
             soft: `${color}22`,
             iconId: mod.id,
             label: `${actionLabel} · ${mod.name}`,
             kind: mod.dir === 'in' ? 'sensor' : 'action',
-            moduleName: mod.name
+            moduleName: mod.name,
+            partName: PART_NAMES[mod.id] || mod.name
         };
     }
 
-    // Orphaned hardware block (module unplugged)
-    let orphanMod = null;
-    MODULES.some(m => {
-        const hit = (m.actions || []).some(a => a.type === block.type);
-        if (hit) {
-            orphanMod = m;
-        }
-        return hit;
-    });
+    // The part this block talks to was unplugged in Build.
+    const orphanMod = findModuleForType(block.type);
     if (orphanMod) {
         const actionLabel = actionLabelForType(orphanMod, block.type) || block.type;
         return {
-            color: K.surface,
-            soft: K.surface,
+            color: MISSING_COLOR,
+            soft: `${MISSING_COLOR}22`,
             iconId: orphanMod.id,
             label: `${actionLabel} · ${orphanMod.name}`,
-            kind: 'orphan'
+            kind: 'orphan',
+            moduleName: orphanMod.name,
+            partName: PART_NAMES[orphanMod.id] || orphanMod.name
         };
     }
 
     return {
-        color: K.surface,
-        soft: K.surface,
+        color: MISSING_COLOR,
+        soft: `${MISSING_COLOR}22`,
         iconId: null,
         label: block.type.replace(/_/g, ' '),
         kind: 'unknown'
     };
 };
 
-const paletteChipMeta = (type, options, K) => {
-    const {cid, moduleId, color: overrideColor, label: overrideLabel} = options || {};
-    const control = CONTROL_BY_TYPE[type];
-    if (control) {
-        return {
-            color: K.orange,
-            soft: `${K.orange}18`,
-            iconId: type,
-            label: overrideLabel || control.label
-        };
-    }
+const paletteChipMeta = (type, options) => {
+    const {moduleId, label: overrideLabel} = options || {};
     const mod = moduleId ? moduleById(moduleId) : null;
-    const actionLabel = mod ? actionLabelForType(mod, type) : null;
-    const color = overrideColor || (mod && mod.color) || K.purple;
+    const control = CONTROL_BY_TYPE[type];
+    const color = control ? controlColor(type) : (mod ? partColor(mod) : DEFAULT_PART_COLOR);
+    const name = mod ? (PART_NAMES[mod.id] || mod.name) : '';
+    const fallback = control ? control.label : (actionLabelForType(mod, type) || type.replace(/_/g, ' '));
     return {
         color,
         soft: `${color}18`,
         iconId: moduleId || type,
-        label: overrideLabel || (actionLabel && mod ? `${actionLabel} · ${mod.name}` : type)
+        label: overrideLabel || (PALETTE_LABELS[type] ? PALETTE_LABELS[type](name) : fallback)
     };
 };
 
-export {blockMeta, paletteChipMeta, CONTROL_BY_TYPE};
+export {blockMeta, paletteChipMeta, CONTROL_BY_TYPE, PART_NAMES};

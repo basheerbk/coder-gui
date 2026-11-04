@@ -11,43 +11,14 @@ import {
     lockedPortParts
 } from './cloud';
 import {moduleById} from './modules';
-
-/** Blocks that store a fresh value in their module's variable(s). */
-const READ_BLOCKS = {
-    read_value: true,
-    print_soil: true,
-    print_gas: true,
-    read_distance: true,
-    read_temp: true,
-    read_humidity: true,
-    print_climate: true,
-    is_pressed: true,
-    is_motion: true
-};
-
-const walkBlocks = (blocks, visit) => {
-    (blocks || []).forEach(block => {
-        visit(block);
-        walkBlocks(block.children, visit);
-        walkBlocks(block.elseChildren, visit);
-    });
-};
+import {readConnectionIds, walkBlocks} from './sensorReads';
 
 /**
  * Readings the board sends: variables of wired input parts that the program actually reads
  * (a never-read variable would just report 0 forever). Strings are not sent.
  */
 const telemetryReadings = (connections, program) => {
-    const byConn = {};
-    (connections || []).forEach(c => {
-        byConn[c.id] = c;
-    });
-    const readConns = {};
-    walkBlocks(program, block => {
-        if (block.cid && READ_BLOCKS[block.type] && byConn[block.cid]) {
-            readConns[block.cid] = true;
-        }
-    });
+    const readConns = readConnectionIds(connections, program);
     const out = [];
     const seen = {};
     const add = (key, type, valid) => {
@@ -112,6 +83,8 @@ static bool cloudAuthPaused = false;
 static uint32_t cloudAuthAt = 0;
 static uint32_t cloudWssSince = 0;
 static uint32_t cloudWifiKick = 0;
+static uint32_t cloudWifiLostAt = 0;
+static uint32_t cloudMqttKick = 0;
 static uint32_t cloudLastSend = 0;
 static uint32_t cloudSeq = 0;
 static char cloudBoot[9];
@@ -305,6 +278,18 @@ static void cloudStop() {
   cloudStarted = false;
 }
 
+static void cloudWifiBegin() {
+  WiFi.mode(WIFI_STA);
+  WiFi.setSleep(false); // modem sleep delays incoming commands and can miss broker pings
+  WiFi.setAutoReconnect(true);
+  if (strlen(CLOUD_WIFI_PASS) > 0) {
+    WiFi.begin(CLOUD_WIFI_SSID, CLOUD_WIFI_PASS);
+  } else {
+    WiFi.begin(CLOUD_WIFI_SSID);
+  }
+  cloudWifiKick = millis();
+}
+
 static int cloudAppend(char *buf, size_t size, int n, bool *first, const char *key, double value, bool isInt, bool valid) {
   if (!valid || n < 0 || (size_t)n >= size || !isfinite(value)) return n;
   int w = isInt
@@ -322,9 +307,30 @@ static void cloudTask(void *arg) {
     uint32_t now = millis();
     bool wifiUp = WiFi.status() == WL_CONNECTED;
 
+    if (wifiUp) {
+      cloudWifiLostAt = 0;
+    } else if (!cloudWifiLostAt) {
+      cloudWifiLostAt = now | 1;
+    }
     if (!wifiUp && (uint32_t)(now - cloudWifiKick) >= 30000UL) {
       cloudWifiKick = now;
       WiFi.reconnect();
+    }
+    // The WiFi driver can get stuck after a power dip or router hiccup: restart it from scratch.
+    if (cloudWifiLostAt && (uint32_t)(now - cloudWifiLostAt) >= 180000UL) {
+      cloudWifiLostAt = now | 1;
+      Serial.println(F("Cloud: WiFi stuck - restarting WiFi"));
+      cloudStop();
+      WiFi.disconnect(true);
+      vTaskDelay(pdMS_TO_TICKS(500));
+      cloudWifiBegin();
+    }
+    // WiFi is fine but the cloud has not come back for 2 min: start a fresh connection.
+    if (wifiUp && cloudStarted && cloudEverConnected && !cloudConnected &&
+        (uint32_t)(now - cloudDownSince) >= 120000UL && (uint32_t)(now - cloudMqttKick) >= 120000UL) {
+      cloudMqttKick = now;
+      Serial.println(F("Cloud: reconnect stuck - starting a fresh connection"));
+      cloudStop();
     }
 
     if (cloudAuthRejected) {
@@ -440,15 +446,7 @@ static void cloudSetup() {
   cloudUseWss = cloudPrefs.getBool("wss", false);
   cloudDownSince = millis();
   WiFi.onEvent(cloudOnWifi);
-  WiFi.mode(WIFI_STA);
-  WiFi.setSleep(false); // modem sleep delays incoming commands and can miss broker pings
-  WiFi.setAutoReconnect(true);
-  if (strlen(CLOUD_WIFI_PASS) > 0) {
-    WiFi.begin(CLOUD_WIFI_SSID, CLOUD_WIFI_PASS);
-  } else {
-    WiFi.begin(CLOUD_WIFI_SSID);
-  }
-  cloudWifiKick = millis();
+  cloudWifiBegin();
   Serial.println(F("Cloud: joining WiFi \"" CLOUD_WIFI_SSID "\""));
   xTaskCreatePinnedToCore(cloudTask, "tbcloud", 6144, NULL, 1, NULL, 1);
 }

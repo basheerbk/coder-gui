@@ -52,6 +52,11 @@ const CSS = `
   .tb-led-beat { animation: none !important; }
   .tb3d-hl.tb3d-fit { animation: none; opacity: 1; }
 }
+.tb-del { opacity: 0; transition: opacity .15s ease; }
+.tb-block:hover > .tb-del { opacity: 1; }
+.tb-block:has(.tb-block:hover) > .tb-del { opacity: 0; }
+.tb-del:focus-visible { opacity: 1 !important; outline: 2px solid #fde047; }
+@media (hover: none) { .tb-del { opacity: 1 !important; } }
 html, body, #root { margin: 0; height: 100%; }
 * { box-sizing: border-box; }
 button, input { font-family: inherit; }

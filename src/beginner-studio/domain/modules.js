@@ -15,7 +15,7 @@ const MODULES = [
         dir: 'in',
         category: 'input',
         color: K.accent,
-        description: 'Is the button pressed?',
+        description: 'Press it to make something happen',
         valueName: 'buttonState',
         valueType: 'int',
         pinMode: 'INPUT_PULLUP',
@@ -30,7 +30,7 @@ const MODULES = [
         dir: 'in',
         category: 'input',
         color: K.purple,
-        description: 'Twist to pick a value 0–4095',
+        description: 'A knob you twist to pick a number',
         valueName: 'knobValue',
         valueType: 'int',
         actions: [
@@ -44,7 +44,7 @@ const MODULES = [
         dir: 'out',
         category: 'output',
         color: K.purple,
-        description: 'Turn a light on, off, blink, or set brightness (PWM 0–255)',
+        description: 'A light you can turn on, off, blink or dim',
         actions: [
             {type: 'set_on', label: 'On / Off', params: {on: true}},
             {type: 'set_brightness', label: 'Brightness', params: {brightness: 128}},
@@ -58,7 +58,7 @@ const MODULES = [
         dir: 'out',
         category: 'output',
         color: K.orange,
-        description: 'Switch a bigger device on or off',
+        description: 'A switch that turns a bigger gadget on or off',
         actions: [
             {type: 'set_on', label: 'On / Off', params: {on: true}}
         ]
@@ -70,7 +70,7 @@ const MODULES = [
         dir: 'out',
         category: 'output',
         color: K.accent,
-        description: 'Rotate to an angle (ESP32Servo)',
+        description: 'A motor arm that turns to the angle you choose',
         includes: ['ESP32Servo.h'],
         actions: [
             {type: 'set_angle', label: 'Set angle', params: {angle: 90}}
@@ -83,7 +83,7 @@ const MODULES = [
         dir: 'out',
         category: 'output',
         color: K.dim,
-        description: 'Drive 1–2 DC motors on MD (A: IO17/5, B: IO18/19)',
+        description: 'Spins one or two motors forward or backward, fast or slow',
         actions: [
             {type: 'motor_speed', label: 'Set speed', params: {speed: 180, motor: 'A', dir: 'forward'}},
             {type: 'motor_stop', label: 'Stop motors'}
@@ -96,7 +96,7 @@ const MODULES = [
         dir: 'out',
         category: 'output',
         color: K.orange,
-        description: '4-channel relay on MD — CH1=IO17, CH2=IO5, CH3=IO18, CH4=IO19 (active-LOW)',
+        description: 'Four switches in one, to turn up to four gadgets on or off',
         actions: [
             {type: 'relay_channel', label: 'Channel on/off', params: {channel: 1, on: true}},
             {type: 'relay_all', label: 'All channels', params: {on: false}}
@@ -109,7 +109,7 @@ const MODULES = [
         dir: 'out',
         category: 'output',
         color: K.dim,
-        description: 'Step a 4-wire motor — plug into ST',
+        description: 'A motor that turns in small, exact steps',
         includes: ['Stepper.h'],
         actions: [
             {type: 'stepper_move', label: 'Move steps', params: {steps: 100, rpm: 12}}
@@ -122,7 +122,7 @@ const MODULES = [
         dir: 'out',
         category: 'output',
         color: K.cyan,
-        description: 'Show text or a number — plug into I2C (shared with HW-605)',
+        description: 'A tiny screen for words and numbers',
         i2c: true,
         includes: ['Wire.h', 'Adafruit_SSD1306.h', 'Adafruit_GFX.h'],
         actions: [
@@ -137,7 +137,7 @@ const MODULES = [
         dir: 'in',
         category: 'sensor',
         color: K.muted,
-        description: 'Raw smoke/gas ADC 0–4095 (heater needs ~1 min). Not calibrated ppm.',
+        description: 'Smells smoke or gas in the air (warms up for about a minute)',
         valueName: 'gasLevel',
         valueType: 'int',
         actions: [
@@ -152,7 +152,7 @@ const MODULES = [
         dir: 'in',
         category: 'sensor',
         color: K.orange,
-        description: 'Read loudness from the mic',
+        description: 'Hears how loud it is around it',
         valueName: 'soundLevel',
         valueType: 'int',
         actions: [
@@ -166,7 +166,7 @@ const MODULES = [
         dir: 'in',
         category: 'sensor',
         color: K.red,
-        description: 'MAX30102 heart rate — plug into I2C (shares bus with OLED)',
+        description: 'Feels your heartbeat through your fingertip',
         i2c: true,
         includes: ['Wire.h', 'MAX30105.h', 'heartRate.h'],
         valueName: 'heartRate',
@@ -182,7 +182,7 @@ const MODULES = [
         dir: 'in',
         category: 'sensor',
         color: K.green,
-        description: 'Capacitive probe — moisture 0–100% (dry≈0%, wet≈100%). Plug into A1–A4.',
+        description: 'Tells if a plant\'s soil is dry or wet (0% dry to 100% wet)',
         valueName: 'soilMoisture',
         valueType: 'int',
         actions: [
@@ -197,7 +197,7 @@ const MODULES = [
         dir: 'in',
         category: 'sensor',
         color: K.orange,
-        description: 'Temperature and humidity — plug into A1 (IO4). Avoid D13 for DHT.',
+        description: 'Measures how warm and how damp the air is',
         includes: [],
         valueName: 'temperature',
         valueType: 'float',
@@ -216,7 +216,7 @@ const MODULES = [
         dir: 'in',
         category: 'sensor',
         color: K.cyan,
-        description: 'Distance in cm — D5 only (Trig IO26, Echo IO25). Use the kit cable; Echo must stay 3.3V.',
+        description: 'Measures how far away something is (use the kit cable)',
         valueName: 'distance',
         valueType: 'int',
         helpers: ['getDistance'],
@@ -231,12 +231,12 @@ const MODULES = [
         dir: 'in',
         category: 'sensor',
         color: K.purple,
-        description: 'Read RFID tags — plug into 3D (SPI; leave D13 free)',
+        description: 'Reads tag cards and key fobs',
         includes: ['SPI.h', 'MFRC522.h'],
         valueName: 'rfidUid',
         valueType: 'String',
         actions: [
-            {type: 'rfid_read', label: 'Read card UID'}
+            {type: 'rfid_read', label: 'Read card'}
         ]
     },
     {
@@ -246,11 +246,11 @@ const MODULES = [
         dir: 'out',
         category: 'output',
         color: K.cyan,
-        description: 'ESP32 built-in BLE — no RJ11 needed',
+        description: 'Talk to a phone with Bluetooth, built into the board (no cable)',
         onboard: true,
         includes: ['BLEDevice.h', 'BLEServer.h', 'BLEUtils.h'],
         actions: [
-            {type: 'ble_advertise', label: 'Start advertising', params: {name: 'TinkerBit'}},
+            {type: 'ble_advertise', label: 'Turn on Bluetooth', params: {name: 'TinkerBit'}},
             {type: 'ble_send', label: 'Send text', params: {text: 'Hello'}}
         ]
     },
@@ -261,7 +261,7 @@ const MODULES = [
         dir: 'out',
         category: 'cloud',
         color: K.green,
-        description: 'WiFi: send readings to your phone dashboard and use its switches (A1–A4 turn off)',
+        description: 'Send readings to your phone over WiFi and control the board from it (A ports turn off)',
         onboard: true,
         // Readings are sent automatically; these blocks are optional extras.
         autoBlock: false,
@@ -277,7 +277,7 @@ const MODULES = [
         dir: 'out',
         category: 'output',
         color: K.cyan,
-        description: 'Classic BT UART — RX=GPIO3 TX=GPIO1 (shared with USB serial @ 9600)',
+        description: 'Talk to a phone app over Bluetooth (unplug it if Upload fails)',
         valueName: 'hc05Line',
         valueType: 'String',
         actions: [

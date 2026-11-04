@@ -1,12 +1,15 @@
 import React, {createContext, useContext, useMemo, useState} from 'react';
 
+import useAutosave from '../hooks/useAutosave';
 import useGeneratedCode from '../hooks/useGeneratedCode';
 import useStudioActions from '../hooks/useStudioActions';
+import useUndoHistory from '../hooks/useUndoHistory';
+import {loadProject} from '../domain/autosave';
 import {readStoredTheme, tokensFor} from '../domain/tokens';
 
 const StudioContext = createContext(null);
 
-const initialState = () => ({
+const freshState = () => ({
     connections: [],
     program: [],
     selectedModule: null,
@@ -15,7 +18,8 @@ const initialState = () => ({
     activeTemplateId: null,
     categoryFilter: 'all',
     blockPaletteCategory: 'actions',
-    showCodePanel: true,
+    showCodePanel: false,
+    showSerial: false,
     showProjectLibrary: false,
     view: 'build',
     flashPortId: null,
@@ -26,15 +30,30 @@ const initialState = () => ({
     theme: typeof window !== 'undefined' ? readStoredTheme() : 'dark'
 });
 
-const StudioProvider = ({children}) => {
-    const [state, setState] = useState(initialState);
+/** Start from the account's autosaved project when there is one. */
+const initialState = email => {
+    const saved = typeof window === 'undefined' ? null : loadProject(email);
+    return saved ? Object.assign(freshState(), saved) : freshState();
+};
+
+/**
+ * @param {object} props.user signed-in account from /api/auth/me ({email, name, picture}), or null in local dev
+ */
+const StudioProvider = ({user, children}) => {
+    const email = user && user.email ? user.email : null;
+    const [state, setState] = useState(() => initialState(email));
     const actions = useStudioActions(state, setState);
+    const history = useUndoHistory(state, setState);
+    const autosave = useAutosave(state, email);
     const generatedCode = useGeneratedCode(state.connections, state.program, state.cloud);
     const K = tokensFor(state.theme);
 
-    const value = useMemo(() => Object.assign({}, state, actions, {generatedCode, K}), [
+    const value = useMemo(() => Object.assign({}, state, actions, history, autosave, {generatedCode, K, user}), [
         state,
         actions,
+        history,
+        autosave,
+        user,
         generatedCode,
         K
     ]);

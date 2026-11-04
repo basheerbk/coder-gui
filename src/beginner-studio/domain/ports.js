@@ -40,7 +40,7 @@ const PORT_CONFLICTS = {
  * switched off whenever the Cloud part is wired.
  */
 const CLOUD_LOCKED_PORTS = ['A1', 'A2', 'A3', 'A4'];
-const CLOUD_LOCK_HINT = 'A1–A4 are off while Cloud is on (WiFi needs their analog reader)';
+const CLOUD_LOCK_HINT = 'A1–A4 are off while Cloud is on (WiFi needs them)';
 
 const HUB_PORT_BY_ID = HUB_PORTS.reduce((all, p) => Object.assign(all, {[p.id]: p}), {});
 
@@ -231,94 +231,96 @@ const isPortCompatible = (port, moduleDef, usedIds, cloudActive) => {
 
 const compatibilityHint = (port, moduleDef, cloudActive) => {
     if (!port) {
-        return 'Unknown jack';
+        return 'Unknown port';
     }
     if (cloudActive && CLOUD_LOCKED_PORTS.indexOf(port.id) !== -1) {
         return CLOUD_LOCK_HINT;
     }
     if (!moduleDef) {
         if (port.kind === 'stepper') {
-            return 'ST is the 4-wire stepper jack (IO12–27)';
+            return 'ST: for the stepper motor';
         }
         if (port.kind === 'i2c') {
-            return 'I2C bus (SDA 21 / SCL 22) — OLED and HW-605';
+            return `${port.label}: for the OLED screen or the heartbeat sensor`;
         }
         if (port.kind === 'motor') {
-            return 'MD jack — L293D (A:17/5 B:18/19) or 4-ch relay';
+            return 'MD: for the motor driver or the 4-switch relay';
         }
         if (port.kind === 'spi') {
-            return '3D is for RFID RC522 (SPI)';
+            return '3D: for the RFID card reader';
         }
         if (port.kind === 'onboard') {
-            return 'Built-in ESP32 Bluetooth';
+            return 'Bluetooth built into the board';
         }
         if (port.kind === 'uart') {
-            return 'UART for HC-05 (RX=3 TX=1, USB-shared)';
+            return 'UART: for the HC-05 Bluetooth module';
         }
         if (port.id === 'D5') {
-            return 'D5 is HC-SR04 / digital (Echo IO25 + Trig IO26)';
+            return 'D5: for the distance sensor, or a button, light or motor';
         }
         if (port.boot) {
-            return 'A4 is IO0 (BOOT) — avoid holding it LOW at reset';
+            return 'A4: if Upload acts up, unplug the part here (it shares the BOOT button)';
         }
-        return `${port.label} · GPIO ${port.pin}`;
+        return port.kind === 'analog' ?
+            `${port.label}: for sensors like the knob, mic or soil sensor` :
+            `${port.label}: for buttons, lights, motors and more`;
     }
     const need = neededKind(moduleDef);
     if (need === 'onboard') {
-        return `${moduleDef.name} is built into the ESP32 — pick it from the list`;
+        return `${moduleDef.name} is built into the board, so it needs no cable`;
     }
     if (cloudActive && need === 'analog') {
         return `${moduleDef.name} needs A1–A4, which are off while Cloud is on`;
     }
     if (need === 'uart') {
-        return 'Plug HC-05 into UART (RX=GPIO3 TX=GPIO1, shared with USB @ 9600)';
+        return 'The HC-05 goes into the UART port';
     }
     if (need === 'i2c') {
-        return 'Plug into I2C or I2C1 (one bus: OLED / HW-605 share SDA 21 · SCL 22)';
+        return `The ${moduleDef.name} goes into I2C or I2C1`;
     }
     if (need === 'motor') {
-        return 'Plug into MD — L293D motors or 4-ch relay (IO17/5/18/19)';
+        return `The ${moduleDef.name} goes into MD`;
     }
     if (need === 'stepper') {
-        return 'Plug the stepper into ST';
+        return 'The stepper motor goes into ST';
     }
     if (need === 'spi') {
-        return 'Plug the RFID RC522 into 3D (not D13 — they share IO33)';
+        return 'The RFID card reader goes into 3D';
     }
     if (need === 'ultra') {
-        return 'Plug the HC-SR04 into D5 only (Trig IO26 / Echo IO25 — Echo stays INPUT)';
+        return 'The distance sensor only fits in D5';
     }
     if (need === 'analog') {
-        return `${port.label} needs an analog sensor`;
+        return `The ${moduleDef.name} goes into one of the A ports (A1–A4)`;
     }
     if (port.id === 'D5') {
-        return 'D5 is reserved for the HC-SR04 ultrasonic module';
+        return 'D5 is saved for the distance sensor';
     }
     if (port.kind === 'stepper') {
-        return 'ST is only for a stepper motor';
+        return 'ST is only for the stepper motor';
     }
     if (port.kind === 'i2c') {
-        return 'I2C needs an I2C part (OLED or HW-605)';
+        return `${port.label} is for the OLED screen or the heartbeat sensor`;
     }
     if (port.kind === 'motor') {
-        return 'MD needs the L293D driver';
+        return 'MD is for the motor driver or the 4-switch relay';
     }
     if (port.kind === 'spi') {
-        return '3D needs the RFID module';
+        return '3D is only for the RFID card reader';
     }
     if (port.kind === 'onboard') {
-        return 'ESP is only for Bluetooth';
+        return 'This spot is for Bluetooth, built into the board';
     }
     if (port.kind === 'uart') {
-        return 'UART is only for the HC-05 module';
+        return 'UART is only for the HC-05 Bluetooth module';
     }
     if (port.id === 'D13' && PORT_CONFLICTS.D13) {
-        return 'D13 shares IO33 with RFID on 3D — unplug RFID first';
+        return 'D13 is busy because the card reader in 3D uses the same wire. Unplug it first.';
     }
     if (port.id === '3D') {
-        return '3D shares IO33 with D13 — free D13 first';
+        return '3D is busy because D13 uses the same wire. Unplug the part in D13 first.';
     }
-    return `${port.label} needs a digital part`;
+    return `${port.label} is for buttons, lights, motors and more`;
 };
 
 const pickPortForModule = (moduleDef, usedIds, cloudActive) => {

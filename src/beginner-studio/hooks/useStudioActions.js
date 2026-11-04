@@ -3,10 +3,11 @@ import {useCallback} from 'react';
 import {clearOffset, spreadConnections} from '../components/build/ModuleArt.jsx';
 
 import {cloudAddProblem, hasCloud} from '../domain/cloud';
-import {defaultIfParams} from '../domain/condition';
+import {buildSensorOptions, buildValueOptions, defaultIfParams, ifParamsFor} from '../domain/condition';
 import {uid} from '../domain/ids';
 import {moduleById} from '../domain/modules';
 import {portById, isPortCompatible, compatibilityHint, fitsWithCloud} from '../domain/ports';
+import {SILENT_READS} from '../domain/sensorReads';
 import {playConnect, playDisconnect, playTick} from '../domain/sound';
 import {templateById} from '../domain/templates';
 import {persistTheme} from '../domain/tokens';
@@ -17,6 +18,19 @@ import {
     deleteBlocksByCid,
     updateBlockParams
 } from '../domain/tree';
+
+/** First block a freshly plugged part adds: sensors start as an If that checks them. */
+const starterBlock = (mod, conn, connections) => {
+    const first = mod.actions && mod.actions[0];
+    if (!first) {
+        return null;
+    }
+    if (SILENT_READS.indexOf(first.type) !== -1) {
+        const option = buildSensorOptions(connections).find(o => o.moduleId === mod.id);
+        return option ? createBlock('if_then', {params: ifParamsFor(option)}) : null;
+    }
+    return createBlock(first.type, {cid: conn.id, params: Object.assign({}, first.params || {})});
+};
 
 const useStudioActions = (state, setState) => {
     const patch = useCallback(partial => {
@@ -32,12 +46,12 @@ const useStudioActions = (state, setState) => {
                 if (prev.connections.some(c => c.moduleId === mod.id)) {
                     return Object.assign({}, prev, {
                         selectedModule: null,
-                        wireHint: `${mod.name} is already on`
+                        wireHint: `${mod.name} is already on the board`
                     });
                 }
                 const refusal = mod.id === 'cloud' ?
                     cloudAddProblem(prev.connections) :
-                    (cloudOn ? `${mod.name} cannot run together with Cloud — remove Cloud first` : null);
+                    (cloudOn ? `${mod.name} can't be used with Cloud. Remove Cloud first.` : null);
                 if (refusal) {
                     return Object.assign({}, prev, {selectedModule: null, wireHint: refusal});
                 }
@@ -59,8 +73,8 @@ const useStudioActions = (state, setState) => {
                     selectedModule: null,
                     flashPortId: 'ONBOARD',
                     wireHint: mod.id === 'cloud' ?
-                        'Cloud is on — open Cloud in the top bar to connect. A1–A4 are now off.' :
-                        `${mod.name} is built into the ESP32`,
+                        'Cloud added! Click Cloud in the top bar to set it up. A1–A4 are now off.' :
+                        `${mod.name} is built into the board, no cable needed`,
                     showCloudSetup: prev.showCloudSetup || (mod.id === 'cloud' && !prev.cloud),
                     activeTemplateId: null
                 });
@@ -130,25 +144,17 @@ const useStudioActions = (state, setState) => {
             }
             const plug = {id: uid('conn'), moduleId: mod.id, portId: port.id, pin: port.pin};
             const conn = Object.assign(plug, clearOffset(plug, prev.connections), {bendX: null, bendY: null});
-            const first = mod.actions && mod.actions[0];
-            let program = prev.program;
-            if (first) {
-                program = appendBlock(program, createBlock(first.type, {
-                    cid: conn.id,
-                    params: Object.assign({}, first.params || {})
-                }), null);
-            }
+            const starter = starterBlock(mod, conn, prev.connections.concat([conn]));
+            const program = starter ? appendBlock(prev.program, starter, null) : prev.program;
             playConnect();
             return Object.assign({}, prev, {
                 connections: prev.connections.concat([conn]),
                 program,
                 selectedModule: null,
                 flashPortId: portId,
-                wireHint: port.boot
-                    ? 'A4 is IO0 (BOOT). Unplug it if the board will not start.'
-                    : (port.strapping && mod.dir === 'out'
-                        ? `${port.label} is a boot strap pin — keep it HIGH/floating at reset.`
-                        : null),
+                wireHint: port.boot || (port.strapping && mod.dir === 'out')
+                    ? `Plugged in! If the board won't start or upload, unplug the part from ${port.label} for a moment.`
+                    : null,
                 activeTemplateId: null
             });
         });
@@ -180,6 +186,15 @@ const useStudioActions = (state, setState) => {
                 nextExtras = Object.assign({}, nextExtras, {
                     params: Object.assign({}, seeded, (nextExtras.params || {}))
                 });
+            }
+            if (type === 'show_number' || type === 'serial_var') {
+                const values = buildValueOptions(prev.connections);
+                const wanted = nextExtras.params && nextExtras.params.varName;
+                if (!values.some(v => v.id === wanted)) {
+                    nextExtras = Object.assign({}, nextExtras, {
+                        params: Object.assign({}, nextExtras.params, {varName: values.length ? values[0].id : ''})
+                    });
+                }
             }
             const block = createBlock(type, nextExtras);
             return Object.assign({}, prev, {
@@ -255,6 +270,7 @@ const useStudioActions = (state, setState) => {
     const setCategoryFilter = useCallback(categoryFilter => patch({categoryFilter}), [patch]);
     const setBlockPaletteCategory = useCallback(blockPaletteCategory => patch({blockPaletteCategory}), [patch]);
     const setShowCodePanel = useCallback(showCodePanel => patch({showCodePanel}), [patch]);
+    const setShowSerial = useCallback(showSerial => patch({showSerial}), [patch]);
     const setShowProjectLibrary = useCallback(showProjectLibrary => patch({showProjectLibrary}), [patch]);
     const setTheme = useCallback(theme => {
         const next = theme === 'light' ? 'light' : 'dark';
@@ -282,6 +298,7 @@ const useStudioActions = (state, setState) => {
         setCategoryFilter,
         setBlockPaletteCategory,
         setShowCodePanel,
+        setShowSerial,
         setShowProjectLibrary,
         setTheme,
         setCloud,

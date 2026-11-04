@@ -27,6 +27,9 @@ const normalizeWebSerialError = err => {
     if (/Failed to execute ['"]open['"] on ['"]SerialPort['"]/i.test(message)) {
         return 'Serial port is busy. Close Arduino IDE Serial Monitor, Putty, or other browser tabs using this board, unplug/replug USB, then Connect again.';
     }
+    if (/compile server/i.test(message)) {
+        return message;
+    }
     if (/failed to connect with the device|timed out|could not enter esp32 download|wrong boot mode/i.test(message)) {
         return 'Download mode failed on this laptop USB. Hold BOOT during Upload, try a USB2 port or another cable, then release BOOT when flashing starts.';
     }

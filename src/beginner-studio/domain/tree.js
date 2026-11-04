@@ -46,14 +46,18 @@ const appendBlock = (blocks, newBlock, target) => {
         return (blocks || []).concat([newBlock]);
     }
     const branch = target.branch === 'else' ? 'elseChildren' : 'children';
-    return mapTree(blocks, block => {
+    let placed = false;
+    const next = mapTree(blocks, block => {
         if (block.uid !== target.parentId) {
             return block;
         }
+        placed = true;
         return Object.assign({}, block, {
             [branch]: (block[branch] || []).concat([newBlock])
         });
     });
+    // The target was deleted (e.g. with its parent): never drop the new block.
+    return placed ? next : next.concat([newBlock]);
 };
 
 export {

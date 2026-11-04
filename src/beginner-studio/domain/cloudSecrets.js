@@ -117,6 +117,11 @@ const forgetAll = email => {
     });
 };
 
+/** Drop the WiFi typed this session (not the board key) so the next person on this tab cannot reuse it. */
+const forgetSessionSecrets = email => {
+    write('session', `${ns(email)}:wifi`, null);
+};
+
 /** Replace secret values in text shown to the student (compile logs). */
 const maskSecrets = (text, secrets) => {
     let out = String(text || '');
@@ -136,6 +141,7 @@ const maskSecrets = (text, secrets) => {
 
 export {
     forgetAll,
+    forgetSessionSecrets,
     maskSecrets,
     readLastDevice,
     readSecrets,

@@ -1,6 +1,7 @@
 import React from 'react';
 
-import {portColor} from '../../domain/ports';
+import {moduleById} from '../../domain/modules';
+import {compatibilityHint, portColor} from '../../domain/ports';
 import {useStudio} from '../../context/StudioContext.jsx';
 
 /** Turns the jack drawing (mouth on its west edge) to face the edge the plug enters from. */
@@ -51,7 +52,7 @@ const labelCenter = (port, pos) => {
     return {cx: fp.x + (fp.w / 2), cy: fp.y + (fp.d / 2)};
 };
 
-const portTitle = (port, {occupied, compatible, dimmed, cloudLocked}) => {
+const portTitle = (port, {occupied, compatible, dimmed, cloudLocked, moduleDef}) => {
     if (cloudLocked) {
         return `${port.label} is off while Cloud is on`;
     }
@@ -59,12 +60,12 @@ const portTitle = (port, {occupied, compatible, dimmed, cloudLocked}) => {
         return `${port.label} is in use`;
     }
     if (compatible) {
-        return `Snap into ${port.label}`;
+        return moduleDef ? `Plug the ${moduleDef.name} into ${port.label}` : `Plug into ${port.label}`;
     }
     if (dimmed) {
-        return `${port.label} needs a ${port.kind} module`;
+        return compatibilityHint(port, moduleDef, false);
     }
-    return port.label;
+    return compatibilityHint(port, null, false);
 };
 
 /** Small padlock badge centred on (cx, cy) for jacks switched off by Cloud. */
@@ -168,13 +169,14 @@ const Port = ({
     flashing,
     onClick
 }) => {
-    const {K} = useStudio();
+    const {K, selectedModule} = useStudio();
     const color = portColor(port, K);
     let opacity = occupied || compatible ? 1 : (dimmed ? 0.2 : 0.92);
     if (cloudLocked) {
         opacity = 0.35;
     }
-    const title = portTitle(port, {occupied, compatible, dimmed, cloudLocked});
+    const moduleDef = selectedModule ? moduleById(selectedModule) : null;
+    const title = portTitle(port, {occupied, compatible, dimmed, cloudLocked, moduleDef});
     const fp = pos.footprint;
     const onboard = port.kind === 'onboard';
     const label = labelCenter(port, pos);

@@ -3,7 +3,7 @@ import React, {useState} from 'react';
 import {useStudio} from '../../context/StudioContext.jsx';
 import useSerialMonitor from '../../hooks/useSerialMonitor.js';
 
-const SerialMonitorPanel = ({connected}) => {
+const SerialMonitorPanel = ({connected, fill}) => {
     const {K} = useStudio();
     const serial = useSerialMonitor({connected});
     const [draft, setDraft] = useState('');
@@ -22,8 +22,7 @@ const SerialMonitorPanel = ({connected}) => {
     return (
         <div
             style={{
-                flexShrink: 0,
-                height: 168,
+                flex: fill ? 1 : '0 0 220px',
                 display: 'flex',
                 flexDirection: 'column',
                 borderTop: `1px solid ${K.border}`,
@@ -41,8 +40,11 @@ const SerialMonitorPanel = ({connected}) => {
                     flexWrap: 'wrap'
                 }}
             >
-                <div style={{fontSize: 11, fontWeight: 800, flex: 1, minWidth: 90}}>
-                    Serial · {serial.baudRate}
+                <div
+                    title={`Serial monitor at ${serial.baudRate} baud`}
+                    style={{fontSize: 11, fontWeight: 800, flex: 1, minWidth: 90}}
+                >
+                    Board messages
                 </div>
                 {serial.monitoring ? (
                     <button type="button" onClick={serial.stop} style={btn(false, true)}>
@@ -85,8 +87,8 @@ const SerialMonitorPanel = ({connected}) => {
                     (serial.monitoring
                         ? 'Listening…'
                         : connected
-                            ? 'Press Start to read Serial.println from the board.'
-                            : 'Connect the board, Upload, then Start.')}
+                            ? 'Press Start to see what your board prints.'
+                            : 'Connect your board first (top right), then press Start.')}
             </pre>
             <div
                 style={{
@@ -105,7 +107,7 @@ const SerialMonitorPanel = ({connected}) => {
                             setDraft('');
                         }
                     }}
-                    placeholder="Send to board…"
+                    placeholder="Type a message for the board…"
                     disabled={!serial.monitoring}
                     style={{
                         flex: 1,
