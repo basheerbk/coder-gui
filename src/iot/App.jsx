@@ -104,7 +104,7 @@ const Header = ({K, state, route, theme, setTheme}) => {
                     >
                         TB
                     </span>
-                    {narrow ? null : <span style={{fontWeight: 800, fontSize: 15}}>Cloud</span>}
+                    {narrow ? null : <span style={{fontWeight: 800, fontSize: 15}}>IoT Dashboard</span>}
                 </a>
                 <nav style={{display: 'flex', gap: narrow ? 4 : 10, flex: 1}}>
                     {nav('/iot', 'Boards', route.page === 'devices' || route.page === 'device')}
@@ -149,7 +149,7 @@ const App = () => {
     };
 
     useEffect(() => {
-        document.title = `${state.unread ? `(${state.unread}) ` : ''}TinkerBit Cloud`;
+        document.title = `${state.unread ? `(${state.unread}) ` : ''}IoT Dashboard · TinkerBit`;
     }, [state.unread]);
 
     useEffect(() => {

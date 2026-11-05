@@ -152,7 +152,9 @@ const Preview = ({widget, renderBody}) => {
     );
 };
 
-const EditPanel = ({widget, index, count, readingKeys, cols, renderBody, onChange, onRemove, onMove, onClose, sheet}) => {
+const EditPanel = ({
+    widget, index, count, readingKeys, cols, renderBody, onChange, onRemove, onMove, onClose, sheet, keyTitle = prettyKey
+}) => {
     const K = useTheme();
     const spec = typeSpec(widget.type);
     const isReading = spec.needs === 'reading';
@@ -179,8 +181,8 @@ const EditPanel = ({widget, index, count, readingKeys, cols, renderBody, onChang
         onChange({type, w: next.w, h: next.h, size: sizeFromW(next.w)});
     };
     const changeKey = key => {
-        const auto = !widget.title || widget.title === prettyKey(widget.key);
-        onChange(auto ? {key, title: prettyKey(key)} : {key});
+        const auto = !widget.title || widget.title === prettyKey(widget.key) || widget.title === keyTitle(widget.key);
+        onChange(auto ? {key, title: keyTitle(key)} : {key});
     };
 
     return (
@@ -192,7 +194,7 @@ const EditPanel = ({widget, index, count, readingKeys, cols, renderBody, onChang
                     <input
                         value={widget.title}
                         maxLength={40}
-                        placeholder={prettyKey(widget.key) || spec.label}
+                        placeholder={keyTitle(widget.key) || spec.label}
                         onChange={e => onChange({title: e.target.value})}
                         style={inputStyle(K)}
                     />
@@ -201,8 +203,8 @@ const EditPanel = ({widget, index, count, readingKeys, cols, renderBody, onChang
                 {hasKey ? (
                     <Field label={isReading ? 'Shows' : 'Controls'}>
                         <select value={widget.key || ''} onChange={e => changeKey(e.target.value)} style={inputStyle(K)}>
-                            {widget.key && keys.indexOf(widget.key) < 0 ? <option value={widget.key}>{prettyKey(widget.key)} (no data yet)</option> : null}
-                            {keys.map(k => <option key={k} value={k}>{prettyKey(k)}</option>)}
+                            {widget.key && keys.indexOf(widget.key) < 0 ? <option value={widget.key}>{keyTitle(widget.key)} (no data yet)</option> : null}
+                            {keys.map(k => <option key={k} value={k}>{keyTitle(k)}</option>)}
                         </select>
                     </Field>
                 ) : null}
@@ -290,7 +292,7 @@ const EditPanel = ({widget, index, count, readingKeys, cols, renderBody, onChang
     );
 };
 
-const AddPanel = ({readingKeys, usedKeys, onAdd, onClose, sheet, full}) => {
+const AddPanel = ({readingKeys, usedKeys, onAdd, onClose, sheet, full, keyTitle = prettyKey}) => {
     const K = useTheme();
     const [type, setType] = useState(null);
     const [custom, setCustom] = useState('');
@@ -362,7 +364,7 @@ const AddPanel = ({readingKeys, usedKeys, onAdd, onClose, sheet, full}) => {
                             <select value={chosen} onChange={e => setKey(e.target.value)} style={inputStyle(K)}>
                                 {keys.map(k => (
                                     <option key={k} value={k}>
-                                        {prettyKey(k)}{usedKeys.indexOf(`${spec.id}:${k}`) >= 0 ? ' (already on the board)' : ''}
+                                        {keyTitle(k)}{usedKeys.indexOf(`${spec.id}:${k}`) >= 0 ? ' (already on the board)' : ''}
                                     </option>
                                 ))}
                             </select>

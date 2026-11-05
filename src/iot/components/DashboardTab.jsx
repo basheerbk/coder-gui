@@ -1,7 +1,7 @@
 import React, {useEffect, useRef, useState} from 'react';
 
 import {errorText, iotApi} from '../../lib/iot-api';
-import {formatValue, newWidgetId, prettyKey} from '../format';
+import {formatValue, isAutoTitle, newWidgetId, prettyKey} from '../format';
 import {colsForWidth, moveItem, normalizeWidget, sizeFromW, typeDefaultSpan} from '../grid';
 import {useWidth, useWindowWidth} from '../hooks';
 import {setNavigationBlocker} from '../router';
@@ -18,8 +18,10 @@ const PANEL_SPACE = 336;
  * The board's widgets, plus the editor: drag tiles to move them, drag the corner to resize, tap a
  * tile to open its settings (with a live preview), "Add widget" for new ones. Edits are a draft
  * until Save; the draft survives switching tabs because this component stays mounted.
+ * titleFor (optional): reading or control key -> a friendlier title (Studio knows the part names);
+ * it only replaces titles nobody typed. onEditingChange (optional) hears when editing starts and stops.
  */
-const DashboardTab = ({detail, state, actions, onControl}) => {
+const DashboardTab = ({detail, state, actions, onControl, titleFor, onEditingChange}) => {
     const K = useTheme();
     const id = detail.device.id;
     const [draft, setDraft] = useState(null);
@@ -32,7 +34,10 @@ const DashboardTab = ({detail, state, actions, onControl}) => {
     const windowWidth = useWindowWidth();
     const sheet = windowWidth < 800;
 
-    const saved = detail.dashboard.layout.map(normalizeWidget);
+    const keyTitle = key => (titleFor && key && titleFor(key)) || prettyKey(key);
+    const named = w => (titleFor && w.key && isAutoTitle(w) && titleFor(w.key) ?
+        Object.assign({}, w, {title: titleFor(w.key)}) : w);
+    const saved = detail.dashboard.layout.map(normalizeWidget).map(named);
     const editing = draft !== null;
     const changed = editing && JSON.stringify(draft) !== JSON.stringify(saved);
     const selected = editing && selectedId ? draft.find(w => w.id === selectedId) : null;
@@ -55,6 +60,18 @@ const DashboardTab = ({detail, state, actions, onControl}) => {
             window.removeEventListener('beforeunload', onBeforeUnload);
         };
     }, [changed]);
+
+    useEffect(() => {
+        if (!onEditingChange) {
+            return undefined;
+        }
+        onEditingChange(editing);
+        return () => {
+            if (editing) {
+                onEditingChange(false);
+            }
+        };
+    }, [editing]);
 
     useEffect(() => {
         if (!editing) {
@@ -133,7 +150,7 @@ const DashboardTab = ({detail, state, actions, onControl}) => {
             id: newWidgetId(draft.map(w => w.id)),
             type,
             key: key || null,
-            title: key ? prettyKey(key) : typeSpec(type).label,
+            title: key ? keyTitle(key) : typeSpec(type).label,
             size: sizeFromW(span.w),
             w: span.w,
             h: span.h,
@@ -163,6 +180,7 @@ const DashboardTab = ({detail, state, actions, onControl}) => {
                 usedKeys={draft.map(w => `${w.type}:${w.key}`)}
                 full={draft.length >= MAX_WIDGETS}
                 sheet={sheet}
+                keyTitle={keyTitle}
                 onAdd={addWidget}
                 onClose={() => setAdding(false)}
             />
@@ -176,6 +194,7 @@ const DashboardTab = ({detail, state, actions, onControl}) => {
                 readingKeys={readingKeys}
                 cols={cols}
                 sheet={sheet}
+                keyTitle={keyTitle}
                 renderBody={w => renderBody(w, true)}
                 onChange={patch => updateWidget(selected.id, patch)}
                 onRemove={() => removeWidget(selected.id)}
@@ -235,7 +254,7 @@ const DashboardTab = ({detail, state, actions, onControl}) => {
                                     'This dashboard is empty. Press “Add widget” to put something on it.' :
                                     'The dashboard fills in by itself when the board sends its first readings.'}
                                 {!editing && detail.latest.length ?
-                                    ` Latest: ${detail.latest.map(r => `${prettyKey(r.key)} ${formatValue(r.value)}`).join(', ')}.` : ''}
+                                    ` Latest: ${detail.latest.map(r => `${keyTitle(r.key)} ${formatValue(r.value)}`).join(', ')}.` : ''}
                             </div>
                         </Card>
                     )}

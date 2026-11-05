@@ -69,4 +69,4 @@ const linkTo = path => e => {
     navigate(path);
 };
 
-export {linkTo, navigate, parseRoute, setNavigationBlocker, useRoute};
+export {canLeave, linkTo, navigate, parseRoute, setNavigationBlocker, useRoute};

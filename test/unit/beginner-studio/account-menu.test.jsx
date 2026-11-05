@@ -75,7 +75,7 @@ describe('Beginner account menu', () => {
     test('local dev without an account shows the plain menu and no Sign out', () => {
         render(null);
         click(document.querySelector('button[aria-label="More options"]'));
-        expect(document.querySelector('a[href="/iot"]').textContent).toBe('My Cloud devices');
+        expect(document.querySelector('a[href="/iot"]').textContent).toBe('IoT Dashboard (full page)');
         expect(button('Sign out')).toBeUndefined();
     });
 

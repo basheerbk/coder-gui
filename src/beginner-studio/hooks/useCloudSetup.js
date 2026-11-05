@@ -2,6 +2,7 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
 import {CLOUD_DEFAULTS, DEVICE_TOKEN_RE, clampInterval, validateWifi} from '../domain/cloud';
 import {telemetryReadings, usedCloudControls} from '../domain/cloudFirmware';
+import {keyTitles} from '../domain/cloudPanel';
 import {uniqueBoardName} from '../domain/cloudProgress';
 import {
     forgetAll,
@@ -274,7 +275,15 @@ const useCloudSetup = ({studio, cloudLive, active}) => {
         // The tab would otherwise treat the new link as "a different board" and start over.
         shownFor.current = selected.id;
         const keys = telemetryReadings(connections, program).map(r => r.key);
-        iotApi.suggestDashboard(selected.id, keys, usedCloudControls(program)).catch(() => {});
+        const controls = usedCloudControls(program);
+        const titleOf = keyTitles(connections);
+        const titles = {};
+        keys.concat(controls).forEach(k => {
+            if (titleOf(k)) {
+                titles[k] = titleOf(k);
+            }
+        });
+        iotApi.suggestDashboard(selected.id, keys, controls, titles).catch(() => {});
         setStep('upload');
     });
 
@@ -339,6 +348,10 @@ const useCloudSetup = ({studio, cloudLive, active}) => {
         close: () => {
             setError('');
             if (cloud) {
+                // A board switch that was started but not finished must not stick.
+                if (devices.some(d => d.id === cloud.deviceId)) {
+                    setChoice(cloud.deviceId);
+                }
                 setStep('live');
             } else {
                 setView('build');
@@ -355,6 +368,42 @@ const useCloudSetup = ({studio, cloudLive, active}) => {
             }
         },
         goBoard: () => setStep('board'),
+        /** Start linking this project to another board: Board step with that board picked. */
+        switchBoard: id => {
+            setChoice(id);
+            setError('');
+            setStep('board');
+        },
+        /** A key was made elsewhere on this computer (the Settings tab); read it again. */
+        tokenChanged: () => setTokenVersion(v => v + 1),
+        /** A board was renamed or its interval changed (the Settings tab); the next upload must match. */
+        deviceChanged: device => {
+            setDevices(prev => prev.map(d => (d.id === device.id ? Object.assign({}, d, device) : d)));
+            if (!cloud || cloud.deviceId !== device.id ||
+                (cloud.deviceName === device.name && cloud.intervalSec === device.intervalSec)) {
+                return;
+            }
+            const link = Object.assign({}, cloud, {deviceName: device.name, intervalSec: device.intervalSec});
+            writeLastDevice(email, link);
+            setCloud(link);
+            setIntervalSec(device.intervalSec);
+        },
+        /** Boards were added or deleted elsewhere on the page; keeps typed WiFi and the current step. */
+        refreshDevices: async () => {
+            try {
+                const res = await iotApi.listDevices();
+                const list = res.devices || [];
+                setDevices(list);
+                setChoice(c => {
+                    if (c === NEW || list.some(d => d.id === c)) {
+                        return c;
+                    }
+                    return list.length ? '' : NEW;
+                });
+            } catch (err) {
+                // The next time the page opens, load() tries again.
+            }
+        },
         fixWifi: () => {
             setTouched(true);
             setStep('wifi');

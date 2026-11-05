@@ -133,6 +133,22 @@ test('history picks a tier, validates ranges and downsamples', async () => {
     assert.equal((await alice.get(`/devices/${deviceId}/history?key=a&points=5000`)).status, 400);
 });
 
+test('dashboard: suggestion uses titles given for its own keys only', async () => {
+    const sug = await alice.post(`/devices/${deviceId}/dashboard/suggest`, {
+        keys: ['distance', 'magnetNear'],
+        controls: ['switch1'],
+        titles: {distance: '  HC-SR04 Ultrasonic ', switch1: 'Dashboard switch 1', other: 'Ignored', magnetNear: 42}
+    });
+    const byId = Object.fromEntries(sug.body.dashboard.layout.map(w => [w.id, w.title]));
+    assert.equal(byId.v_0, 'HC-SR04 Ultrasonic');
+    assert.equal(byId.chart_0, 'HC-SR04 Ultrasonic');
+    assert.equal(byId.v_1, 'magnetNear', 'a non-text title falls back to the key');
+    assert.equal(byId.c_switch1, 'Dashboard switch 1');
+    const odd = await alice.post(`/devices/${deviceId}/dashboard/suggest`, {keys: ['distance'], controls: [], titles: ['x']});
+    assert.equal(odd.status, 200);
+    assert.equal(odd.body.dashboard.layout.find(w => w.id === 'v_0').title, 'distance', 'a list is not a titles map');
+});
+
 test('dashboard: suggestion only replaces the default; edits are versioned', async () => {
     const sug = await alice.post(`/devices/${deviceId}/dashboard/suggest`, {keys: ['distance', 'bad key'], controls: ['switch1', 'x']});
     assert.equal(sug.body.applied, true);

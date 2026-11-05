@@ -1,6 +1,6 @@
 {
-  "name": "TinkerBit Cloud",
-  "short_name": "TB Cloud",
+  "name": "TinkerBit IoT Dashboard",
+  "short_name": "IoT Dashboard",
   "description": "Live readings, switches and alerts for your TinkerBit boards.",
   "id": "/iot",
   "start_url": "/iot",

@@ -197,7 +197,7 @@ const AccountMenu = () => {
                         {'Switch mode (Beginner / Advanced)'}
                     </a>
                     <a role="menuitem" href="/iot" style={itemStyle(K)}>
-                        {'My Cloud devices'}
+                        {'IoT Dashboard (full page)'}
                     </a>
                     {user ? (
                         <React.Fragment>

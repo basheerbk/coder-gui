@@ -192,7 +192,7 @@ const notify = alert => {
         if (typeof Notification === 'undefined' || Notification.permission !== 'granted' || !document.hidden) {
             return;
         }
-        const n = new Notification(alert.deviceName || 'TinkerBit Cloud', {
+        const n = new Notification(alert.deviceName || 'IoT Dashboard', {
             body: alert.message,
             tag: `tb-alert-${alert.id}`,
             icon: '/static/brand/logo-512.png'

@@ -127,6 +127,7 @@ const UploadButton = () => {
                     padding: '0 18px',
                     fontSize: 13,
                     fontWeight: 700,
+                    whiteSpace: 'nowrap',
                     cursor: busy ? 'default' : 'pointer',
                     opacity: phase === 'connecting' ? 0.7 : 1
                 }}

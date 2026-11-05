@@ -85,6 +85,13 @@ const prettyKey = key => {
     return key.replace(/([a-z])([A-Z0-9])/g, '$1 $2').replace(/^./, c => c.toUpperCase());
 };
 
+/** True when a widget still has the title it was made with (nobody typed one), so it may be renamed. */
+const isAutoTitle = widget => {
+    const title = (widget.title || '').trim();
+    const key = widget.key || '';
+    return !title || title === key || title === prettyKey(key) || title === key.replace(/(\d)$/, ' $1');
+};
+
 const newWidgetId = existing => {
     let id;
     do {
@@ -100,6 +107,7 @@ export {
     READING_KEY_RE,
     clockTime,
     formatValue,
+    isAutoTitle,
     newWidgetId,
     prettyKey,
     rssiBars,

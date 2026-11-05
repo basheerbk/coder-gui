@@ -33,7 +33,7 @@ const CloudAddDialog = () => {
     }
     const close = () => setShowCloudSetup(false);
     return (
-        <Modal title="TinkerBit Cloud" onClose={close} width={480}>
+        <Modal title="IoT Dashboard" onClose={close} width={480}>
             <PartStep onClose={close} />
         </Modal>
     );

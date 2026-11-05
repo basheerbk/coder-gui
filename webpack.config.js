@@ -470,7 +470,8 @@ module.exports = [
                 robots: 'noindex',
                 canonical: `${SITE_ORIGIN}/beginner`,
                 extraHead: [
-                    '<meta http-equiv="Content-Security-Policy" content="default-src \'self\'; style-src \'self\' \'unsafe-inline\' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src \'self\' data: https:; script-src \'self\' \'unsafe-eval\' https://*.clarity.ms https://c.bing.com; connect-src \'self\' https://*.clarity.ms https://c.bing.com; worker-src \'self\' blob:; frame-ancestors \'none\'; base-uri \'self\'; form-action \'self\'">',
+                    // The IoT tab's live dashboards connect straight to the API host, like /iot.
+                    `<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https:; script-src 'self' 'unsafe-eval' https://*.clarity.ms https://c.bing.com; connect-src 'self' https://*.clarity.ms https://c.bing.com wss://api.tinkerbit.io${IOT_DEV_WS}; worker-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'">`,
                     '<meta http-equiv="X-Frame-Options" content="DENY">',
                     '<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">'
                 ].join('\n    ')
@@ -479,7 +480,7 @@ module.exports = [
                 chunks: ['site-vendor', 'iot'],
                 template: 'src/site/site.ejs',
                 filename: 'iot.html',
-                title: 'TinkerBit Cloud',
+                title: 'IoT Dashboard · TinkerBit',
                 description: 'Live readings, switches and alerts for your TinkerBit boards.',
                 robots: 'noindex',
                 canonical: `${SITE_ORIGIN}/iot`,

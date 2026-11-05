@@ -5,6 +5,7 @@ import {DEVICE_ID_RE, newRuleId} from './tokens.js';
 import {
     CONTROL_KEYS,
     READING_KEY_RE,
+    cleanText,
     defaultSpan,
     validateDeviceName,
     validateInterval,
@@ -35,22 +36,29 @@ const ownedDevice = ctx => {
     return device;
 };
 
-/** A first dashboard built from what the device actually reports. */
-export function suggestLayout (readingKeys, controlKeys) {
+/**
+ * A first dashboard built from what the device actually reports.
+ * titles: optional {key: title} from Studio (part names); anything else falls back to the key.
+ */
+export function suggestLayout (readingKeys, controlKeys, titles = {}) {
     const widget = (id, type, key, title, size) => Object.assign(
         {id, type, key, title, size, options: {}},
         defaultSpan(type, size)
     );
+    const titleFor = (key, fallback) => {
+        const given = Object.prototype.hasOwnProperty.call(titles, key) ? cleanText(titles[key], 40) : '';
+        return given || fallback;
+    };
     const layout = [widget('status', 'status', null, 'Board', 'S')];
     readingKeys.slice(0, 6).forEach((key, i) => {
-        layout.push(widget(`v_${i}`, 'value', key, key, 'S'));
+        layout.push(widget(`v_${i}`, 'value', key, titleFor(key, key), 'S'));
     });
     if (readingKeys.length) {
-        layout.push(widget('chart_0', 'chart', readingKeys[0], readingKeys[0], 'L'));
+        layout.push(widget('chart_0', 'chart', readingKeys[0], titleFor(readingKeys[0], readingKeys[0]), 'L'));
     }
     controlKeys.filter(k => CONTROL_KEYS[k]).forEach(key => {
         const type = CONTROL_KEYS[key].kind;
-        layout.push(widget(`c_${key}`, type, key, key.replace(/(\d)$/, ' $1'), 'S'));
+        layout.push(widget(`c_${key}`, type, key, titleFor(key, key.replace(/(\d)$/, ' $1')), 'S'));
     });
     layout.push(widget('alerts', 'alerts', null, 'Alerts', 'M'));
     return layout;
@@ -235,7 +243,16 @@ export const routes = [
             if (!current.isDefault) {
                 return {applied: false, dashboard: current};
             }
-            const layout = validateLayout(suggestLayout(Array.from(new Set(keys)), Array.from(new Set(controls))),
+            const given = ctx.body.titles;
+            const titles = {};
+            if (given && typeof given === 'object' && !Array.isArray(given)) {
+                keys.concat(controls).forEach(k => {
+                    if (Object.prototype.hasOwnProperty.call(given, k) && typeof given[k] === 'string') {
+                        titles[k] = given[k];
+                    }
+                });
+            }
+            const layout = validateLayout(suggestLayout(Array.from(new Set(keys)), Array.from(new Set(controls)), titles),
                 ctx.config.limits.maxWidgets);
             if (!layout.ok) {
                 throw new HttpError(400, layout.error);

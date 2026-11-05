@@ -230,7 +230,7 @@ flowchart LR
   pages[Static pages] --> auth[Google session]
   auth --> beginner[Beginner Studio]
   auth --> ide[Advanced IDE]
-  auth --> iot[Cloud dashboard]
+  auth --> iot[IoT Dashboard]
   beginner --> compile[Compile server]
   ide --> compile
   compile --> flash[Web Serial flash]
@@ -248,7 +248,7 @@ Webpack writes several HTML apps into `build/` ([webpack.config.js](webpack.conf
 | `/choose` | choose | Beginner vs Advanced |
 | `/beginner` | beginnerStudio | Kit studio |
 | `/ide` | IDE bundle | OpenBlock GUI |
-| `/iot`, `/iot/*` | iot | TinkerBit Cloud dashboard (phone friendly) |
+| `/iot`, `/iot/*` | iot | IoT Dashboard, full page (phone friendly) |
 
 Local development is usually `http://127.0.0.1:8601`.
 
@@ -379,9 +379,10 @@ flowchart LR
 | Broker | [services/iot-api/deploy/mosquitto.conf](services/iot-api/deploy/mosquitto.conf) | One login and ACL `tb/<id>/#` per board; anonymous off; 4 KB packets |
 | Service | [services/iot-api/](services/iot-api/) | HTTP API, live WebSocket, ingest, alert rules, rollups, backups. Runbook in its [readme](services/iot-api/readme.md) |
 | Firmware | [cloudFirmware.js](src/beginner-studio/domain/cloudFirmware.js) | `esp-mqtt` on its own FreeRTOS task; ISRG roots; falls back to WSS on 443 behind strict firewalls; failsafe values when offline |
-| Studio Cloud tab | [CloudView.jsx](src/beginner-studio/components/cloud/CloudView.jsx), [useCloudSetup.js](src/beginner-studio/hooks/useCloudSetup.js), [cloudSecrets.js](src/beginner-studio/domain/cloudSecrets.js) | Opened by the top-bar IoT button (asks to add the Cloud part first): board, WiFi and upload steps, then the board panel |
-| Board panel | [BoardPanel.jsx](src/beginner-studio/components/cloud/BoardPanel.jsx), [cloudPanel.js](src/beginner-studio/domain/cloudPanel.js) | Status, readings named after their parts, the program's switches and sliders, QR code to the phone dashboard |
-| Add Cloud | [CloudAddDialog.jsx](src/beginner-studio/components/cloud/CloudAddDialog.jsx) | Adds the Cloud part (lists parts in the way), then opens the Cloud tab |
+| Studio IoT Dashboard | [CloudView.jsx](src/beginner-studio/components/cloud/CloudView.jsx), [useCloudSetup.js](src/beginner-studio/hooks/useCloudSetup.js), [cloudSecrets.js](src/beginner-studio/domain/cloudSecrets.js) | Opened by the top-bar "IoT Dashboard" button (asks to add the Cloud part first). Split 30/70: board list on the left, and on the right the project's board, WiFi and upload steps, its going-live checklist, or a board's full dashboard |
+| Board list | [DeviceManager.jsx](src/beginner-studio/components/cloud/DeviceManager.jsx) | The project's board pinned at the top ("This project"), other boards below, add a board, QR code to the phone dashboard. Narrows to 230 px for one board, to a rail of dots while a dashboard is edited, and to a dropdown under 900 px |
+| Board dashboard | [DeviceDashboard.jsx](src/beginner-studio/components/cloud/DeviceDashboard.jsx) (lazy chunk `studio-iot`), [cloudPanel.js](src/beginner-studio/domain/cloudPanel.js) | Reuses the `/iot` store and Dashboard, Alerts and Settings tabs (risky settings folded under Advanced). Clicking a board only shows it; a strip says which board the project uploads to, and "Use for this project" switches after a confirm. Auto-named widgets on the project's board show part names |
+| Add Cloud | [CloudAddDialog.jsx](src/beginner-studio/components/cloud/CloudAddDialog.jsx) | Adds the Cloud part (lists parts in the way), then opens the IoT Dashboard |
 | Going live | [useCloudLive.js](src/beginner-studio/hooks/useCloudLive.js), [cloudProgress.js](src/beginner-studio/domain/cloudProgress.js) | Reads the board's USB messages and polls the Cloud service after a Cloud upload |
 | Dashboard | [src/iot/](src/iot/) | Boards list, widget grid (drag to move, drag the corner to resize, tap a tile for a settings panel with live preview; layout is a flowing grid so phones and desktops share it), alert rules, settings, data export/delete |
 | Browser client | [src/lib/iot-api.js](src/lib/iot-api.js) | Same-origin `/api/iot/*` (Vercel rewrite → `https://api.tinkerbit.io/iot/v1/*`; dev proxy → `127.0.0.1:20114`) |
@@ -391,6 +392,7 @@ Rules the software enforces:
 - **A1–A4 are off while Cloud is on.** WiFi takes over the ESP32's ADC2, which those jacks use. The shelf, jacks, 3D board and upload all refuse parts that need them; Cloud templates use D13, D5, MD and I2C only.
 - **Cloud and BLE cannot be in the same project** (radio and flash budget).
 - **Secrets never sit in the code panel.** The preview shows `********`; real values are put in only inside the Upload handler and masked in compile logs. The device key stays in this browser's localStorage (per account); the WiFi password stays in sessionStorage unless "remember on this computer" is ticked. The server never sees the WiFi password.
+- **Unsaved dashboard edits are never lost silently.** Switching boards, leaving the IoT page from the top bar, or starting an upload asks first (`canLeave` in [router.js](src/iot/router.js)).
 - **Telemetry** sends only the variables of input parts that the program actually reads, at most every 5 s. Dashboard controls arrive instantly (retained MQTT state with versions and acks).
 
 Local development: `cd services/iot-api && npm run dev` (see its readme), then `npm start` here; the dev server proxies `/api/iot`.
@@ -441,7 +443,7 @@ Local development: `cd services/iot-api && npm run dev` (see its readme), then `
 | Browser flash | [src/lib/web-serial/](src/lib/web-serial/) |
 | Sketch compile | [services/compile-api/server.js](services/compile-api/server.js) |
 | Cloud service, broker, deploy | [services/iot-api/](services/iot-api/) |
-| Cloud dashboard | [src/iot/](src/iot/) |
+| IoT Dashboard (full page) | [src/iot/](src/iot/) |
 | Cloud firmware generator | [src/beginner-studio/domain/cloudFirmware.js](src/beginner-studio/domain/cloudFirmware.js) |
 
 This file is the product document for TinkerBit: what it offers, how a person uses it, how the kit is wired, how the stack compiles and flashes, and what we already do when hardware or USB does not behave.

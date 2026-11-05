@@ -95,7 +95,7 @@ const App = () => {
                         href="/iot"
                         onClick={() => clarityEvent('mode_cloud')}
                     >
-                        Open your Cloud dashboard
+                        Open your IoT Dashboard
                     </a>
                 </p>
             </section>

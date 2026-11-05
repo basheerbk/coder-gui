@@ -193,8 +193,8 @@ const iotApi = {
         request('GET', `/devices/${enc(id)}/history?${query({key, from, to, points})}`),
     saveDashboard: (id, layout, expectedVersion) =>
         request('PUT', `/devices/${enc(id)}/dashboard`, {layout, expectedVersion}),
-    suggestDashboard: (id, keys, controls) =>
-        request('POST', `/devices/${enc(id)}/dashboard/suggest`, {keys, controls}),
+    suggestDashboard: (id, keys, controls, titles) =>
+        request('POST', `/devices/${enc(id)}/dashboard/suggest`, {keys, controls, titles}),
     createRule: (id, rule) => request('POST', `/devices/${enc(id)}/rules`, rule),
     updateRule: (id, ruleId, patch) => request('PATCH', `/devices/${enc(id)}/rules/${enc(ruleId)}`, patch),
     deleteRule: (id, ruleId) => request('DELETE', `/devices/${enc(id)}/rules/${enc(ruleId)}`),

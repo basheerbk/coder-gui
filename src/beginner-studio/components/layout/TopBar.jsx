@@ -4,12 +4,13 @@ import {useStudio} from '../../context/StudioContext.jsx';
 import {useUpload} from '../../context/UploadContext.jsx';
 import {hasCloud} from '../../domain/cloud';
 import {moduleById} from '../../domain/modules';
+import {canLeave} from '../../../iot/router';
 
 import AccountMenu from './AccountMenu.jsx';
 import UndoButtons from './UndoButtons.jsx';
 import UploadButton from './UploadButton.jsx';
 
-/** Status dot on the Cloud tab: set up, connecting after an upload, needs help, online or offline. */
+/** Status dot on the IoT Dashboard button: set up, connecting after an upload, needs help, online or offline. */
 const cloudLook = (K, cloud, live) => {
     if (!cloud) {
         return {dot: K.orange, title: 'Finish setting up Cloud'};
@@ -49,6 +50,13 @@ const TopBar = () => {
     const look = cloudLook(K, cloud, cloudLive);
 
     const selectedDef = selectedModule ? moduleById(selectedModule) : null;
+    // The IoT page may hold an unsaved dashboard edit.
+    const leaveCloud = then => () => {
+        if (view === 'cloud' && !canLeave()) {
+            return;
+        }
+        then();
+    };
 
     const tabStyle = active => ({
         border: 'none',
@@ -97,7 +105,7 @@ const TopBar = () => {
 
             <button
                 type="button"
-                onClick={() => setShowProjectLibrary(true)}
+                onClick={leaveCloud(() => setShowProjectLibrary(true))}
                 style={{
                     background: K.surface,
                     border: 'none',
@@ -117,6 +125,8 @@ const TopBar = () => {
                 aria-label="Project name"
                 style={{
                     width: 160,
+                    minWidth: 90,
+                    flexShrink: 10,
                     background: K.canvas,
                     border: `1px solid ${K.border}`,
                     borderRadius: 8,
@@ -135,10 +145,10 @@ const TopBar = () => {
                     gap: 2
                 }}
             >
-                <button type="button" style={tabStyle(view === 'build')} onClick={() => setView('build')}>
+                <button type="button" style={tabStyle(view === 'build')} onClick={leaveCloud(() => setView('build'))}>
                     Build
                 </button>
-                <button type="button" style={tabStyle(view === 'code')} onClick={() => setView('code')}>
+                <button type="button" style={tabStyle(view === 'code')} onClick={leaveCloud(() => setView('code'))}>
                     Code
                 </button>
             </div>
@@ -146,7 +156,7 @@ const TopBar = () => {
             <button
                 type="button"
                 title={cloudPart ? look.title : 'Send readings to your phone and control your board from it'}
-                aria-label={cloudPart ? `IoT: ${look.title}` : 'IoT: add Cloud to this project'}
+                aria-label={cloudPart ? `IoT Dashboard: ${look.title}` : 'IoT Dashboard: add Cloud to this project'}
                 aria-pressed={view === 'cloud'}
                 onClick={() => (cloudPart ? setView('cloud') : setShowCloudSetup(true))}
                 style={{
@@ -160,6 +170,7 @@ const TopBar = () => {
                     padding: '6px 12px',
                     fontSize: 12,
                     fontWeight: 700,
+                    whiteSpace: 'nowrap',
                     cursor: 'pointer'
                 }}
             >
@@ -177,7 +188,7 @@ const TopBar = () => {
                         }}
                     />
                 ) : null}
-                IoT
+                IoT Dashboard
             </button>
 
             <UndoButtons />
