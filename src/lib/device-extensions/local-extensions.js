@@ -49,7 +49,7 @@ const getLocalDeviceExtensions = () => {
         {
             name: 'Maker ESP32',
             extensionId: 'makerEsp32',
-            version: '2.0.0',
+            version: '2.1.0',
             supportDevice: [
                 'makerEsp32_arduinoEsp32'
             ],

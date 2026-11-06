@@ -10,35 +10,53 @@ import {
     hasBle,
     lockedPortParts
 } from './cloud';
+import {usesAi} from './ai/aiFirmware';
+import {thingKeys} from './ai/aiKinds';
 import {moduleById} from './modules';
+import {copyVar, partValues} from './partCopies';
 import {readConnectionIds, walkBlocks} from './sensorReads';
+
+/** The Cloud service drops a message with more readings than this. */
+const MAX_READINGS = 24;
 
 /**
  * Readings the board sends: variables of wired input parts that the program actually reads
- * (a never-read variable would just report 0 forever). Strings are not sent.
+ * (a never-read variable would just report 0 forever), and 1 or 0 for each thing the AI knows
+ * when the program asks it. Strings are not sent.
+ * @param {object} [ai] project AI, only when the program asks it
  */
-const telemetryReadings = (connections, program) => {
+const telemetryReadings = (connections, program, ai) => {
     const readConns = readConnectionIds(connections, program);
     const out = [];
     const seen = {};
-    const add = (key, type, valid) => {
-        if (seen[key] || type === 'String') {
+    const add = (key, type, valid, expr) => {
+        if (seen[key] || type === 'String' || out.length >= MAX_READINGS) {
             return;
         }
         seen[key] = true;
-        out.push({key, type: type === 'float' ? 'float' : 'int', valid});
+        out.push({key, type: type === 'float' ? 'float' : 'int', valid, expr: expr || key});
     };
     (connections || []).forEach(c => {
         const mod = moduleById(c.moduleId);
-        if (!mod || mod.dir !== 'in' || !readConns[c.id] || !mod.valueName) {
+        if (!mod || mod.dir !== 'in' || !readConns[c.id]) {
             return;
         }
-        // -1 means "no echo" for the ultrasonic sensor.
-        add(mod.valueName, mod.valueType, mod.id === 'ultra' ? `${mod.valueName} >= 0` : 'true');
-        if (mod.humidityName) {
-            add(mod.humidityName, 'float', 'true');
-        }
+        partValues(c).forEach(v => {
+            let valid = 'true';
+            if (mod.id === 'ultra') {
+                // -1 means "no echo" for the ultrasonic sensor.
+                valid = `${v.name} >= 0`;
+            } else if (mod.id === 'mpu6050') {
+                // A missing motion sensor reports shake -1.
+                valid = `${copyVar('shakeLevel', c)} >= 0`;
+            }
+            add(v.name, v.type, valid);
+        });
     });
+    if (ai && usesAi(program)) {
+        const things = ai.things || [];
+        thingKeys(things).forEach((key, i) => add(key, 'int', 'true', `(aiAnswer == ${i + 1} ? 1 : 0)`));
+    }
     return out;
 };
 
@@ -456,14 +474,14 @@ static void cloudSetup() {
  * C++ pieces for the Cloud part. `secrets` is only passed by the upload handler; without it
  * the WiFi password and device token are shown as ******** in the code panel.
  */
-const cloudFirmware = ({connections, program, cloud, secrets}) => {
+const cloudFirmware = ({connections, program, cloud, secrets, ai}) => {
     const errors = cloudErrors(connections, cloud);
     const cfg = Object.assign({}, CLOUD_DEFAULTS, cloud || {});
     const intervalSec = clampInterval(cfg.intervalSec, cfg.minIntervalSec);
     const minGapSec = Math.max(1, Number(cfg.minIntervalSec) || CLOUD_DEFAULTS.minIntervalSec);
     const deviceId = DEVICE_ID_RE.test(cfg.deviceId || '') ? cfg.deviceId : 'd_notsetup0';
     const real = Boolean(secrets);
-    const readings = telemetryReadings(connections, program);
+    const readings = telemetryReadings(connections, program, ai);
 
     const head = [
         '// ---- TinkerBit Cloud (MQTT over TLS; needs arduino-esp32 2.x or 3.x) ----',
@@ -510,7 +528,7 @@ const cloudFirmware = ({connections, program, cloud, secrets}) => {
     if (readings.length) {
         telemetry.push('  if (withReadings) {');
         readings.forEach(r => {
-            telemetry.push(`    n = cloudAppend(buf, sizeof(buf), n, &first, "${r.key}", (double)${r.key}, ${r.type === 'int' ? 'true' : 'false'}, ${r.valid});`);
+            telemetry.push(`    n = cloudAppend(buf, sizeof(buf), n, &first, "${r.key}", (double)${r.expr}, ${r.type === 'int' ? 'true' : 'false'}, ${r.valid});`);
         });
         telemetry.push('  }');
     } else {

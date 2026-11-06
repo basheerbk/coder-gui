@@ -241,7 +241,7 @@ const compatibilityHint = (port, moduleDef, cloudActive) => {
             return 'ST: for the stepper motor';
         }
         if (port.kind === 'i2c') {
-            return `${port.label}: for the OLED screen or the heartbeat sensor`;
+            return `${port.label}: for the OLED screen, heartbeat or motion sensor`;
         }
         if (port.kind === 'motor') {
             return 'MD: for the motor driver or the 4-switch relay';
@@ -300,7 +300,7 @@ const compatibilityHint = (port, moduleDef, cloudActive) => {
         return 'ST is only for the stepper motor';
     }
     if (port.kind === 'i2c') {
-        return `${port.label} is for the OLED screen or the heartbeat sensor`;
+        return `${port.label} is for the OLED screen, heartbeat or motion sensor`;
     }
     if (port.kind === 'motor') {
         return 'MD is for the motor driver or the 4-switch relay';

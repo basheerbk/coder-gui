@@ -1,6 +1,9 @@
+import {AI_VAR, aiCondition, aiProgramParts, aiRecorderParts, usesAi} from './ai/aiFirmware';
 import {cEscape, hasCloud} from './cloud';
 import {cloudFirmware} from './cloudFirmware';
 import {moduleById} from './modules';
+import {copyTag, copyVar, partValues} from './partCopies';
+import {hasMotionSensor, motionSensorHelper} from './motionSensor';
 import {portById} from './ports';
 import {buildValueOptions, formatCondition} from './condition';
 import {sensorReaders, varsReadBy, varsUsedBy} from './sensorReads';
@@ -54,7 +57,7 @@ const collectGlobals = connections => {
             lines.push(`Servo servo_${port.pin};`);
         }
         if (mod.id === 'dht' && port) {
-            lines.push('unsigned long lastDhtMs = 0;');
+            lines.push(`unsigned long ${copyVar('lastDhtMs', c)} = 0;`);
         }
         if (mod.id === 'oled') {
             lines.push('Adafruit_SSD1306 display(128, 64, &Wire, -1);');
@@ -84,12 +87,13 @@ const collectGlobals = connections => {
             lines.push('bool bleReady = false;');
             lines.push('String bleDeviceName = "TinkerBit";');
         }
-        if (mod.valueName) {
-            const t = mod.valueType || 'int';
-            vars[mod.valueName] = t;
-        }
-        if (mod.humidityName) {
-            vars[mod.humidityName] = 'float';
+        partValues(c).forEach(v => {
+            vars[v.name] = v.type;
+        });
+        if (mod.id === 'mpu6050') {
+            lines.push('bool mpuReady = false;');
+            lines.push('uint8_t mpuAddr = 0x68;');
+            lines.push('unsigned long mpuRetryMs = 0;');
         }
     });
     Object.keys(vars).forEach(name => {
@@ -169,6 +173,12 @@ const setupLinesForConnection = c => {
             '  pulseSensor.setPulseAmplitudeGreen(0);',
             '  Serial.println(F("HW-605 ready"));',
             '}'
+        ];
+    }
+    if (mod.id === 'mpu6050') {
+        return [
+            'mpuReady = mpuBegin();',
+            'Serial.println(mpuReady ? F("MPU6050 ready") : F("MPU6050 not found - check the I2C cable"));'
         ];
     }
     if (mod.id === 'mq2') {
@@ -398,7 +408,9 @@ const emitLeaf = (block, connById, level) => {
     const port = conn ? portById(conn.portId) : null;
     const pin = port ? port.pin : '?';
     const p = block.params || {};
-    const modLabel = mod ? mod.name : (block.type || 'block');
+    const tag = conn ? copyTag(conn, Object.keys(connById).map(id => connById[id])) : '';
+    const modLabel = mod ? `${mod.name}${tag}` : (block.type || 'block');
+    const valueVar = fallback => (mod && mod.valueName ? copyVar(mod.valueName, conn) : fallback);
     const serialLabel = (msg, valueExpr) => {
         if (valueExpr == null) {
             lines.push(indent(level, `Serial.println(F("${cEscape(msg)}"));`));
@@ -577,10 +589,10 @@ const emitLeaf = (block, connById, level) => {
         break;
     case 'hc05_read':
         lines.push(indent(level, 'if (Serial.available()) {'));
-        lines.push(indent(level + 1, `${(mod && mod.valueName) || 'hc05Line'} = Serial.readStringUntil('\\n');`));
-        lines.push(indent(level + 1, `${(mod && mod.valueName) || 'hc05Line'}.trim();`));
+        lines.push(indent(level + 1, `${valueVar('hc05Line')} = Serial.readStringUntil('\\n');`));
+        lines.push(indent(level + 1, `${valueVar('hc05Line')}.trim();`));
         lines.push(indent(level + 1, 'Serial.print(F("HC-05 RX="));'));
-        lines.push(indent(level + 1, `Serial.println(${(mod && mod.valueName) || 'hc05Line'});`));
+        lines.push(indent(level + 1, `Serial.println(${valueVar('hc05Line')});`));
         lines.push(indent(level, '} else {'));
         lines.push(indent(level + 1, 'Serial.println(F("HC-05: no data"));'));
         lines.push(indent(level, '}'));
@@ -590,9 +602,9 @@ const emitLeaf = (block, connById, level) => {
             lines.push(indent(level, `// ${port.label} GPIO ${pin} is ADC2 — keep WiFi/BLE off for stable reads`));
         }
         lines.push(indent(level, 'delay(400);'));
-        lines.push(indent(level, `gasLevel = readAnalogAvg(${pin}, 16);`));
-        lines.push(indent(level, 'Serial.print(F("Gas level="));'));
-        lines.push(indent(level, 'Serial.print(gasLevel);'));
+        lines.push(indent(level, `${valueVar('gasLevel')} = readAnalogAvg(${pin}, 16);`));
+        lines.push(indent(level, `Serial.print(F("Gas level${tag}="));`));
+        lines.push(indent(level, `Serial.print(${valueVar('gasLevel')});`));
         lines.push(indent(level, 'Serial.println(F(" (0-4095 raw)"));'));
         break;
     case 'print_soil': {
@@ -609,9 +621,9 @@ const emitLeaf = (block, connById, level) => {
         lines.push(indent(level + 2, 'Serial.print(soilRaw);'));
         lines.push(indent(level + 2, `Serial.println(F(" — wrong jack/pin or no signal (expect ${portLabel}=GPIO${pin})"));`));
         lines.push(indent(level + 1, '} else {'));
-        lines.push(indent(level + 2, 'soilMoisture = soilPct;'));
-        lines.push(indent(level + 2, 'Serial.print(F("Soil moisture="));'));
-        lines.push(indent(level + 2, 'Serial.print(soilMoisture);'));
+        lines.push(indent(level + 2, `${valueVar('soilMoisture')} = soilPct;`));
+        lines.push(indent(level + 2, `Serial.print(F("Soil moisture${tag}="));`));
+        lines.push(indent(level + 2, `Serial.print(${valueVar('soilMoisture')});`));
         lines.push(indent(level + 2, 'Serial.print(F(" % (raw="));'));
         lines.push(indent(level + 2, 'Serial.print(soilRaw);'));
         lines.push(indent(level + 2, `Serial.print(F(" ${portLabel}/GPIO${pin})"));`));
@@ -648,12 +660,12 @@ const emitLeaf = (block, connById, level) => {
             lines.push(indent(level + 1, `int soilRaw = readAnalogAvg(${pin}, 16);`));
             lines.push(indent(level + 1, 'int soilPct = soilRawToPercent(soilRaw);'));
             lines.push(indent(level + 1, 'if (soilPct < 0) {'));
-            lines.push(indent(level + 2, 'soilMoisture = 0;'));
+            lines.push(indent(level + 2, `${valueVar('soilMoisture')} = 0;`));
             lines.push(indent(level + 2, `Serial.println(F("Soil FAIL — check ${portLabel}/GPIO${pin} cable"));`));
             lines.push(indent(level + 1, '} else {'));
-            lines.push(indent(level + 2, 'soilMoisture = soilPct;'));
-            lines.push(indent(level + 2, 'Serial.print(F("Soil moisture="));'));
-            lines.push(indent(level + 2, 'Serial.print(soilMoisture);'));
+            lines.push(indent(level + 2, `${valueVar('soilMoisture')} = soilPct;`));
+            lines.push(indent(level + 2, `Serial.print(F("Soil moisture${tag}="));`));
+            lines.push(indent(level + 2, `Serial.print(${valueVar('soilMoisture')});`));
             lines.push(indent(level + 2, 'Serial.print(F(" % (raw="));'));
             lines.push(indent(level + 2, 'Serial.print(soilRaw);'));
             lines.push(indent(level + 2, 'Serial.println(F(")"));'));
@@ -665,19 +677,19 @@ const emitLeaf = (block, connById, level) => {
             lines.push(indent(level, `// ${port.label} GPIO ${pin} is ADC2 — keep WiFi/BLE off for stable reads`));
         }
         if (mod && (mod.signal === 'analog' || mod.id === 'mq2' || mod.id === 'mic' || mod.id === 'pot')) {
-            lines.push(indent(level, `${mod.valueName || 'value'} = readAnalogAvg(${pin}, 12);`));
+            lines.push(indent(level, `${valueVar('value')} = readAnalogAvg(${pin}, 12);`));
         } else {
-            lines.push(indent(level, `${(mod && mod.valueName) || 'value'} = analogRead(${pin});`));
+            lines.push(indent(level, `${valueVar('value')} = analogRead(${pin});`));
         }
-        serialLabel(`${modLabel}: `, (mod && mod.valueName) || 'value');
+        serialLabel(`${modLabel}: `, valueVar('value'));
         break;
     case 'is_pressed':
-        lines.push(indent(level, `${(mod && mod.valueName) || 'buttonState'} = digitalRead(${pin}) == LOW;`));
-        serialLabel(`${modLabel}: `, `${(mod && mod.valueName) || 'buttonState'} ? "PRESSED" : "open"`);
+        lines.push(indent(level, `${valueVar('buttonState')} = digitalRead(${pin}) == LOW;`));
+        serialLabel(`${modLabel}: `, `${valueVar('buttonState')} ? "PRESSED" : "open"`);
         break;
     case 'read_distance': {
         const ue = ultraPins(port);
-        const distVar = (mod && mod.valueName) || 'distance';
+        const distVar = valueVar('distance');
         if (ue) {
             lines.push(indent(level,
                 `${distVar} = getDistanceTrigEcho(${ue.trig}, ${ue.echo});`));
@@ -699,42 +711,53 @@ const emitLeaf = (block, connById, level) => {
     case 'print_climate': {
         // Built-in 2s wait — DHT11 cannot be polled faster (255/NaN otherwise).
         const mode = block.type;
+        const tempVar = copyVar('temperature', conn);
+        const humVar = copyVar('humidity', conn);
         lines.push(indent(level, 'delay(2000);'));
         lines.push(indent(level, `{`));
         lines.push(indent(level + 1, 'float dhtT = 0;'));
         lines.push(indent(level + 1, 'float dhtH = 0;'));
         lines.push(indent(level + 1, `bool dhtOk = sampleDht11(${pin}, &dhtT, &dhtH);`));
-        lines.push(indent(level + 1, 'lastDhtMs = millis();'));
+        lines.push(indent(level + 1, `${copyVar('lastDhtMs', conn)} = millis();`));
         lines.push(indent(level + 1, 'if (!dhtOk) {'));
-        lines.push(indent(level + 2, 'Serial.println(F("DHT11 failed — plug into A1 (IO4), check cable power"));'));
+        lines.push(indent(level + 2, tag ?
+            `Serial.println(F("DHT11${tag} failed — check ${port ? port.label : 'its'} cable and power"));` :
+            'Serial.println(F("DHT11 failed — plug into A1 (IO4), check cable power"));'));
         lines.push(indent(level + 1, '} else {'));
-        lines.push(indent(level + 2, 'temperature = dhtT;'));
-        lines.push(indent(level + 2, 'humidity = dhtH;'));
+        lines.push(indent(level + 2, `${tempVar} = dhtT;`));
+        lines.push(indent(level + 2, `${humVar} = dhtH;`));
         if (mode === 'print_climate') {
-            lines.push(indent(level + 2, 'Serial.print(F("Temp="));'));
-            lines.push(indent(level + 2, 'Serial.print(temperature);'));
-            lines.push(indent(level + 2, 'Serial.print(F(" C  Humidity="));'));
-            lines.push(indent(level + 2, 'Serial.print(humidity);'));
+            lines.push(indent(level + 2, `Serial.print(F("Temp${tag}="));`));
+            lines.push(indent(level + 2, `Serial.print(${tempVar});`));
+            lines.push(indent(level + 2, `Serial.print(F(" C  Humidity${tag}="));`));
+            lines.push(indent(level + 2, `Serial.print(${humVar});`));
             lines.push(indent(level + 2, 'Serial.println(F(" %"));'));
         } else if (mode === 'read_temp') {
-            lines.push(indent(level + 2, 'Serial.print(F("Temp="));'));
-            lines.push(indent(level + 2, 'Serial.print(temperature);'));
+            lines.push(indent(level + 2, `Serial.print(F("Temp${tag}="));`));
+            lines.push(indent(level + 2, `Serial.print(${tempVar});`));
             lines.push(indent(level + 2, 'Serial.println(F(" C"));'));
         } else {
-            lines.push(indent(level + 2, 'Serial.print(F("Humidity="));'));
-            lines.push(indent(level + 2, 'Serial.print(humidity);'));
+            lines.push(indent(level + 2, `Serial.print(F("Humidity${tag}="));`));
+            lines.push(indent(level + 2, `Serial.print(${humVar});`));
             lines.push(indent(level + 2, 'Serial.println(F(" %"));'));
         }
         lines.push(indent(level + 1, '}'));
         lines.push(indent(level, '}'));
         break;
     }
+    case 'read_motion':
+        lines.push(indent(level, 'readMotion();'));
+        lines.push(indent(level, 'Serial.print(F("Motion: tilt="));'));
+        lines.push(indent(level, 'Serial.print(tiltAngle);'));
+        lines.push(indent(level, 'Serial.print(F(" shake="));'));
+        lines.push(indent(level, 'Serial.println(shakeLevel);'));
+        break;
     case 'is_motion':
-        lines.push(indent(level, `${(mod && mod.valueName) || 'motionDetected'} = digitalRead(${pin});`));
-        serialLabel(`${modLabel}: `, (mod && mod.valueName) || 'motionDetected');
+        lines.push(indent(level, `${valueVar('motionDetected')} = digitalRead(${pin});`));
+        serialLabel(`${modLabel}: `, valueVar('motionDetected'));
         break;
     case 'is_detected': {
-        const v = (mod && mod.valueName) || 'detected';
+        const v = valueVar('detected');
         lines.push(indent(level, `${v} = digitalRead(${pin}) == ${mod && mod.activeLow ? 'LOW' : 'HIGH'};`));
         serialLabel(`${modLabel}: `, `${v} ? "YES" : "no"`);
         break;
@@ -746,6 +769,9 @@ const emitLeaf = (block, connById, level) => {
     }
     case 'cloud_send_now':
         lines.push(indent(level, 'cloudSendNow();'));
+        break;
+    case 'ai_ask':
+        lines.push(indent(level, 'aiAsk();'));
         break;
     case 'wait':
         lines.push(indent(level, `delay(${Math.round(num(p.seconds, 1, 0, 3600) * 1000)});`));
@@ -772,9 +798,10 @@ const emitLeaf = (block, connById, level) => {
  * @param {number} level indent level
  * @param {object} [readers] sensor variable -> reader from sensorReaders()
  * @param {object} [fresh] variables already read earlier in this pass of the list
+ * @param {object} [ai] project AI, for If blocks that ask it
  * @returns {Array<string>} C++ lines
  */
-const emitBlocks = (blocks, connById, level, readers = {}, fresh = {}) => {
+const emitBlocks = (blocks, connById, level, readers = {}, fresh = {}, ai = null) => {
     let lines = [];
     const seen = Object.assign({}, fresh);
     const connections = Object.keys(connById).map(id => connById[id]);
@@ -782,7 +809,7 @@ const emitBlocks = (blocks, connById, level, readers = {}, fresh = {}) => {
         // Conditions and shown values read their sensor right here unless it was just read.
         varsUsedBy(block).forEach(v => {
             const reader = readers[v];
-            if (!reader || seen[v] || !connById[reader.cid]) {
+            if (!reader || seen[v] || (reader.cid && !connById[reader.cid])) {
                 return;
             }
             lines = lines.concat(emitLeaf({type: reader.type, cid: reader.cid, params: {}}, connById, level));
@@ -796,21 +823,30 @@ const emitBlocks = (blocks, connById, level, readers = {}, fresh = {}) => {
         if (block.type === 'repeat') {
             const n = Math.round(num(block.params && block.params.count, 1, 0, 1000));
             lines.push(indent(level, `for (int i = 0; i < ${n}; i++) {`));
-            lines = lines.concat(emitBlocks(block.children, connById, level + 1, readers, {}));
+            lines = lines.concat(emitBlocks(block.children, connById, level + 1, readers, {}, ai));
             lines.push(indent(level, '}'));
             return;
         }
         if (block.type === 'if_then') {
             const sensor = block.params && block.params.sensor;
-            const missing = sensor && !(block.params.condition) && !knownValues(connections)[sensor];
-            if (missing) {
-                lines.push(indent(level, '// This If uses a sensor that is not on the board any more'));
+            let cond;
+            if (sensor === AI_VAR) {
+                cond = aiCondition(block.params, ai);
+                if (!cond) {
+                    lines.push(indent(level, '// This If asks the AI about something it does not know any more'));
+                    cond = 'false';
+                }
+            } else {
+                const missing = sensor && !(block.params.condition) && !knownValues(connections)[sensor];
+                if (missing) {
+                    lines.push(indent(level, '// This If uses a sensor that is not on the board any more'));
+                }
+                cond = missing ? 'false' : formatCondition(block.params);
             }
-            const cond = missing ? 'false' : formatCondition(block.params);
             lines.push(indent(level, `if (${cond}) {`));
-            lines = lines.concat(emitBlocks(block.children, connById, level + 1, readers, seen));
+            lines = lines.concat(emitBlocks(block.children, connById, level + 1, readers, seen, ai));
             lines.push(indent(level, '} else {'));
-            lines = lines.concat(emitBlocks(block.elseChildren, connById, level + 1, readers, seen));
+            lines = lines.concat(emitBlocks(block.elseChildren, connById, level + 1, readers, seen, ai));
             lines.push(indent(level, '}'));
             return;
         }
@@ -841,12 +877,18 @@ const findBleName = blocks => {
 /**
  * @param {Array} connections wired parts
  * @param {Array} program block tree
- * @param {object} [options] {cloud: {deviceId, intervalSec, ...}, secrets: {ssid, password, token}}
+ * @param {object} [options] {cloud: {deviceId, intervalSec, ...}, secrets: {ssid, password, token},
+ *   ai: project AI, aiModel: include the AI's examples, aiRecorder: 'motion' | 'sensors'}
  *   secrets are only passed when uploading; otherwise they are masked in the output.
+ *   aiRecorder makes a sketch that streams examples to Edge AI instead of running the program.
  */
 const generateArduino = (connections, program, options = {}) => {
-    const cloud = hasCloud(connections) ?
-        cloudFirmware({connections, program, cloud: options.cloud, secrets: options.secrets}) :
+    const recorder = options.aiRecorder ? aiRecorderParts(options.aiRecorder, connections) : null;
+    const aiParts = !recorder && usesAi(program) ?
+        aiProgramParts({ai: options.ai, connections, withModel: Boolean(options.aiModel)}) :
+        null;
+    const cloud = hasCloud(connections) && !recorder ?
+        cloudFirmware({connections, program, cloud: options.cloud, secrets: options.secrets, ai: aiParts ? options.ai : null}) :
         null;
     const connById = connectionLookup(connections);
     const includes = collectIncludes(connections);
@@ -873,7 +915,11 @@ const generateArduino = (connections, program, options = {}) => {
     if (cloud) {
         cloud.setup.forEach(line => setupBody.push(line));
     }
-    const loopBody = emitBlocks(program, connById, 1, sensorReaders(connections));
+    const readers = sensorReaders(connections);
+    if (aiParts) {
+        readers[AI_VAR] = {cid: null, type: 'ai_ask', vars: [AI_VAR]};
+    }
+    const loopBody = recorder ? recorder.loop : emitBlocks(program, connById, 1, readers, {}, aiParts ? options.ai : null);
     if (!loopBody.length) {
         loopBody.push(indent(1, '// Add blocks in the Code tab'));
         loopBody.push(indent(1, 'delay(100);'));
@@ -915,6 +961,15 @@ const generateArduino = (connections, program, options = {}) => {
     }
     if (needsAnalogAvgHelper(connections)) {
         analogAvgHelper().forEach(l => out.push(l));
+        out.push('');
+    }
+    if (hasMotionSensor(connections)) {
+        motionSensorHelper().forEach(l => out.push(l));
+        out.push('');
+    }
+    const aiHelpers = (recorder && recorder.helpers) || (aiParts && aiParts.helpers);
+    if (aiHelpers) {
+        aiHelpers.forEach(l => out.push(l));
         out.push('');
     }
     if (cloud) {

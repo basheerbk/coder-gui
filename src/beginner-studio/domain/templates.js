@@ -1,3 +1,4 @@
+import {AI_VAR} from './ai/aiKinds';
 import {isOnOffSensor} from './condition';
 import {uid} from './ids';
 import {moduleById} from './modules';
@@ -671,6 +672,44 @@ const CLOUD_SPECS = [
     {id: 'cloud-pump', name: 'Phone Plant Waterer', description: 'A dashboard switch runs the water pump', difficulty: 'Beginner', modules: ['cloud', 'pump'], pattern: 'cloud_lamp'}
 ];
 
+/** Edge AI projects come with the things to teach; the examples are recorded in Edge AI. */
+const AI_SPECS = [
+    {id: 'ai-wand', name: 'Magic Wand', description: 'Teach it a wave and a circle; the light and buzzer answer', difficulty: 'Medium', modules: ['mpu6050', 'led', 'buzzer'], pattern: 'ai_wand', ai: {kind: 'motion', things: ['Wave', 'Circle']}},
+    {id: 'ai-room', name: 'Room Mood', description: 'Teach it when someone is in the room; the light turns on for them', difficulty: 'Medium', modules: ['ultra', 'mic', 'pir', 'led'], pattern: 'ai_room', ai: {kind: 'sensors', things: ['Empty', 'Someone here']}},
+    {id: 'ai-phone', name: 'Phone AI Alert', description: 'Teach it a knock on the door; your phone gets an alert', difficulty: 'Advanced', modules: ['cloud', 'mpu6050'], pattern: 'ai_phone', ai: {kind: 'motion', things: ['Knock', 'Door opens']}}
+];
+
+const aiThingsFor = spec => spec.ai.things.map((name, i) => ({id: `${spec.id}-${i + 1}`, name}));
+
+const aiProgramFor = (spec, m, act, blk) => {
+    const [first, second] = aiThingsFor(spec).map(t => t.id);
+    const ifAi = (value, children, elseChildren) => Object.assign(blk('if_then', {params: {sensor: AI_VAR, op: 'is', value}}), {
+        children,
+        elseChildren: elseChildren || []
+    });
+    if (spec.pattern === 'ai_wand') {
+        return [
+            ifAi(first, [
+                act(m.led, 'set_on', {on: true}),
+                blk('wait', {params: {seconds: 1}}),
+                act(m.led, 'set_on', {on: false})
+            ]),
+            ifAi(second, [act(m.buzzer, 'beep', {ms: 300})])
+        ];
+    }
+    if (spec.pattern === 'ai_room') {
+        return [
+            ifAi(second, [act(m.led, 'set_on', {on: true})], [act(m.led, 'set_on', {on: false})])
+        ];
+    }
+    return [
+        ifAi(first, [
+            act(m.cloud, 'cloud_alert', {text: 'Someone knocked!'}),
+            blk('wait', {params: {seconds: 5}})
+        ])
+    ];
+};
+
 const dedupeSpecs = specs => {
     const seen = {};
     return specs.filter(spec => {
@@ -684,19 +723,23 @@ const dedupeSpecs = specs => {
 
 const PROJECT_SPECS = dedupeSpecs(FEATURED_SPECS.concat(SENSOR_KIT_SPECS).concat(EXTRA_SPECS).concat(expandPairs()));
 
-const TEMPLATES = PROJECT_SPECS.concat(ADVANCED_SPECS).concat(CLOUD_SPECS).reduce((list, spec) => {
+const TEMPLATES = PROJECT_SPECS.concat(ADVANCED_SPECS).concat(CLOUD_SPECS).concat(AI_SPECS).reduce((list, spec) => {
     try {
         const wiring = assignWiring(spec.modules);
+        const meta = {
+            id: spec.id,
+            name: spec.name,
+            description: spec.description,
+            difficulty: spec.difficulty || 'Beginner',
+            cloud: spec.modules.indexOf('cloud') !== -1
+        };
+        if (spec.ai) {
+            meta.ai = {kind: spec.ai.kind, things: aiThingsFor(spec), samples: [], sig: null};
+        }
         list.push(buildTemplate(
-            {
-                id: spec.id,
-                name: spec.name,
-                description: spec.description,
-                difficulty: spec.difficulty || 'Beginner',
-                cloud: spec.modules.indexOf('cloud') !== -1
-            },
+            meta,
             wiring,
-            (m, act, blk) => programFor(spec, m, act, blk)
+            (m, act, blk) => (spec.ai ? aiProgramFor : programFor)(spec, m, act, blk)
         ));
     } catch (err) {
         if (typeof console !== 'undefined' && console.warn) {
@@ -721,4 +764,4 @@ const QUICK_START_IDS = [
 
 const quickStartTemplates = () => QUICK_START_IDS.map(id => templateById(id)).filter(Boolean);
 
-export {TEMPLATES, templateById, quickStartTemplates, PROJECT_SPECS, ADVANCED_SPECS, CLOUD_SPECS};
+export {TEMPLATES, templateById, quickStartTemplates, PROJECT_SPECS, ADVANCED_SPECS, CLOUD_SPECS, AI_SPECS};

@@ -1,5 +1,6 @@
 import React, {createContext, useCallback, useContext, useMemo, useRef, useState} from 'react';
 
+import {aiUploadProblem, usesAi} from '../domain/ai/aiFirmware';
 import {cloudUploadProblem, hasCloud} from '../domain/cloud';
 import {maskSecrets, readSecrets} from '../domain/cloudSecrets';
 import {generateArduino} from '../domain/codegen';
@@ -12,9 +13,10 @@ const UploadContext = createContext(null);
 
 /** One board connection and upload state, shared by the top-bar button and the code panel. */
 const UploadProvider = ({children}) => {
-    const {connections, program, cloud, generatedCode, view} = useStudio();
+    const {connections, program, cloud, ai, generatedCode, view} = useStudio();
     const upload = useBoardUpload();
     const [cloudNote, setCloudNote] = useState('');
+    const [aiNote, setAiNote] = useState('');
     const uploadSecrets = useRef(null);
     const {uploadCode} = upload;
     const cloudOn = hasCloud(connections);
@@ -28,9 +30,16 @@ const UploadProvider = ({children}) => {
 
     const handleUpload = useCallback(() => {
         setCloudNote('');
+        setAiNote('');
+        const aiProblem = aiUploadProblem(connections, program, ai);
+        if (aiProblem) {
+            setAiNote(aiProblem);
+            return;
+        }
+        const withAi = usesAi(program);
         if (!hasCloud(connections)) {
             uploadSecrets.current = null;
-            uploadCode(generatedCode);
+            uploadCode(withAi ? generateArduino(connections, program, {ai, aiModel: true}) : generatedCode);
             return;
         }
         const secrets = cloud ? readSecrets(cloud.email, cloud.deviceId) : null;
@@ -41,8 +50,16 @@ const UploadProvider = ({children}) => {
         }
         uploadSecrets.current = secrets;
         beginLive();
-        uploadCode(generateArduino(connections, program, {cloud, secrets}));
-    }, [connections, program, cloud, generatedCode, uploadCode, beginLive]);
+        uploadCode(generateArduino(connections, program, {cloud, secrets, ai, aiModel: true}));
+    }, [connections, program, cloud, ai, generatedCode, uploadCode, beginLive]);
+
+    /** Puts the Edge AI recorder on the board in place of the program (the next Upload brings it back). */
+    const uploadRecorder = useCallback(kind => {
+        setCloudNote('');
+        setAiNote('');
+        uploadSecrets.current = null;
+        uploadCode(generateArduino(connections, [], {aiRecorder: kind}));
+    }, [connections, uploadCode]);
 
     // The WiFi password and device key must never reach the screen, even inside raw tool output.
     const message = maskSecrets(upload.message, uploadSecrets.current);
@@ -53,10 +70,13 @@ const UploadProvider = ({children}) => {
         log,
         cloudNote,
         setCloudNote,
+        aiNote,
+        setAiNote,
         handleUpload,
+        uploadRecorder,
         cloudLive,
         hasCode: Boolean(generatedCode)
-    }), [upload, message, log, cloudNote, handleUpload, cloudLive, generatedCode]);
+    }), [upload, message, log, cloudNote, aiNote, handleUpload, uploadRecorder, cloudLive, generatedCode]);
 
     return (
         <UploadContext.Provider value={value}>

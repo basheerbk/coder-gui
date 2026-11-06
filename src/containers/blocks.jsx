@@ -40,8 +40,7 @@ import {
 import {getIsLoadingWithId} from '../reducers/project-state';
 import {isWebSerialUploadDevice} from '../lib/web-serial/device-profiles';
 import {installDeviceExtensions} from '../lib/device-extensions/install-device-extensions';
-
-const DEFAULT_DEVICE_ID = 'makerUno_arduinoUno';
+import {KIT_DEVICE_ID as DEFAULT_DEVICE_ID} from '../lib/libraries/devices/index.jsx';
 
 const addFunctionListener = (object, property, callback) => {
     const oldFn = object[property];

@@ -264,6 +264,10 @@ const Condition = ({block, options, set}) => {
         if (!opt) {
             return;
         }
+        if (opt.ai) {
+            set({sensor: id, op: 'is', value: opt.choices[0].value});
+            return;
+        }
         if (opt.boolean) {
             set({sensor: id, op: 'is', value: 0});
             return;
@@ -286,6 +290,24 @@ const Condition = ({block, options, set}) => {
             onChange={pick}
         />
     );
+    if (selected && selected.ai) {
+        const known = selected.choices.some(c => c.value === p.value);
+        return (
+            <React.Fragment>
+                <Word>{'when'}</Word>
+                {sensorControl}
+                <Word>{selected.phrase}</Word>
+                <Choice
+                    value={known ? p.value : ''}
+                    label="Answer"
+                    warn={!known}
+                    options={(known ? [] : [{value: '', label: 'pick an answer', disabled: true}])
+                        .concat(selected.choices)}
+                    onChange={v => set({value: v})}
+                />
+            </React.Fragment>
+        );
+    }
     if (!selected || selected.boolean) {
         return (
             <React.Fragment>
@@ -330,7 +352,14 @@ const plural = (n, one, many) => (Number(n) === 1 ? one : many);
 const Sentence = ({block, meta, ctx}) => {
     const p = block.params || {};
     const set = ctx.set;
-    const part = <Part>{meta.partName || meta.moduleName || ''}</Part>;
+    const part = meta.copies && ctx.setPart ? (
+        <Choice
+            value={block.cid}
+            label="Which part"
+            options={meta.copies}
+            onChange={ctx.setPart}
+        />
+    ) : <Part>{meta.partName || meta.moduleName || ''}</Part>;
     const onOff = (key, label, words) => (
         <Toggle on={p[key] !== false} color={meta.color} label={label} words={words} onChange={v => set({[key]: v})} />
     );
@@ -630,6 +659,7 @@ const Sentence = ({block, meta, ctx}) => {
     case 'read_distance':
     case 'read_temp':
     case 'read_humidity':
+    case 'read_motion':
         return <React.Fragment><Word>{'read'}</Word>{part}</React.Fragment>;
     default:
         return say(meta.label);
@@ -807,7 +837,7 @@ const Lane = ({title, blocks, depth, active, K, onAdd}) => (
 );
 
 const ProgramBlock = ({block, depth = 0}) => {
-    const {connections, deleteBlock, updateParam, setAddTarget, addTarget, K} = useStudio();
+    const {connections, ai, deleteBlock, updateParam, setBlockPart, setAddTarget, addTarget, K} = useStudio();
     const meta = blockMeta(block, connections, K);
     const isContainer = block.type === 'repeat' || block.type === 'if_then';
     const isIf = block.type === 'if_then';
@@ -818,7 +848,8 @@ const ProgramBlock = ({block, depth = 0}) => {
     const showElse = isIf && (elseChildren.length > 0 || targetElse);
     const ctx = {
         set: patch => updateParam(block.uid, patch),
-        sensors: buildSensorOptions(connections),
+        setPart: setBlockPart ? cid => setBlockPart(block.uid, cid) : null,
+        sensors: buildSensorOptions(connections, ai),
         values: buildValueOptions(connections)
     };
     const toggleTarget = (branch, active) => setAddTarget(active ? null : {parentId: block.uid, branch});

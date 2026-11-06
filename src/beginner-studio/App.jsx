@@ -1,5 +1,6 @@
 import React from 'react';
 
+import AiView from './components/ai/AiView.jsx';
 import BuildView from './components/build/BuildView.jsx';
 import CloudAddDialog from './components/cloud/CloudAddDialog.jsx';
 import CloudView from './components/cloud/CloudView.jsx';
@@ -73,6 +74,7 @@ const AppShell = () => {
             {view === 'build' || (view === 'cloud' && !cloudPart) ? <BuildView /> : null}
             {view === 'code' ? <CodeView /> : null}
             {cloudPart ? <CloudView /> : null}
+            <AiView />
             <ProjectLibraryModal />
             <CloudAddDialog />
         </div>

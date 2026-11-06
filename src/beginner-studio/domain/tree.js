@@ -41,6 +41,10 @@ const updateBlockParams = (blocks, blockId, params) => mapTree(blocks, block => 
     });
 });
 
+const setBlockCid = (blocks, blockId, cid) => mapTree(blocks, block => (
+    block.uid === blockId ? Object.assign({}, block, {cid}) : block
+));
+
 const appendBlock = (blocks, newBlock, target) => {
     if (!target || !target.parentId) {
         return (blocks || []).concat([newBlock]);
@@ -67,5 +71,6 @@ export {
     deleteBlockById,
     deleteBlocksByCid,
     updateBlockParams,
+    setBlockCid,
     appendBlock
 };

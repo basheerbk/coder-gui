@@ -5,6 +5,7 @@
  * Do not change pin numbers without updating the board table.
  *
  * D5 RJ11 is one jack: pin2=IO25 Echo, pin3=IO26 Trig (HC-SR04; Echo = INPUT).
+ * It is the ultrasonic jack only, so it is not offered as an on/off port.
  * MD RJ11: pin2=IO17 pin3=IO5 (Motor A), pin4=IO18 pin5=IO19 (Motor B).
  * RC522 on 3D: SS=32 RST=33 MISO=34; SPI bus SCK=16 MOSI=23 (not D5).
  * UART (HC-05): RX=GPIO3 (U0RXD), TX=GPIO1 (U0TXD) — shared with USB serial @ 9600.
@@ -25,8 +26,8 @@
         A2: 15,
         A3: 2,
         A4: 0,
-        D4: 25,
-        D5: 26,
+        ULTRA_ECHO: 25,
+        ULTRA_TRIG: 26,
         D13: 33,
         T3D: 32,
         RFID_SS: 32,
@@ -43,8 +44,6 @@
     root.MakerEsp32Hardware = {
         pins: PINS,
         digitalPorts: {
-            D4: 'D4_PIN',
-            D5: 'D5_PIN',
             D13: 'D13_PIN',
             T3D: 'T3D_PIN',
             '3D': 'T3D_PIN',

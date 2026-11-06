@@ -11,7 +11,8 @@ const FILTERS = [
     {id: 'Beginner', label: 'Beginner'},
     {id: 'Medium', label: 'Medium'},
     {id: 'Advanced', label: 'Advanced'},
-    {id: 'cloud', label: 'Cloud'}
+    {id: 'cloud', label: 'Cloud'},
+    {id: 'ai', label: 'Edge AI'}
 ];
 
 const matches = (tpl, filter) => {
@@ -20,6 +21,9 @@ const matches = (tpl, filter) => {
     }
     if (filter === 'cloud') {
         return Boolean(tpl.cloud);
+    }
+    if (filter === 'ai') {
+        return Boolean(tpl.ai);
     }
     return tpl.difficulty === filter;
 };

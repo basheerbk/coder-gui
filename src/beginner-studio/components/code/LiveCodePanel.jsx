@@ -2,6 +2,8 @@ import React, {useState} from 'react';
 
 import {useStudio} from '../../context/StudioContext.jsx';
 import {useUpload} from '../../context/UploadContext.jsx';
+import {usesAi} from '../../domain/ai/aiFirmware';
+import {generateArduino} from '../../domain/codegen';
 
 import SerialMonitorPanel from './SerialMonitorPanel.jsx';
 
@@ -44,13 +46,16 @@ const copyText = (text, done) => {
 };
 
 const CodeSection = ({K}) => {
-    const {generatedCode} = useStudio();
+    const {generatedCode, connections, program, cloud, ai} = useStudio();
     const upload = useUpload();
     const [copied, setCopied] = useState(false);
     const lines = (generatedCode || '').split('\n');
     const showDetails = Boolean(upload.log) || upload.phase === 'error';
 
-    const handleCopy = () => copyText(generatedCode, () => {
+    // The preview leaves out the AI's examples; a copy has to work on its own.
+    const handleCopy = () => copyText(usesAi(program) ?
+        generateArduino(connections, program, {cloud, ai, aiModel: true}) :
+        generatedCode, () => {
         setCopied(true);
         setTimeout(() => setCopied(false), 1200);
     });

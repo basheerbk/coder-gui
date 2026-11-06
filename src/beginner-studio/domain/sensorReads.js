@@ -1,4 +1,5 @@
 import {moduleById} from './modules';
+import {partValues} from './partCopies';
 
 /** Blocks that store a fresh value in their module's variable(s). */
 const READ_BLOCKS = {
@@ -13,15 +14,23 @@ const READ_BLOCKS = {
     is_motion: true,
     is_detected: true,
     rfid_read: true,
-    hc05_read: true
+    hc05_read: true,
+    read_motion: true
 };
 
 /** Reads that only refresh a variable. Beginners never place these: codegen adds them where needed. */
-const SILENT_READS = ['is_pressed', 'is_motion', 'is_detected', 'read_value', 'read_distance', 'read_temp', 'read_humidity'];
+const SILENT_READS = [
+    'is_pressed',
+    'is_motion',
+    'is_detected',
+    'read_value',
+    'read_distance',
+    'read_temp',
+    'read_humidity',
+    'read_motion'
+];
 
 const READER_ORDER = SILENT_READS.concat(['rfid_read', 'hc05_read']);
-
-const moduleVars = mod => [mod.valueName, mod.humidityName].filter(Boolean);
 
 /**
  * Which block refreshes each sensor variable of the wired parts.
@@ -36,14 +45,15 @@ const sensorReaders = connections => {
             return;
         }
         const types = (mod.actions || []).map(a => a.type);
-        const vars = moduleVars(mod);
-        vars.forEach(v => {
-            const preferred = v === mod.humidityName ? 'read_humidity' : null;
+        const values = partValues(c);
+        const vars = values.map(v => v.name);
+        values.forEach(v => {
+            const preferred = v.kind === 'humidity' ? 'read_humidity' : null;
             const type = preferred && types.indexOf(preferred) !== -1 ?
                 preferred :
                 READER_ORDER.find(t => types.indexOf(t) !== -1);
-            if (type && !readers[v]) {
-                readers[v] = {cid: c.id, type, vars};
+            if (type && !readers[v.name]) {
+                readers[v.name] = {cid: c.id, type, vars};
             }
         });
     });
@@ -79,8 +89,7 @@ const varsReadBy = (block, connections) => {
         return [];
     }
     const conn = (connections || []).find(c => c.id === block.cid);
-    const mod = conn ? moduleById(conn.moduleId) : null;
-    return mod ? moduleVars(mod) : [];
+    return conn ? partValues(conn).map(v => v.name) : [];
 };
 
 const walkBlocks = (blocks, visit) => {

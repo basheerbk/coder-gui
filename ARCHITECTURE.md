@@ -52,7 +52,7 @@ There is no student project database in this repository. Work lives in the brows
 
 - The OpenBlock / Scratch-style workspace: toolbox, canvas, hardware header, serial console.  
 - Maker ESP32 categories that were already there: digital write/read, analog read, L293D motors, stepper, I2C begin, Blynk.  
-- Maker Kit categories that match Beginner: sensors, outputs, radio (onboard BLE and HC-05).  
+- Maker Kit categories that match Beginner: sensors, outputs, radio (onboard BLE and HC-05). Every kit part has a block, including IR, PIR, reed, LDR, flame, water level, MPU6050, buzzer tones, LED brightness, pump and door lock.  
 - The same compile-and-flash path as Beginner when the Maker ESP32 board is selected.
 
 **Upload and hardware**
@@ -136,9 +136,9 @@ The sketch already compiled. The board has not entered download mode. On many la
 
 ### 2.3 Advanced — a typical session
 
-1. Open `/ide` and select the Maker ESP32 board.  
+1. Open `/ide`. It starts on the Maker ESP32, the only board in the board list. Other OpenBlock boards stay in the code (hidden by `KIT_DEVICE_ID` in [devices/index.jsx](src/lib/libraries/devices/index.jsx)), so old projects saved for them still open.  
 2. Drag blocks from **Maker Kit Sensors**, **Maker Kit Outputs**, or **Maker Kit Radio**, or from Digital / Analog / Motors / Stepper / I2C / Blynk.  
-3. On kit blocks, pick the jack (D13, A1, …). Labels match Beginner. A4 is shown as **A4 (BOOT)**.  
+3. On kit blocks, pick the jack (D13, A1, …). Labels match Beginner. A4 is shown as **A4 (BOOT)**. D5 is not in any jack list: only the HC-SR04 block uses it. Old projects saved with D4 or D5 fall back to D13 and the sketch says so in a comment.  
 4. Connect and Upload the same way as Beginner.  
 5. Open the hardware console at 9600 for kit sketches.
 
@@ -189,6 +189,7 @@ Beginner only offers modules that exist in the physical kit. Advanced kit blocks
 | MQ-2 | A1–A4 | Read / print raw gas (heater needs ~1 min; not ppm) |
 | Microphone | A1–A4 | Read loudness |
 | HW-605 pulse | I2C | Read BPM (MAX30102 @ 100 kHz) |
+| MPU6050 motion | I2C | Tilt in degrees and shake 0–100 (plain `Wire`, address 0x68 or 0x69); the sensor Edge AI learns moves from |
 | Capacitive soil | A1–A4 | Moisture 0–100% |
 | DHT11 | A1 | Temp, humidity, print climate (sample every 2 s) |
 | HC-SR04 | D5 | Distance cm (invalid echo → −1) |
@@ -210,12 +211,13 @@ These are the reasons a jack stays grey, or a sketch comment appears.
 | DHT prefers A1 | GPIO 33 is a poor DHT data pin on this ESP32 | Auto-assign tries A1, A2, A3, then D13. Fail text says plug into A1. |
 | RFID SPI is not on D5 | Ultrasonic already owns 25/26 | SCK=16, MOSI=23; SS/RST/MISO on 3D. |
 | UART is USB serial | HC-05 RX/TX are U0RXD/U0TXD | Send/receive use `Serial` at 9600. Do not open a second monitor. |
-| I2C is shared | OLED and HW-605 are both 3.3 V I2C | Both may use the I2C jack. Pulse init uses 100 kHz, not 400 kHz. |
+| I2C is shared | OLED, HW-605 and MPU6050 are all 3.3 V I2C | They may share the I2C jacks; `Wire.begin` runs once. Pulse init uses 100 kHz, not 400 kHz. A missing MPU6050 is retried every 5 s and reads shake −1. |
 | Soil is capacitive | Dry ≈ high ADC, wet ≈ low | Map raw ~3200→0%, ~1200→100%. Raw ≈ 0 is a cable fail. |
 | MQ-2 / mic / pot noise | Single ADC reads swing | Average 12–16 samples with a short delay. |
 | Analog is ADC2 | WiFi/BLE steal ADC2 | Comments: turn the radio off for stable reads. |
 | 4-ch relay is active-low | Floating LOW turns channels on at power-up | Setup writes HIGH to 17/5/18/19 (off). ON drives LOW. |
 | A2, A3, ST are strapping pins | Wrong level at reset can change boot | Jacks are flagged; A4 is the strongest warning. |
+| Copies only on shared jacks | Parts with their own jack, I2C address or radio cannot be doubled | One-wire and analog parts (D13, A1–A4) can be added again: the copy keeps a number for life (`conn.n`), is named "LED 2" and reads into `name2` variables. Others say "already on the board". See [partCopies.js](src/beginner-studio/domain/partCopies.js). |
 
 LED default pin is **D13 = GPIO 33**. Brightness uses `analogWrite` on that same pin.
 
@@ -319,6 +321,10 @@ The IDE shell is [src/containers/gui.jsx](src/containers/gui.jsx) (OpenBlock VM 
 | [generator.js](static/extensions/makerEsp32/generator.js) | C++ per block; kit helpers copied from Beginner |
 | [translations.js](static/extensions/makerEsp32/translations.js) | Labels |
 
+Sensor blocks read the same active level as Beginner (IR, reed and flame are LOW when triggered; PIR and LDR are HIGH). Pump, lock and buzzer blocks write LOW in setup so a relay does not click on at boot. The MPU6050 blocks add the same raw-Wire driver Beginner uses. [maker-esp32-extension.test.js](test/unit/maker-esp32-extension.test.js) checks that every toolbox block has a shape, a label and a generator.
+
+Unlike Beginner, the IDE does not stop two blocks from using pins that share a GPIO (D13 and the RFID reset are both GPIO 33).
+
 Kit blocks force `Serial.begin(9600)`. Blynk blocks force `Serial.begin(115200)`. If both appear in one workspace, the last `Serial.begin` the generator writes wins. Match the console to that sketch.
 
 ### 4.5 Compile and flash
@@ -397,6 +403,29 @@ Rules the software enforces:
 
 Local development: `cd services/iot-api && npm run dev` (see its readme), then `npm start` here; the dev server proxies `/api/iot`.
 
+### 4.7 Edge AI
+
+Students teach the board to tell 2–4 things apart by recording examples, then use "If the AI thinks it is …" blocks. The model runs on the ESP32 itself; no server and no internet are involved. Two kinds: **Motion** (moves made with the MPU6050) and **Sensors** (moments the wired sensors notice together, such as an empty room or someone at the door).
+
+| Piece | Where | Notes |
+|-------|-------|-------|
+| Page | [AiView.jsx](src/beginner-studio/components/ai/AiView.jsx), [ThingList.jsx](src/beginner-studio/components/ai/ThingList.jsx) | Opened by the top-bar "Edge AI" button (its dot and tooltip say what is missing). Split 30/70: the things the AI knows on the left; on the right what it learns, get the board ready, teach it, try it and use it. Stacks under 900 px |
+| Rules and limits | [aiKinds.js](src/beginner-studio/domain/ai/aiKinds.js) | Kinds, which readings Sensors uses (in a fixed sorted order), name checks, `aiProblem()` (the one next step, shown in the top bar and on Upload), Cloud keys `ai_<name>` |
+| Saved state | [aiState.js](src/beginner-studio/domain/ai/aiState.js), [autosave.js](src/beginner-studio/domain/autosave.js), [useAiActions.js](src/beginner-studio/hooks/useAiActions.js) | `ai: {kind, things, samples, sig}` is saved with the project (autosave v1 with an optional field, so older tabs ignore it). One recording is one undo step; undo is paused while recording |
+| Model | [knn.js](src/beginner-studio/domain/ai/knn.js) | 3 nearest neighbours on standardised features; a tie goes to the nearest. "Not sure" past 3× the usual same-thing gap. The check leaves out each example's whole recording, so near-copies do not count |
+| Recorder | [useAiRecorder.js](src/beginner-studio/hooks/useAiRecorder.js), [aiLine.js](src/beginner-studio/domain/ai/aiLine.js) | "Put the recorder on the board" uploads a sketch that prints `TBAI1,…` lines at 9600 baud: a hello every 2 s with the kind, parts signature and feature count; one `F` line per example; a movement level; `E,no_sensor`. Record collects 10 examples and stops by itself; leaving the page or losing the board keeps what it got |
+| Firmware | [aiFirmware.js](src/beginner-studio/domain/ai/aiFirmware.js), [motionSensor.js](src/beginner-studio/domain/motionSensor.js) | Motion: 100 readings a second, a move starts when it jolts past a line and is kept for 1 s (200 ms from just before); 24 features (average, spread, lowest, highest of 6 axes). Sensors: 5 readings over about 1 s, averaged. `aiClassify()` repeats the browser's steps in C++ |
+| Blocks | [condition.js](src/beginner-studio/domain/condition.js), [codegen.js](src/beginner-studio/domain/codegen.js) | "If the AI thinks it is" offers the things, Nothing (Motion only) and Not sure. The loop asks once per pass: Motion waits up to 2 s for a move, Sensors reads for about 1 s. An If about a removed thing becomes `if (false)` and blocks Upload |
+
+Rules the software enforces:
+
+- **The learned examples go into the sketch only on Upload and Copy.** The code panel shows a short stand-in that answers Not sure, because the full table is long.
+- **Examples recorded with other parts cannot be mixed in.** Each recording carries the parts signature; when the parts change, the page asks to clear the old examples and Upload refuses until they are recorded again.
+- **Upload checks the AI first** (2 things, 10 examples each, matching parts) and offers "Open Edge AI" instead of uploading a program that cannot answer.
+- **Cloud** gets one 0/1 reading per thing (`ai_wave` …), titled "AI: Wave" on the dashboard.
+
+Templates: Magic Wand (motion, light and buzzer), Room Mood (sensors, light), Phone AI Alert (motion and Cloud). They come with the things named; the examples are recorded by the student.
+
 ---
 
 ## 5. Failures, limits, and where to look
@@ -419,6 +448,8 @@ Local development: `cd services/iot-api && npm run dev` (see its readme), then `
 | Cloud board never goes online | 5 GHz-only WiFi, login-page WiFi, eduroam, or wrong password | Serial monitor explains the WiFi reason code. Use 2.4 GHz or a phone hotspot. |
 | Cloud board "keeps reconnecting" warning | Brown-out on USB power, or two boards flashed with the same key | Check cable/power; make a new key for one board. |
 | Cloud board paused | It sent data too fast (flooding) | Add a Wait block, upload, press "Turn back on" in Settings. |
+| MPU6050 not found | Cable not fully in I2C, or a module at another address | Setup tries 0x68 and 0x69 and says so in Board messages; it retries every 5 s. Edge AI shows "cannot find the motion sensor". |
+| Edge AI always says Not sure | Moves done differently from the recordings, or parts changed | Record more examples the way it will be used; the check on the Edge AI page shows which things get mixed up. |
 
 ### 5.2 Technical limits
 
@@ -428,6 +459,7 @@ Local development: `cd services/iot-api && npm run dev` (see its readme), then `
 - Cloud: 2.4 GHz WPA2-Personal or open WiFi only (no captive portals or Enterprise); readings every 5 s at most; 6 controls per board (`switch1..4`, `slider1..2`).  
 - Upload needs a secure context (HTTPS or localhost) and a Chromium browser.  
 - HC-05 and the USB serial monitor cannot be used as two independent ports; they are the same UART.
+- Edge AI: 2–4 things, 10–40 examples each, names up to 16 letters. The recorder replaces the student's program until the next Upload. Sound is not a kind yet.
 
 ### 5.3 Repository map
 
@@ -445,5 +477,6 @@ Local development: `cd services/iot-api && npm run dev` (see its readme), then `
 | Cloud service, broker, deploy | [services/iot-api/](services/iot-api/) |
 | IoT Dashboard (full page) | [src/iot/](src/iot/) |
 | Cloud firmware generator | [src/beginner-studio/domain/cloudFirmware.js](src/beginner-studio/domain/cloudFirmware.js) |
+| Edge AI (model, recorder, firmware) | [src/beginner-studio/domain/ai/](src/beginner-studio/domain/ai/), [src/beginner-studio/components/ai/](src/beginner-studio/components/ai/) |
 
 This file is the product document for TinkerBit: what it offers, how a person uses it, how the kit is wired, how the stack compiles and flashes, and what we already do when hardware or USB does not behave.

@@ -1,4 +1,5 @@
 import {CONTROL_BLOCKS, MODULES, moduleById} from './modules';
+import {copyTag} from './partCopies';
 
 const CONTROL_BY_TYPE = CONTROL_BLOCKS.reduce((acc, block) => {
     acc[block.type] = block;
@@ -55,6 +56,7 @@ const PART_NAMES = {
     ldr: 'light sensor',
     flame: 'flame sensor',
     water: 'water sensor',
+    mpu6050: 'MPU6050',
     buzzer: 'buzzer',
     pump: 'pump',
     solenoid: 'door lock',
@@ -146,15 +148,22 @@ const blockMeta = (block, connections) => {
     if (mod) {
         const color = partColor(mod);
         const actionLabel = actionLabelForType(mod, block.type) || block.type.replace(/_/g, ' ');
+        const tag = copyTag(conn, connections);
+        const copies = connections.filter(c => c.moduleId === mod.id);
         return {
             color,
             soft: `${color}22`,
             iconId: mod.id,
-            label: `${actionLabel} · ${mod.name}`,
+            label: `${actionLabel} · ${mod.name}${tag}`,
             kind: mod.dir === 'in' ? 'sensor' : 'action',
-            moduleName: mod.name,
-            partName: PART_NAMES[mod.id] || mod.name,
-            onOffWords: mod.onOffWords || null
+            moduleName: `${mod.name}${tag}`,
+            partName: `${PART_NAMES[mod.id] || mod.name}${tag}`,
+            onOffWords: mod.onOffWords || null,
+            // Several of this part on the board: the block can be pointed at any of them.
+            copies: copies.length > 1 ? copies.map(c => ({
+                value: c.id,
+                label: `${PART_NAMES[mod.id] || mod.name}${copyTag(c, connections)}`
+            })) : null
         };
     }
 
@@ -184,11 +193,11 @@ const blockMeta = (block, connections) => {
 };
 
 const paletteChipMeta = (type, options) => {
-    const {moduleId, label: overrideLabel} = options || {};
+    const {moduleId, label: overrideLabel, tag = ''} = options || {};
     const mod = moduleId ? moduleById(moduleId) : null;
     const control = CONTROL_BY_TYPE[type];
     const color = control ? controlColor(type) : (mod ? partColor(mod) : DEFAULT_PART_COLOR);
-    const name = mod ? (PART_NAMES[mod.id] || mod.name) : '';
+    const name = mod ? `${PART_NAMES[mod.id] || mod.name}${tag}` : '';
     const fallback = control ? control.label : (actionLabelForType(mod, type) || type.replace(/_/g, ' '));
     return {
         color,

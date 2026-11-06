@@ -1,5 +1,6 @@
 import React, {createContext, useContext, useMemo, useState} from 'react';
 
+import useAiActions from '../hooks/useAiActions';
 import useAutosave from '../hooks/useAutosave';
 import useGeneratedCode from '../hooks/useGeneratedCode';
 import useStudioActions from '../hooks/useStudioActions';
@@ -27,6 +28,10 @@ const freshState = () => ({
     // {deviceId, deviceName, intervalSec, ssid, email} once Cloud is set up; never holds secrets.
     cloud: null,
     showCloudSetup: false,
+    // {kind, things: [{id, name}], samples: [{thing, take, f}], sig} once Edge AI is used.
+    ai: null,
+    // Edge AI is recording: undo waits until the examples are saved.
+    aiBusy: false,
     theme: typeof window !== 'undefined' ? readStoredTheme() : 'dark'
 });
 
@@ -43,14 +48,16 @@ const StudioProvider = ({user, children}) => {
     const email = user && user.email ? user.email : null;
     const [state, setState] = useState(() => initialState(email));
     const actions = useStudioActions(state, setState);
+    const aiActions = useAiActions(setState);
     const history = useUndoHistory(state, setState);
     const autosave = useAutosave(state, email);
-    const generatedCode = useGeneratedCode(state.connections, state.program, state.cloud);
+    const generatedCode = useGeneratedCode(state.connections, state.program, state.cloud, state.ai);
     const K = tokensFor(state.theme);
 
-    const value = useMemo(() => Object.assign({}, state, actions, history, autosave, {generatedCode, K, user}), [
+    const value = useMemo(() => Object.assign({}, state, actions, aiActions, history, autosave, {generatedCode, K, user}), [
         state,
         actions,
+        aiActions,
         history,
         autosave,
         user,

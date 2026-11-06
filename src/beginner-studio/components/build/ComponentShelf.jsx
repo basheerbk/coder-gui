@@ -3,6 +3,7 @@ import React, {useState} from 'react';
 import {useStudio} from '../../context/StudioContext.jsx';
 import {hasBle, hasCloud} from '../../domain/cloud';
 import {MODULES} from '../../domain/modules';
+import {canRepeat} from '../../domain/partCopies';
 import {fitsWithCloud} from '../../domain/ports';
 import PartIcon from '../shared/PartIcon.jsx';
 
@@ -56,11 +57,19 @@ const FilterPill = ({active, label, title, onClick, K}) => {
     );
 };
 
-const ComponentTile = ({mod, connected, unavailable, selected, onSelect, K}) => {
+const ComponentTile = ({mod, count, repeat, unavailable, selected, onSelect, K}) => {
     const [hover, setHover] = useState(false);
+    const connected = count > 0 && !repeat;
     const live = !connected && !unavailable;
     const lit = selected || (hover && live);
-    const tip = unavailable || (connected ? `${mod.name} is already on the board` : mod.description);
+    let tip = mod.description;
+    if (unavailable) {
+        tip = unavailable;
+    } else if (connected) {
+        tip = `${mod.name} is already on the board`;
+    } else if (count > 0) {
+        tip = `${count} on the board. Pick it to add another.`;
+    }
 
     return (
         <button
@@ -123,15 +132,17 @@ const ComponentTile = ({mod, connected, unavailable, selected, onSelect, K}) => 
             >
                 {mod.name}
             </span>
-            {connected ? (
+            {count > 0 ? (
                 <span
                     aria-hidden
                     style={{
                         position: 'absolute',
                         top: 6,
                         right: 6,
-                        width: 18,
+                        minWidth: 18,
                         height: 18,
+                        padding: '0 4px',
+                        boxSizing: 'border-box',
                         borderRadius: 9,
                         background: K.green,
                         color: '#fff',
@@ -142,7 +153,7 @@ const ComponentTile = ({mod, connected, unavailable, selected, onSelect, K}) => 
                         justifyContent: 'center'
                     }}
                 >
-                    ✓
+                    {count > 1 ? `×${count}` : '✓'}
                 </span>
             ) : null}
         </button>
@@ -161,7 +172,7 @@ const ComponentShelf = () => {
 
     const used = {};
     connections.forEach(c => {
-        used[c.moduleId] = true;
+        used[c.moduleId] = (used[c.moduleId] || 0) + 1;
     });
 
     const cloudOn = hasCloud(connections);
@@ -206,17 +217,21 @@ const ComponentShelf = () => {
                 }}
             >
                 <div style={{display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8}}>
-                    {list.map(mod => (
-                        <ComponentTile
-                            key={mod.id}
-                            mod={mod}
-                            connected={Boolean(used[mod.id])}
-                            unavailable={used[mod.id] ? null : unavailableReason(mod, cloudOn, bleOn)}
-                            selected={selectedModule === mod.id}
-                            onSelect={selectModule}
-                            K={K}
-                        />
-                    ))}
+                    {list.map(mod => {
+                        const repeat = canRepeat(mod);
+                        return (
+                            <ComponentTile
+                                key={mod.id}
+                                mod={mod}
+                                count={used[mod.id] || 0}
+                                repeat={repeat}
+                                unavailable={used[mod.id] && !repeat ? null : unavailableReason(mod, cloudOn, bleOn)}
+                                selected={selectedModule === mod.id}
+                                onSelect={selectModule}
+                                K={K}
+                            />
+                        );
+                    })}
                 </div>
             </div>
         </aside>

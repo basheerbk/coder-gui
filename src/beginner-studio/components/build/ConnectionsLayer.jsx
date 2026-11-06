@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {moduleById} from '../../domain/modules';
+import {copyNo, copyTag, partName} from '../../domain/partCopies';
 import {PORTS, cardCablePoint, portPosition} from '../../domain/ports';
 
 import ConnectedModuleCard from './ConnectedModuleCard.jsx';
@@ -87,7 +87,8 @@ const ConnectionsLayer = ({
                 {placement ? (
                     <ModuleArtNode
                         moduleId={conn.moduleId}
-                        name={(moduleById(conn.moduleId) || {}).name}
+                        name={partName(conn, connections)}
+                        copy={copyTag(conn, connections) ? copyNo(conn) : null}
                         placement={placement}
                         dragging={Boolean(live)}
                         onDisconnect={() => disconnect(conn.id)}
@@ -97,6 +98,7 @@ const ConnectionsLayer = ({
                 ) : (
                     <ConnectedModuleCard
                         connection={conn}
+                        name={partName(conn, connections)}
                         x={cardX}
                         y={cardY}
                         dragging={Boolean(live)}

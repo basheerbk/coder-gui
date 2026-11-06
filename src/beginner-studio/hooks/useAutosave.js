@@ -26,7 +26,7 @@ const useAutosave = (state, email) => {
         }
         const timer = setTimeout(() => saveProject(email, latest.current), DELAY_MS);
         return () => clearTimeout(timer);
-    }, [state.connections, state.program, state.projectName, state.cloud, state.activeTemplateId, email]);
+    }, [state.connections, state.program, state.projectName, state.cloud, state.activeTemplateId, state.ai, email]);
 
     useEffect(() => {
         const flush = () => {

@@ -57,7 +57,7 @@ const useNow = ms => {
  * project's setup steps, its going-live checklist, or a board's dashboard.
  */
 const CloudBoards = ({K, w, step, error, cloudLive}) => {
-    const {connections} = useStudio();
+    const {connections, ai} = useStudio();
     const now = useNow(15000);
     const [selected, setSelected] = useState(PROJECT);
     const [editing, setEditing] = useState(false);
@@ -88,7 +88,7 @@ const CloudBoards = ({K, w, step, error, cloudLive}) => {
     } else if (projectId) {
         projectBoard = projectDevice ? projectDevice.name : w.cloud.deviceName;
     }
-    const titleFor = useMemo(() => keyTitles(connections), [connections]);
+    const titleFor = useMemo(() => keyTitles(connections, ai), [connections, ai]);
 
     const select = target => {
         const next = target === projectId && !setupBoard ? PROJECT : target;

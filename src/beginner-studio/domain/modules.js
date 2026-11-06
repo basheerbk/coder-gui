@@ -357,6 +357,21 @@ const MODULES = [
         ]
     },
     {
+        id: 'mpu6050',
+        name: 'MPU6050 Motion',
+        signal: 'digital',
+        dir: 'in',
+        category: 'sensor',
+        color: K.purple,
+        description: 'Feels tilting and shaking, and lets Edge AI learn your moves',
+        i2c: true,
+        includes: ['Wire.h'],
+        extraValues: [{name: 'tiltAngle', type: 'int', label: 'Tilt'}, {name: 'shakeLevel', type: 'int', label: 'Shake'}],
+        actions: [
+            {type: 'read_motion', label: 'Read motion'}
+        ]
+    },
+    {
         id: 'rfid',
         name: 'RFID RC522',
         signal: 'digital',

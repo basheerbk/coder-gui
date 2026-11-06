@@ -1,5 +1,7 @@
+import {AI_VAR, NOTHING, UNSURE} from './ai/aiKinds';
 import {CLOUD_CONTROL_OPTIONS} from './cloud';
 import {moduleById} from './modules';
+import {copyTag, partValues} from './partCopies';
 
 const COMPARE_OPS = [
     {value: '<', label: '<', words: 'is less than'},
@@ -31,7 +33,9 @@ const SENSOR_INFO = {
     magnetNear: {label: 'Reed switch', phrase: 'feels a magnet'},
     isDark: {label: 'Light sensor', phrase: 'says it is dark'},
     flameSeen: {label: 'Flame sensor', phrase: 'sees a flame'},
-    waterLevel: {label: 'Water level', hint: '0–4095'}
+    waterLevel: {label: 'Water level', hint: '0–4095'},
+    tiltAngle: {label: 'Tilt', unit: '°', hint: '-90 to 90'},
+    shakeLevel: {label: 'Shake', hint: '0–100'}
 };
 
 const ON_OFF_READS = {is_pressed: true, is_motion: true, is_detected: true};
@@ -51,14 +55,17 @@ const SENSOR_DEFAULTS = {
     distance: {op: '<', value: 25},
     temperature: {op: '>', value: 30},
     humidity: {op: '>', value: 70},
-    waterLevel: {op: '>', value: 1000}
+    waterLevel: {op: '>', value: 1000},
+    tiltAngle: {op: '>', value: 30},
+    shakeLevel: {op: '>', value: 40}
 };
 
-const withDefaults = (id, option) => {
-    const d = SENSOR_DEFAULTS[id];
-    const info = SENSOR_INFO[id] || {};
+/** `base` is the part's plain variable name; `tag` is " 2" for a second copy of the part. */
+const withDefaults = (base, option, tag = '') => {
+    const d = SENSOR_DEFAULTS[base];
+    const info = SENSOR_INFO[base] || {};
     const friendly = {
-        label: info.label || option.label,
+        label: info.label ? `${info.label}${tag}` : option.label,
         phrase: info.phrase || (option.boolean ? 'is on' : null),
         unit: info.unit || option.unit || null,
         hint: info.hint || option.hint || null
@@ -67,8 +74,29 @@ const withDefaults = (id, option) => {
     return Object.assign({}, defaults, option, friendly);
 };
 
-/** Sensor / value options from wired input modules. */
-const buildSensorOptions = connections => {
+/**
+ * The If option for Edge AI once it knows something: its answers are the things it was
+ * taught, Nothing (moves only: no move happened) and Not sure.
+ */
+const aiOption = ai => {
+    const things = (ai && ai.things) || [];
+    if (!things.length) {
+        return null;
+    }
+    const choices = things.map(t => ({value: t.id, label: t.name}));
+    if (ai.kind !== 'sensors') {
+        choices.push({value: NOTHING, label: 'Nothing (no move)'});
+    }
+    choices.push({value: UNSURE, label: 'Not sure'});
+    return {id: AI_VAR, label: 'Edge AI', phrase: 'thinks it is', ai: true, boolean: false, moduleId: 'ai', choices};
+};
+
+/**
+ * Sensor / value options from wired input modules (and Edge AI when it knows something).
+ * @param {Array} connections wired parts
+ * @param {object} [ai] project AI
+ */
+const buildSensorOptions = (connections, ai) => {
     const options = [];
     const seen = {};
     (connections || []).forEach(c => {
@@ -77,24 +105,21 @@ const buildSensorOptions = connections => {
             return;
         }
         const boolean = isBooleanModule(mod);
-        if (mod.valueName && !seen[mod.valueName]) {
-            seen[mod.valueName] = true;
-            options.push(withDefaults(mod.valueName, {
-                id: mod.valueName,
-                label: mod.name,
-                boolean,
-                moduleId: mod.id
-            }));
-        }
-        if (mod.humidityName && !seen[mod.humidityName]) {
-            seen[mod.humidityName] = true;
-            options.push(withDefaults(mod.humidityName, {
-                id: mod.humidityName,
-                label: `${mod.name} · humidity`,
-                boolean: false,
-                moduleId: mod.id
-            }));
-        }
+        const tag = copyTag(c, connections);
+        partValues(c).forEach(v => {
+            if (seen[v.name]) {
+                return;
+            }
+            seen[v.name] = true;
+            options.push(withDefaults(v.base, {
+                id: v.name,
+                label: v.kind === 'humidity' ? `${mod.name}${tag} · humidity` : `${v.label}${tag}`,
+                boolean: v.kind === 'value' ? boolean : false,
+                moduleId: mod.id,
+                cid: c.id,
+                base: v.base
+            }, tag));
+        });
     });
     const cloud = (connections || []).find(c => {
         const mod = moduleById(c.moduleId);
@@ -112,6 +137,10 @@ const buildSensorOptions = connections => {
             }));
         });
     }
+    const smart = aiOption(ai);
+    if (smart) {
+        options.push(smart);
+    }
     return options;
 };
 
@@ -120,9 +149,13 @@ const buildValueOptions = connections => {
     const options = buildSensorOptions(connections);
     (connections || []).forEach(c => {
         const mod = moduleById(c.moduleId);
-        if (mod && mod.dir !== 'in' && mod.valueName && !options.some(o => o.id === mod.valueName)) {
-            options.push(withDefaults(mod.valueName, {id: mod.valueName, label: mod.name, moduleId: mod.id}));
+        if (!mod || mod.dir === 'in') {
+            return;
         }
+        const tag = copyTag(c, connections);
+        partValues(c).filter(v => v.kind === 'value' && !options.some(o => o.id === v.name)).forEach(v => {
+            options.push(withDefaults(v.base, {id: v.name, label: `${mod.name}${tag}`, moduleId: mod.id, cid: c.id, base: v.base}, tag));
+        });
     });
     return options;
 };
@@ -131,6 +164,9 @@ const buildValueOptions = connections => {
 const ifParamsFor = option => {
     if (!option) {
         return {sensor: '', op: '<', value: 500};
+    }
+    if (option.ai) {
+        return {sensor: option.id, op: 'is', value: option.choices[0].value};
     }
     if (option.boolean) {
         return {sensor: option.id, op: 'is', value: 0};

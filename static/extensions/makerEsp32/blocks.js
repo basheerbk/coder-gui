@@ -6,14 +6,15 @@ function registerBlocks (Blockly) {
     const blynkColor = '#23C1E8';
     const blynkSecondary = '#1A9BB8';
 
+    // D5 is the ultrasonic jack only: driving its Echo pin as an output heats the module.
     const digitalPortOptions = function () {
         return [
-            [Blockly.Msg.MAKERESP32_PORT_D4, 'D4'],
-            [Blockly.Msg.MAKERESP32_PORT_D5, 'D5'],
             [Blockly.Msg.MAKERESP32_PORT_D13, 'D13'],
-            [Blockly.Msg.MAKERESP32_PORT_3D, '3D'],
+            [Blockly.Msg.MAKERESP32_PORT_A1, 'A1'],
             [Blockly.Msg.MAKERESP32_PORT_A2, 'A2'],
-            [Blockly.Msg.MAKERESP32_PORT_A3, 'A3']
+            [Blockly.Msg.MAKERESP32_PORT_A3, 'A3'],
+            [Blockly.Msg.MAKERESP32_PORT_A4, 'A4'],
+            [Blockly.Msg.MAKERESP32_PORT_3D, '3D']
         ];
     };
 
@@ -341,12 +342,7 @@ function registerBlocks (Blockly) {
         }
     };
 
-    const pwmPortOptions = function () {
-        return [
-            [Blockly.Msg.MAKERESP32_PORT_D4, 'D4'],
-            [Blockly.Msg.MAKERESP32_PORT_D5, 'D5']
-        ];
-    };
+    const pwmPortOptions = kitDigitalPortOptions;
 
     Blockly.Blocks.makerEsp32_blynkSerialBegin = {
         init: function () {
@@ -726,7 +722,54 @@ function registerBlocks (Blockly) {
         }
     };
 
+    /** A kit block whose arguments are built when it is created (Blockly.Msg is filled in by then). */
+    const kitBlock = function (type, message, colours, args, extension) {
+        Blockly.Blocks[type] = {
+            init: function () {
+                this.jsonInit({
+                    message0: Blockly.Msg[message],
+                    args0: args(),
+                    colour: colours[0],
+                    secondaryColour: colours[1],
+                    extensions: [extension]
+                });
+            }
+        };
+    };
+    const jack = () => ({type: 'field_dropdown', name: 'PORT', options: kitDigitalPortOptions()});
+    const analogJack = () => ({type: 'field_dropdown', name: 'PORT', options: analogPortOptions()});
+    const numberIn = name => ({type: 'input_value', name});
+    const sensorColours = [kitColor, kitSecondary];
+    const outColours = [kitOutColor, kitOutSecondary];
+
+    kitBlock('makerEsp32_kitIrObstacle', 'MAKERESP32_KIT_IR_OBSTACLE', sensorColours, () => [jack()], 'output_boolean');
+    kitBlock('makerEsp32_kitPirMotion', 'MAKERESP32_KIT_PIR_MOTION', sensorColours, () => [jack()], 'output_boolean');
+    kitBlock('makerEsp32_kitReedMagnet', 'MAKERESP32_KIT_REED_MAGNET', sensorColours, () => [jack()], 'output_boolean');
+    kitBlock('makerEsp32_kitLdrDark', 'MAKERESP32_KIT_LDR_DARK', sensorColours, () => [jack()], 'output_boolean');
+    kitBlock('makerEsp32_kitFlameSeen', 'MAKERESP32_KIT_FLAME_SEEN', sensorColours, () => [jack()], 'output_boolean');
+    kitBlock('makerEsp32_kitReadWater', 'MAKERESP32_KIT_READ_WATER', sensorColours, () => [analogJack()], 'output_number');
+    kitBlock('makerEsp32_kitReadTilt', 'MAKERESP32_KIT_READ_TILT', sensorColours, () => [], 'output_number');
+    kitBlock('makerEsp32_kitReadShake', 'MAKERESP32_KIT_READ_SHAKE', sensorColours, () => [], 'output_number');
+
     // --- Maker Kit outputs ---
+
+    kitBlock('makerEsp32_kitLedBrightness', 'MAKERESP32_KIT_LED_BRIGHTNESS', outColours,
+        () => [jack(), numberIn('LEVEL')], 'shape_statement');
+    kitBlock('makerEsp32_kitBuzzerBeep', 'MAKERESP32_KIT_BUZZER_BEEP', outColours,
+        () => [jack(), numberIn('MS')], 'shape_statement');
+    kitBlock('makerEsp32_kitBuzzerTone', 'MAKERESP32_KIT_BUZZER_TONE', outColours,
+        () => [jack(), numberIn('FREQ')], 'shape_statement');
+    kitBlock('makerEsp32_kitBuzzerStop', 'MAKERESP32_KIT_BUZZER_STOP', outColours, () => [jack()], 'shape_statement');
+    kitBlock('makerEsp32_kitPumpSet', 'MAKERESP32_KIT_PUMP_SET', outColours, () => [jack(), {
+        type: 'field_dropdown',
+        name: 'STATE',
+        options: [[Blockly.Msg.MAKERESP32_KIT_ON, 'ON'], [Blockly.Msg.MAKERESP32_KIT_OFF, 'OFF']]
+    }], 'shape_statement');
+    kitBlock('makerEsp32_kitLockSet', 'MAKERESP32_KIT_LOCK_SET', outColours, () => [jack(), {
+        type: 'field_dropdown',
+        name: 'STATE',
+        options: [[Blockly.Msg.MAKERESP32_KIT_OPEN, 'OPEN'], [Blockly.Msg.MAKERESP32_KIT_CLOSED, 'CLOSED']]
+    }], 'shape_statement');
 
     Blockly.Blocks.makerEsp32_kitLedSet = {
         init: function () {

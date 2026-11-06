@@ -15,13 +15,13 @@ function registerGenerators (Blockly) {
                 MOTOR_A1: 17, MOTOR_A2: 5, MOTOR_B1: 18, MOTOR_B2: 19,
                 SDA: 21, SCL: 22,
                 A1: 4, A2: 15, A3: 2, A4: 0,
-                D4: 25, D5: 26, D13: 33, T3D: 32,
+                ULTRA_ECHO: 25, ULTRA_TRIG: 26, D13: 33, T3D: 32,
                 RFID_SS: 32, RFID_RST: 33, RFID_MISO: 34, RFID_SCK: 16, RFID_MOSI: 23,
                 UART_RX: 3, UART_TX: 1,
                 SPARE1: 15, SPARE2: 2
             },
             digitalPorts: {
-                D4: 'D4_PIN', D5: 'D5_PIN', D13: 'D13_PIN',
+                D13: 'D13_PIN',
                 T3D: 'T3D_PIN', '3D': 'T3D_PIN',
                 A1: 'A1_PIN', A2: 'A2_PIN', A3: 'A3_PIN', A4: 'A4_PIN',
                 SPARE1: 'A2_PIN', SPARE2: 'A3_PIN'
@@ -57,8 +57,8 @@ function registerGenerators (Blockly) {
             `#define A2_PIN ${PINS.A2}`,
             `#define A3_PIN ${PINS.A3}`,
             `#define A4_PIN ${PINS.A4}`,
-            `#define D4_PIN ${PINS.D4}`,
-            `#define D5_PIN ${PINS.D5}`,
+            `#define ULTRA_ECHO_PIN ${PINS.ULTRA_ECHO || 25}`,
+            `#define ULTRA_TRIG_PIN ${PINS.ULTRA_TRIG || 26}`,
             `#define D13_PIN ${PINS.D13}`,
             `#define T3D_PIN ${PINS.T3D}`,
             `#define RFID_SS_PIN ${PINS.RFID_SS || PINS.T3D}`,
@@ -94,7 +94,15 @@ function registerGenerators (Blockly) {
 
     const digitalPinExpr = port => {
         const map = getHardware().digitalPorts;
-        return map[port] || 'D13_PIN';
+        if (map[port]) {
+            return map[port];
+        }
+        if (port === 'D4' || port === 'D5') {
+            // Older projects offered the ultrasonic jack's two pins as on/off ports.
+            Blockly.Arduino.definitions_.makerEsp32_oldPort =
+                '// A block used D4/D5, the ultrasonic jack. It now uses D13: pick its jack again.';
+        }
+        return 'D13_PIN';
     };
 
     const analogPinExpr = port => {
@@ -372,7 +380,7 @@ function registerGenerators (Blockly) {
         ensurePinDefines();
         ensureBlynkIncludes();
         ensureBlynkCore();
-        const port = block.getFieldValue('PORT') || 'D4';
+        const port = block.getFieldValue('PORT') || 'D13';
         const pin = digitalPinExpr(port);
         const vpin = block.getFieldValue('VPIN') || 'V0';
         setupPin(pin, 'OUTPUT');
@@ -543,7 +551,7 @@ function registerGenerators (Blockly) {
         ensurePinDefines();
         ensureKitSerial();
         if (!Blockly.Arduino.definitions_.makerEsp32_ultra) {
-            // Proven HC-SR04 helper: Trig=D5_PIN(26), Echo=D4_PIN(25); -1 = no/invalid echo.
+            // Proven HC-SR04 helper on the D5 jack: Trig IO26, Echo IO25; -1 = no/invalid echo.
             Blockly.Arduino.definitions_.makerEsp32_ultra = [
                 'long getDistanceTrigEcho(int trigPin, int echoPin) {',
                 '  pinMode(trigPin, OUTPUT);',
@@ -562,9 +570,9 @@ function registerGenerators (Blockly) {
             ].join('\n');
         }
         Blockly.Arduino.setups_.makerEsp32_ultra = [
-            'pinMode(D5_PIN, OUTPUT);',
-            'digitalWrite(D5_PIN, LOW);',
-            'pinMode(D4_PIN, INPUT);',
+            'pinMode(ULTRA_TRIG_PIN, OUTPUT);',
+            'digitalWrite(ULTRA_TRIG_PIN, LOW);',
+            'pinMode(ULTRA_ECHO_PIN, INPUT);',
             'delay(500);'
         ].join('\n');
     };
@@ -850,7 +858,7 @@ function registerGenerators (Blockly) {
 
     Blockly.Arduino.makerEsp32_kitReadDistance = function () {
         ensureUltraHelper();
-        return ['getDistanceTrigEcho(D5_PIN, D4_PIN)', Blockly.Arduino.ORDER_FUNCTION_CALL];
+        return ['getDistanceTrigEcho(ULTRA_TRIG_PIN, ULTRA_ECHO_PIN)', Blockly.Arduino.ORDER_FUNCTION_CALL];
     };
 
     Blockly.Arduino.makerEsp32_kitReadRfid = function () {
@@ -996,6 +1004,201 @@ function registerGenerators (Blockly) {
     Blockly.Arduino.makerEsp32_kitHc05ReadLine = function () {
         ensureKitSerial();
         return ['Serial.readStringUntil(\'\\n\')', Blockly.Arduino.ORDER_FUNCTION_CALL];
+    };
+
+    // --- Maker Kit parts added for Beginner parity (same pins and active levels as Beginner) ---
+
+    const onOffSensor = activeLow => function (block) {
+        ensurePinDefines();
+        const pin = digitalPinExpr(block.getFieldValue('PORT') || 'D13');
+        setupPin(pin, 'INPUT');
+        return [`(digitalRead(${pin}) == ${activeLow ? 'LOW' : 'HIGH'})`, Blockly.Arduino.ORDER_EQUALITY];
+    };
+
+    Blockly.Arduino.makerEsp32_kitIrObstacle = onOffSensor(true);
+    Blockly.Arduino.makerEsp32_kitReedMagnet = onOffSensor(true);
+    Blockly.Arduino.makerEsp32_kitFlameSeen = onOffSensor(true);
+    Blockly.Arduino.makerEsp32_kitLdrDark = onOffSensor(false);
+
+    Blockly.Arduino.makerEsp32_kitPirMotion = function (block) {
+        ensureKitSerial();
+        const pin = digitalPinExpr(block.getFieldValue('PORT') || 'D13');
+        Blockly.Arduino.setups_[`makerEsp32_pir_${pin}`] =
+            'Serial.println(F("Motion sensor warming up - it settles after about a minute"));';
+        return onOffSensor(false)(block);
+    };
+
+    Blockly.Arduino.makerEsp32_kitReadWater = function (block) {
+        ensurePinDefines();
+        ensureAnalogAvgHelper();
+        const pin = analogPinExpr(block.getFieldValue('PORT') || 'A1');
+        return [`readAnalogAvg(${pin}, 12)`, Blockly.Arduino.ORDER_FUNCTION_CALL];
+    };
+
+    const ensureMotion = () => {
+        ensurePinDefines();
+        ensureKitSerial();
+        Blockly.Arduino.includes_.makerEsp32_wire = '#include <Wire.h>';
+        if (!Blockly.Arduino.definitions_.makerEsp32_mpu) {
+            // Raw Wire driver, no library: the same code Beginner Studio generates.
+            Blockly.Arduino.definitions_.makerEsp32_mpu = [
+                'bool mpuReady = false;',
+                'uint8_t mpuAddr = 0x68;',
+                'unsigned long mpuRetryMs = 0;',
+                'int tiltAngle = 0;',
+                'int shakeLevel = 0;',
+                '',
+                'bool mpuWrite(uint8_t reg, uint8_t value) {',
+                '  Wire.beginTransmission(mpuAddr);',
+                '  Wire.write(reg);',
+                '  Wire.write(value);',
+                '  return Wire.endTransmission() == 0;',
+                '}',
+                '',
+                'bool mpuBegin() {',
+                '  const uint8_t addrs[2] = {0x68, 0x69};',
+                '  for (int i = 0; i < 2; i++) {',
+                '    mpuAddr = addrs[i];',
+                '    if (mpuWrite(0x6B, 0) && mpuWrite(0x1C, 0) && mpuWrite(0x1B, 0) && mpuWrite(0x1A, 3)) {',
+                '      delay(50);',
+                '      return true;',
+                '    }',
+                '  }',
+                '  mpuAddr = 0x68;',
+                '  return false;',
+                '}',
+                '',
+                'bool mpuRead(float *v) {',
+                '  if (!mpuReady) {',
+                '    if (millis() - mpuRetryMs < 5000) return false;',
+                '    mpuRetryMs = millis();',
+                '    mpuReady = mpuBegin();',
+                '    if (!mpuReady) return false;',
+                '    Serial.println(F("MPU6050 found"));',
+                '  }',
+                '  Wire.beginTransmission(mpuAddr);',
+                '  Wire.write(0x3B);',
+                '  if (Wire.endTransmission(false) != 0 || Wire.requestFrom((uint8_t)mpuAddr, (uint8_t)14) != 14) {',
+                '    mpuReady = false;',
+                '    mpuRetryMs = millis();',
+                '    Serial.println(F("MPU6050 not found - check the I2C cable"));',
+                '    return false;',
+                '  }',
+                '  int16_t raw[7];',
+                '  for (int i = 0; i < 7; i++) {',
+                '    uint8_t hi = Wire.read();',
+                '    uint8_t lo = Wire.read();',
+                '    raw[i] = (int16_t)((hi << 8) | lo);',
+                '  }',
+                '  v[0] = raw[0] / 16384.0f;',
+                '  v[1] = raw[1] / 16384.0f;',
+                '  v[2] = raw[2] / 16384.0f;',
+                '  v[3] = raw[4] / 131.0f;',
+                '  v[4] = raw[5] / 131.0f;',
+                '  v[5] = raw[6] / 131.0f;',
+                '  return true;',
+                '}',
+                '',
+                '// tiltAngle: -90 to 90 degrees. shakeLevel: 0 to 100, -1 if the sensor is missing.',
+                'void readMotion() {',
+                '  float sum[3] = {0, 0, 0};',
+                '  float peak = 0;',
+                '  int n = 0;',
+                '  for (int i = 0; i < 10; i++) {',
+                '    float v[6];',
+                '    if (mpuRead(v)) {',
+                '      sum[0] += v[0];',
+                '      sum[1] += v[1];',
+                '      sum[2] += v[2];',
+                '      float g = sqrtf(v[0] * v[0] + v[1] * v[1] + v[2] * v[2]);',
+                '      float spin = sqrtf(v[3] * v[3] + v[4] * v[4] + v[5] * v[5]);',
+                '      float jolt = fabsf(g - 1.0f) * 100.0f + spin / 5.0f;',
+                '      if (jolt > peak) peak = jolt;',
+                '      n++;',
+                '    } else if (!mpuReady) {',
+                '      break;',
+                '    }',
+                '    delay(5);',
+                '  }',
+                '  if (!n) {',
+                '    tiltAngle = 0;',
+                '    shakeLevel = -1;',
+                '    return;',
+                '  }',
+                '  tiltAngle = (int)roundf(atan2f(sum[0], sqrtf(sum[1] * sum[1] + sum[2] * sum[2])) * 57.2958f);',
+                '  shakeLevel = (int)(peak > 100.0f ? 100.0f : peak);',
+                '}',
+                '',
+                'int makerEsp32Tilt() {',
+                '  readMotion();',
+                '  return tiltAngle;',
+                '}',
+                '',
+                'int makerEsp32Shake() {',
+                '  readMotion();',
+                '  return shakeLevel;',
+                '}'
+            ].join('\n');
+        }
+        Blockly.Arduino.setups_.makerEsp32_i2c = 'Wire.begin(SDA_PIN, SCL_PIN);';
+        Blockly.Arduino.setups_.makerEsp32_mpu = [
+            'mpuReady = mpuBegin();',
+            'Serial.println(mpuReady ? F("MPU6050 ready") : F("MPU6050 not found - check the I2C cable"));'
+        ].join('\n');
+    };
+
+    Blockly.Arduino.makerEsp32_kitReadTilt = function () {
+        ensureMotion();
+        return ['makerEsp32Tilt()', Blockly.Arduino.ORDER_FUNCTION_CALL];
+    };
+
+    Blockly.Arduino.makerEsp32_kitReadShake = function () {
+        ensureMotion();
+        return ['makerEsp32Shake()', Blockly.Arduino.ORDER_FUNCTION_CALL];
+    };
+
+    /** Pump, lock and buzzer start switched off, like in Beginner Studio. */
+    const offAtStartPin = block => {
+        ensurePinDefines();
+        const pin = digitalPinExpr(block.getFieldValue('PORT') || 'D13');
+        setupPin(pin, 'OUTPUT');
+        Blockly.Arduino.setups_[`makerEsp32_off_${pin}`] = `digitalWrite(${pin}, LOW);`;
+        return pin;
+    };
+
+    Blockly.Arduino.makerEsp32_kitLedBrightness = function (block) {
+        ensurePinDefines();
+        const pin = digitalPinExpr(block.getFieldValue('PORT') || 'D13');
+        const level = Blockly.Arduino.valueToCode(block, 'LEVEL', Blockly.Arduino.ORDER_NONE) || '128';
+        setupPin(pin, 'OUTPUT');
+        return `analogWrite(${pin}, constrain((int)(${level}), 0, 255));\n`;
+    };
+
+    Blockly.Arduino.makerEsp32_kitBuzzerBeep = function (block) {
+        const pin = offAtStartPin(block);
+        const ms = Blockly.Arduino.valueToCode(block, 'MS', Blockly.Arduino.ORDER_ATOMIC) || '200';
+        return `digitalWrite(${pin}, HIGH);\ndelay(${ms});\ndigitalWrite(${pin}, LOW);\n`;
+    };
+
+    Blockly.Arduino.makerEsp32_kitBuzzerTone = function (block) {
+        const pin = offAtStartPin(block);
+        const freq = Blockly.Arduino.valueToCode(block, 'FREQ', Blockly.Arduino.ORDER_NONE) || '1000';
+        return `tone(${pin}, constrain((int)(${freq}), 31, 20000));\n`;
+    };
+
+    Blockly.Arduino.makerEsp32_kitBuzzerStop = function (block) {
+        const pin = offAtStartPin(block);
+        return `noTone(${pin});\n`;
+    };
+
+    Blockly.Arduino.makerEsp32_kitPumpSet = function (block) {
+        const pin = offAtStartPin(block);
+        return `digitalWrite(${pin}, ${block.getFieldValue('STATE') === 'OFF' ? 'LOW' : 'HIGH'});\n`;
+    };
+
+    Blockly.Arduino.makerEsp32_kitLockSet = function (block) {
+        const pin = offAtStartPin(block);
+        return `digitalWrite(${pin}, ${block.getFieldValue('STATE') === 'CLOSED' ? 'LOW' : 'HIGH'});\n`;
     };
 
     return Blockly;

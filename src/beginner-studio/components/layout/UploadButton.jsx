@@ -3,6 +3,7 @@ import React, {useEffect, useState} from 'react';
 import {useStudio} from '../../context/StudioContext.jsx';
 import {useUpload} from '../../context/UploadContext.jsx';
 import {friendlyUpload} from '../../domain/friendlyUpload';
+import {canLeave} from '../../../iot/router';
 
 const DONE_MS = 4000;
 
@@ -47,9 +48,20 @@ const Popover = ({K, tone, children, onClose}) => (
 );
 
 const UploadButton = () => {
-    const {K, setShowCloudSetup} = useStudio();
+    const {K, setShowCloudSetup, view, setView} = useStudio();
     const upload = useUpload();
-    const {phase, progress, connected, busy, cloudNote, setCloudNote} = upload;
+    const {phase, progress, connected, busy, cloudNote, setCloudNote, aiNote, setAiNote} = upload;
+    const noteAction = {
+        marginTop: 8,
+        border: 'none',
+        background: K.accent,
+        color: '#fff',
+        borderRadius: 6,
+        padding: '5px 10px',
+        fontSize: 12,
+        fontWeight: 600,
+        cursor: 'pointer'
+    };
     const friendly = friendlyUpload(upload);
     const [showDone, setShowDone] = useState(false);
     const [errorOpen, setErrorOpen] = useState(false);
@@ -165,24 +177,37 @@ const UploadButton = () => {
                             setCloudNote('');
                             setShowCloudSetup(true);
                         }}
-                        style={{
-                            marginTop: 8,
-                            border: 'none',
-                            background: K.accent,
-                            color: '#fff',
-                            borderRadius: 6,
-                            padding: '5px 10px',
-                            fontSize: 12,
-                            fontWeight: 600,
-                            cursor: 'pointer'
-                        }}
+                        style={noteAction}
                     >
                         Open Cloud setup
                     </button>
                 </Popover>
             ) : null}
 
-            {!cloudNote && failed && errorOpen ? (
+            {aiNote ? (
+                <Popover
+                    K={K}
+                    tone="warn"
+                    onClose={() => setAiNote('')}
+                >
+                    <div>{aiNote}</div>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            if (view === 'cloud' && !canLeave()) {
+                                return;
+                            }
+                            setAiNote('');
+                            setView('ai');
+                        }}
+                        style={noteAction}
+                    >
+                        Open Edge AI
+                    </button>
+                </Popover>
+            ) : null}
+
+            {!cloudNote && !aiNote && failed && errorOpen ? (
                 <Popover
                     K={K}
                     tone="error"

@@ -144,7 +144,8 @@ const UnplugButton = ({x, y, dragging, onDisconnect, K}) => (
     </g>
 );
 
-const ModuleArtNode = ({moduleId, name, placement, dragging, onMoveStart, onDisconnect, K}) => {
+/** `copy` is the part's number when the board has more than one of it, so LED 1 and LED 2 can be told apart. */
+const ModuleArtNode = ({moduleId, name, copy, placement, dragging, onMoveStart, onDisconnect, K}) => {
     const art = MODULE_ART[moduleId];
     if (!art) {
         return null;
@@ -182,6 +183,21 @@ const ModuleArtNode = ({moduleId, name, placement, dragging, onMoveStart, onDisc
                     preserveAspectRatio="none"
                 />
             </g>
+            {copy ? (
+                <g style={{pointerEvents: 'none'}}>
+                    <circle cx={cx - (boxW / 2)} cy={closeY} r={10} fill={K.accent} stroke="#fff" strokeWidth={1.5} />
+                    <text
+                        x={cx - (boxW / 2)}
+                        y={closeY + 4}
+                        textAnchor="middle"
+                        fill="#fff"
+                        fontSize={11}
+                        fontWeight={800}
+                    >
+                        {copy}
+                    </text>
+                </g>
+            ) : null}
             <UnplugButton
                 x={closeX}
                 y={closeY}

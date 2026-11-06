@@ -4,6 +4,7 @@ import {paletteChipMeta} from '../../domain/blockMeta';
 import {useStudio} from '../../context/StudioContext.jsx';
 import {buildSensorOptions, ifParamsFor} from '../../domain/condition';
 import {CONTROL_BLOCKS, moduleById} from '../../domain/modules';
+import {copyTag, partName} from '../../domain/partCopies';
 import {SILENT_READS} from '../../domain/sensorReads';
 import EmptyState from '../shared/EmptyState.jsx';
 import ModuleIcon from '../shared/ModuleIcon.jsx';
@@ -70,7 +71,7 @@ const tabStyle = (active, K) => ({
     color: active ? '#fff' : K.sub
 });
 
-const GroupTitle = ({mod, K}) => (
+const GroupTitle = ({mod, name, K}) => (
     <div
         style={{
             display: 'flex',
@@ -84,13 +85,14 @@ const GroupTitle = ({mod, K}) => (
         }}
     >
         <ModuleIcon id={mod.id} color={K.dim} size={12} />
-        {mod.name}
+        {name || mod.name}
     </div>
 );
 
 const BlockPalette = () => {
     const {
         connections,
+        ai,
         blockPaletteCategory,
         setBlockPaletteCategory,
         addBlock,
@@ -107,8 +109,9 @@ const BlockPalette = () => {
             return null;
         }
         const buttons = [];
+        const tag = copyTag(conn, connections);
         // Sensors are used through an If block that reads them; no separate "read" step.
-        sensorOptions.filter(opt => opt.moduleId === mod.id).forEach(opt => {
+        sensorOptions.filter(opt => opt.cid === conn.id).forEach(opt => {
             const label = opt.boolean ?
                 `When ${opt.label.toLowerCase()} ${opt.phrase}` :
                 `If ${opt.label.toLowerCase()} is…`;
@@ -121,15 +124,27 @@ const BlockPalette = () => {
         (mod.actions || []).filter(action => SILENT_READS.indexOf(action.type) === -1).forEach(action => {
             buttons.push({
                 key: `${conn.id}_${action.type}`,
-                meta: paletteChipMeta(action.type, {moduleId: mod.id}),
+                meta: paletteChipMeta(action.type, {moduleId: mod.id, tag}),
                 onClick: () => addBlock(action.type, {
                     cid: conn.id,
                     params: Object.assign({}, action.params || {})
                 })
             });
         });
-        return buttons.length ? {key: conn.id, mod, buttons} : null;
+        return buttons.length ? {key: conn.id, mod, name: partName(conn, connections), buttons} : null;
     }).filter(Boolean);
+    const smart = buildSensorOptions(connections, ai).find(opt => opt.ai);
+    if (smart) {
+        groups.push({
+            key: 'ai',
+            mod: {id: 'ai', name: 'Edge AI'},
+            buttons: [{
+                key: 'ai_if',
+                meta: Object.assign(paletteChipMeta('if_then', {label: 'If the AI thinks it is…'}), {iconId: 'ai'}),
+                onClick: () => addBlock('if_then', {params: ifParamsFor(smart)})
+            }]
+        });
+    }
 
     return (
         <aside
@@ -209,7 +224,7 @@ const BlockPalette = () => {
                         />
                     ) : groups.map(group => (
                         <div key={group.key} style={{marginBottom: 6}}>
-                            {groups.length > 1 ? <GroupTitle mod={group.mod} K={K} /> : null}
+                            {groups.length > 1 ? <GroupTitle mod={group.mod} name={group.name} K={K} /> : null}
                             {group.buttons.map(btn => (
                                 <MiniNode
                                     key={btn.key}

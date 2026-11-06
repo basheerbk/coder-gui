@@ -7,6 +7,7 @@ import {ModuleIconSvg} from '../shared/ModuleIcon.jsx';
 
 const ConnectedModuleCard = ({
     connection,
+    name,
     x,
     y,
     dragging,
@@ -37,7 +38,7 @@ const ConnectedModuleCard = ({
                 onMoveStart(e);
             }}
         >
-            <title>{mod.name} — drag to move, press × to unplug</title>
+            <title>{name || mod.name} — drag to move, press × to unplug</title>
             <defs>
                 <linearGradient id={`${gid}-face`} x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor="#ffffff" stopOpacity="0.22" />
@@ -100,7 +101,7 @@ const ConnectedModuleCard = ({
                 fontSize={10}
                 fontWeight={800}
             >
-                {mod.name}
+                {name || mod.name}
             </text>
             <g
                 style={{cursor: 'pointer'}}

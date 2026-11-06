@@ -3,7 +3,10 @@
  * signing out never wipes their work. Namespaced per account like cloudSecrets; never
  * stores WiFi passwords or device keys (state.cloud only holds ids and names).
  */
+import {cleanAi} from './ai/aiState';
+
 const PREFIX = 'tb_beginner_project';
+// `ai` was added without a version bump: older Studio tabs ignore it instead of refusing the save.
 const VERSION = 1;
 
 const keyFor = email => `${PREFIX}:${String(email || 'local').toLowerCase()}`;
@@ -32,7 +35,7 @@ const cleanBlocks = list => (Array.isArray(list) ? list : [])
 /**
  * The saved project for this account, or null when there is none or it is unreadable.
  * @param {string} email signed-in account (null for local dev)
- * @returns {object|null} {projectName, connections, program, cloud, activeTemplateId}
+ * @returns {object|null} {projectName, connections, program, cloud, activeTemplateId, ai}
  */
 const loadProject = email => {
     const s = storage();
@@ -55,7 +58,8 @@ const loadProject = email => {
             connections: cleanConnections(data.connections),
             program: cleanBlocks(data.program),
             cloud,
-            activeTemplateId: typeof data.activeTemplateId === 'string' ? data.activeTemplateId : null
+            activeTemplateId: typeof data.activeTemplateId === 'string' ? data.activeTemplateId : null,
+            ai: cleanAi(data.ai)
         };
     } catch (err) {
         return null;
@@ -80,7 +84,8 @@ const saveProject = (email, state) => {
             connections: state.connections,
             program: state.program,
             cloud: state.cloud,
-            activeTemplateId: state.activeTemplateId
+            activeTemplateId: state.activeTemplateId,
+            ai: state.ai || null
         }));
         return true;
     } catch (err) {

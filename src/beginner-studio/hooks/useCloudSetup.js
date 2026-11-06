@@ -30,7 +30,7 @@ const MID_FLOW = ['wifi', 'upload'];
  * @returns {object} phase, step and the `w` bag of state and actions for the step components
  */
 const useCloudSetup = ({studio, cloudLive, active}) => {
-    const {cloud, setCloud, connections, program, projectName, setView} = studio;
+    const {cloud, setCloud, connections, program, ai, projectName, setView} = studio;
 
     const [phase, setPhase] = useState('loading');
     const [phaseNote, setPhaseNote] = useState('');
@@ -274,9 +274,9 @@ const useCloudSetup = ({studio, cloudLive, active}) => {
         setCloud(link);
         // The tab would otherwise treat the new link as "a different board" and start over.
         shownFor.current = selected.id;
-        const keys = telemetryReadings(connections, program).map(r => r.key);
+        const keys = telemetryReadings(connections, program, ai).map(r => r.key);
         const controls = usedCloudControls(program);
-        const titleOf = keyTitles(connections);
+        const titleOf = keyTitles(connections, ai);
         const titles = {};
         keys.concat(controls).forEach(k => {
             if (titleOf(k)) {

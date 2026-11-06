@@ -214,6 +214,18 @@ const glyphs = {
             <path d="M8 20v-5a4 4 0 018 0v5" />
         </g>
     ),
+    mpu6050: c => (
+        <g stroke={c} {...stroke}>
+            <path d="M12 12V4M9.5 6.5L12 4l2.5 2.5M12 12h8M17.5 9.5L20 12l-2.5 2.5M12 12l-6 6" />
+            <circle cx="12" cy="12" r="1.5" />
+        </g>
+    ),
+    ai: c => (
+        <g stroke={c} {...stroke}>
+            <rect x="5" y="7" width="11" height="11" rx="2.5" />
+            <path d="M8.5 11h4M8.5 14h2.5M19 3v4M17 5h4" />
+        </g>
+    ),
     wait: c => (
         <g stroke={c} {...stroke}>
             <circle cx="12" cy="12" r="8" />

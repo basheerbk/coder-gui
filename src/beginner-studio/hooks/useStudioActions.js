@@ -2,10 +2,12 @@ import {useCallback} from 'react';
 
 import {clearOffset, spreadConnections} from '../components/build/ModuleArt.jsx';
 
+import {cleanAi} from '../domain/ai/aiState';
 import {cloudAddProblem, hasCloud} from '../domain/cloud';
 import {buildSensorOptions, buildValueOptions, defaultIfParams, ifParamsFor} from '../domain/condition';
 import {uid} from '../domain/ids';
 import {moduleById} from '../domain/modules';
+import {canRepeat, nextCopyNo, partName} from '../domain/partCopies';
 import {portById, isPortCompatible, compatibilityHint, fitsWithCloud} from '../domain/ports';
 import {SILENT_READS} from '../domain/sensorReads';
 import {playConnect, playDisconnect, playTick} from '../domain/sound';
@@ -16,6 +18,7 @@ import {
     createBlock,
     deleteBlockById,
     deleteBlocksByCid,
+    setBlockCid,
     updateBlockParams
 } from '../domain/tree';
 
@@ -26,7 +29,7 @@ const starterBlock = (mod, conn, connections) => {
         return null;
     }
     if (SILENT_READS.indexOf(first.type) !== -1) {
-        const option = buildSensorOptions(connections).find(o => o.moduleId === mod.id);
+        const option = buildSensorOptions(connections).find(o => o.cid === conn.id);
         return option ? createBlock('if_then', {params: ifParamsFor(option)}) : null;
     }
     return createBlock(first.type, {cid: conn.id, params: Object.assign({}, first.params || {})});
@@ -140,24 +143,30 @@ const useStudioActions = (state, setState) => {
                 });
             }
             const already = prev.connections.some(c => c.moduleId === mod.id);
-            if (already) {
+            if (already && !canRepeat(mod)) {
                 return Object.assign({}, prev, {
                     wireHint: `${mod.name} is already on the board`
                 });
             }
-            const plug = {id: uid('conn'), moduleId: mod.id, portId: port.id, pin: port.pin};
+            const n = nextCopyNo(prev.connections, mod.id);
+            const plug = Object.assign({id: uid('conn'), moduleId: mod.id, portId: port.id, pin: port.pin}, n > 1 ? {n} : {});
             const conn = Object.assign(plug, clearOffset(plug, prev.connections), {bendX: null, bendY: null});
-            const starter = starterBlock(mod, conn, prev.connections.concat([conn]));
+            const connections = prev.connections.concat([conn]);
+            const starter = starterBlock(mod, conn, connections);
             const program = starter ? appendBlock(prev.program, starter, null) : prev.program;
+            let wireHint = null;
+            if (port.boot || (port.strapping && mod.dir === 'out')) {
+                wireHint = `Plugged in! If the board won't start or upload, unplug the part from ${port.label} for a moment.`;
+            } else if (already) {
+                wireHint = `${partName(conn, connections)} added. It has its own blocks and reading.`;
+            }
             playConnect();
             return Object.assign({}, prev, {
-                connections: prev.connections.concat([conn]),
+                connections,
                 program,
                 selectedModule: null,
                 flashPortId: portId,
-                wireHint: port.boot || (port.strapping && mod.dir === 'out')
-                    ? `Plugged in! If the board won't start or upload, unplug the part from ${port.label} for a moment.`
-                    : null,
+                wireHint,
                 activeTemplateId: null
             });
         });
@@ -220,6 +229,13 @@ const useStudioActions = (state, setState) => {
         }));
     }, [setState]);
 
+    /** Point a block at another copy of the same part (LED 1 -> LED 2). */
+    const setBlockPart = useCallback((blockId, cid) => {
+        setState(prev => Object.assign({}, prev, {
+            program: setBlockCid(prev.program, blockId, cid)
+        }));
+    }, [setState]);
+
     const setAddTarget = useCallback(target => {
         patch({addTarget: target});
         playTick();
@@ -258,6 +274,7 @@ const useStudioActions = (state, setState) => {
         setState(prev => Object.assign({}, prev, {
             connections: spreadConnections(tpl.connections),
             program: JSON.parse(JSON.stringify(tpl.program)),
+            ai: cleanAi(tpl.ai),
             projectName: tpl.name,
             activeTemplateId: tpl.id,
             selectedModule: null,
@@ -291,6 +308,7 @@ const useStudioActions = (state, setState) => {
         addBlock,
         deleteBlock,
         updateParam,
+        setBlockPart,
         setAddTarget,
         clearProgram,
         loadTemplate,

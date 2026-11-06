@@ -80,6 +80,26 @@ function registerToolboxs () {
     <block type="makerEsp32_kitReadDistance" id="makerEsp32_kitReadDistance"></block>
     <block type="makerEsp32_kitReadRfid" id="makerEsp32_kitReadRfid"></block>
     <block type="makerEsp32_kitReadPulse" id="makerEsp32_kitReadPulse"></block>
+    <block type="makerEsp32_kitIrObstacle" id="makerEsp32_kitIrObstacle">
+        <field name="PORT">D13</field>
+    </block>
+    <block type="makerEsp32_kitPirMotion" id="makerEsp32_kitPirMotion">
+        <field name="PORT">D13</field>
+    </block>
+    <block type="makerEsp32_kitReedMagnet" id="makerEsp32_kitReedMagnet">
+        <field name="PORT">D13</field>
+    </block>
+    <block type="makerEsp32_kitLdrDark" id="makerEsp32_kitLdrDark">
+        <field name="PORT">D13</field>
+    </block>
+    <block type="makerEsp32_kitFlameSeen" id="makerEsp32_kitFlameSeen">
+        <field name="PORT">D13</field>
+    </block>
+    <block type="makerEsp32_kitReadWater" id="makerEsp32_kitReadWater">
+        <field name="PORT">A1</field>
+    </block>
+    <block type="makerEsp32_kitReadTilt" id="makerEsp32_kitReadTilt"></block>
+    <block type="makerEsp32_kitReadShake" id="makerEsp32_kitReadShake"></block>
 </category>
 <category name="%{BKY_MAKERESP32_CAT_KIT_OUTPUTS}" id="MAKERESP32_CAT_KIT_OUTPUTS" colour="#F4A261" secondaryColour="#C97A3A">
     <block type="makerEsp32_kitLedSet" id="makerEsp32_kitLedSet">
@@ -94,9 +114,44 @@ function registerToolboxs () {
             </shadow>
         </value>
     </block>
+    <block type="makerEsp32_kitLedBrightness" id="makerEsp32_kitLedBrightness">
+        <field name="PORT">D13</field>
+        <value name="LEVEL">
+            <shadow type="math_whole_number">
+                <field name="NUM">128</field>
+            </shadow>
+        </value>
+    </block>
+    <block type="makerEsp32_kitBuzzerBeep" id="makerEsp32_kitBuzzerBeep">
+        <field name="PORT">A1</field>
+        <value name="MS">
+            <shadow type="math_whole_number">
+                <field name="NUM">200</field>
+            </shadow>
+        </value>
+    </block>
+    <block type="makerEsp32_kitBuzzerTone" id="makerEsp32_kitBuzzerTone">
+        <field name="PORT">A1</field>
+        <value name="FREQ">
+            <shadow type="math_whole_number">
+                <field name="NUM">1000</field>
+            </shadow>
+        </value>
+    </block>
+    <block type="makerEsp32_kitBuzzerStop" id="makerEsp32_kitBuzzerStop">
+        <field name="PORT">A1</field>
+    </block>
     <block type="makerEsp32_kitRelaySet" id="makerEsp32_kitRelaySet">
         <field name="PORT">D13</field>
         <field name="STATE">HIGH</field>
+    </block>
+    <block type="makerEsp32_kitPumpSet" id="makerEsp32_kitPumpSet">
+        <field name="PORT">D13</field>
+        <field name="STATE">ON</field>
+    </block>
+    <block type="makerEsp32_kitLockSet" id="makerEsp32_kitLockSet">
+        <field name="PORT">D13</field>
+        <field name="STATE">OPEN</field>
     </block>
     <block type="makerEsp32_kitServoAngle" id="makerEsp32_kitServoAngle">
         <field name="PORT">D13</field>
@@ -183,11 +238,11 @@ function registerToolboxs () {
     </block>
     <block type="makerEsp32_blynkWhenSetLedBrightness" id="makerEsp32_blynkWhenSetLedBrightness">
         <field name="VPIN">V5</field>
-        <field name="PORT">D4</field>
+        <field name="PORT">D13</field>
     </block>
     <block type="makerEsp32_blynkWhenBeep" id="makerEsp32_blynkWhenBeep">
         <field name="VPIN">V6</field>
-        <field name="PORT">D5</field>
+        <field name="PORT">A1</field>
     </block>
     <block type="makerEsp32_blynkWhenSetMotor" id="makerEsp32_blynkWhenSetMotor">
         <field name="VPIN">V3</field>

@@ -911,6 +911,9 @@ const analysisRealDeviceId = deviceId => {
  * @param {string} deviceList - the list of devices.
  * @return {string} fullData - processed data of devices.
  */
+/** The only board the kit ships with; every other board stays loadable for old projects but is not listed. */
+const KIT_DEVICE_ID = 'makerEsp32_arduinoEsp32';
+
 const makeDeviceLibrary = (deviceList = null) => {
     // Always start from built-in GUI devices so boards still show when
     // Desktop link is offline or returns an incomplete list.
@@ -944,11 +947,12 @@ const makeDeviceLibrary = (deviceList = null) => {
         });
     }
 
-    return regeneratedDeviceData;
+    return regeneratedDeviceData.map(entry => Object.assign({}, entry, {hide: entry.deviceId !== KIT_DEVICE_ID}));
 };
 
 export {
     deviceData as default,
     eventBlock,
+    KIT_DEVICE_ID,
     makeDeviceLibrary
 };
