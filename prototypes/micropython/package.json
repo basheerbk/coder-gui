@@ -1,0 +1,13 @@
+{
+  "name": "tinkerbit-micropython-prototype",
+  "private": true,
+  "description": "Browser tests for the MicroPython prototype (kept apart from the root package.json).",
+  "scripts": {
+    "test:sim": "python -m pytest tests -q",
+    "test:e2e": "playwright test",
+    "bridge": "python sim/bridge.py"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.49.1"
+  }
+}

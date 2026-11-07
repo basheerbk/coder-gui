@@ -1,0 +1,12 @@
+{
+  "wifi_ssid": "YOUR-WIFI-NAME",
+  "wifi_password": "YOUR-WIFI-PASSWORD",
+  "host": "test.mosquitto.org",
+  "port": 8886,
+  "ws_port": 8081,
+  "ws_path": "/mqtt",
+  "device_id": "tinkerbit-proto-CHANGE-ME",
+  "token": "",
+  "interval_sec": 10,
+  "min_interval_sec": 5
+}
