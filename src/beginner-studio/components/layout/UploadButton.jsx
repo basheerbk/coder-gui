@@ -51,6 +51,7 @@ const UploadButton = () => {
     const {K, setShowCloudSetup, view, setView} = useStudio();
     const upload = useUpload();
     const {phase, progress, connected, busy, cloudNote, setCloudNote, aiNote, setAiNote} = upload;
+    const {boardNote, setBoardNote} = upload;
     const noteAction = {
         marginTop: 8,
         border: 'none',
@@ -207,7 +208,17 @@ const UploadButton = () => {
                 </Popover>
             ) : null}
 
-            {!cloudNote && !aiNote && failed && errorOpen ? (
+            {boardNote ? (
+                <Popover
+                    K={K}
+                    tone="warn"
+                    onClose={() => setBoardNote('')}
+                >
+                    <div>{boardNote}</div>
+                </Popover>
+            ) : null}
+
+            {!cloudNote && !aiNote && !boardNote && failed && errorOpen ? (
                 <Popover
                     K={K}
                     tone="error"

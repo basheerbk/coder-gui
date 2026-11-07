@@ -1,8 +1,9 @@
-import React, {useEffect, useRef, useState} from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 
 import {useStudio} from '../../context/StudioContext.jsx';
 
 import SignOutDialog from './SignOutDialog.jsx';
+import UpdateBoardDialog from './UpdateBoardDialog.jsx';
 
 const itemStyle = (K, color) => ({
     display: 'block',
@@ -69,6 +70,8 @@ const AccountMenu = () => {
     const {K, theme, setTheme, user} = useStudio();
     const [open, setOpen] = useState(false);
     const [signingOut, setSigningOut] = useState(false);
+    const [updatingBoard, setUpdatingBoard] = useState(false);
+    const closeUpdateBoard = useCallback(() => setUpdatingBoard(false), []);
     const rootRef = useRef(null);
     const menuRef = useRef(null);
     const name = user ? displayName(user) : '';
@@ -193,6 +196,17 @@ const AccountMenu = () => {
                     >
                         {theme === 'dark' ? 'Light mode' : 'Dark mode'}
                     </button>
+                    <button
+                        type="button"
+                        role="menuitem"
+                        onClick={() => {
+                            close();
+                            setUpdatingBoard(true);
+                        }}
+                        style={itemStyle(K)}
+                    >
+                        {'Update board'}
+                    </button>
                     <a role="menuitem" href="/choose" style={itemStyle(K)}>
                         {'Switch mode (Beginner / Advanced)'}
                     </a>
@@ -218,6 +232,7 @@ const AccountMenu = () => {
                 </div>
             ) : null}
             {signingOut ? <SignOutDialog onCancel={() => setSigningOut(false)} /> : null}
+            {updatingBoard ? <UpdateBoardDialog onClose={closeUpdateBoard} /> : null}
         </div>
     );
 };

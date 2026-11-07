@@ -2,15 +2,18 @@ import React from 'react';
 
 import {useStudio} from '../../context/StudioContext.jsx';
 import {moduleById} from '../../domain/modules';
+import {COMING_SOON} from '../../domain/pycodegen';
 import ModuleIcon from '../shared/ModuleIcon.jsx';
 
-const TemplateCard = ({template, loaded, onLoad}) => {
+const TemplateCard = ({template, loaded, onLoad, comingSoon}) => {
     const {K} = useStudio();
     const mods = (template.connections || []).map(c => moduleById(c.moduleId)).filter(Boolean);
 
     return (
         <button
             type="button"
+            disabled={comingSoon}
+            title={comingSoon ? COMING_SOON : null}
             onClick={() => onLoad(template.id)}
             style={{
                 textAlign: 'left',
@@ -18,7 +21,8 @@ const TemplateCard = ({template, loaded, onLoad}) => {
                 border: loaded ? `1px solid ${K.accent}` : `1px solid ${K.border}`,
                 borderRadius: 12,
                 padding: 12,
-                cursor: 'pointer',
+                cursor: comingSoon ? 'not-allowed' : 'pointer',
+                opacity: comingSoon ? 0.5 : 1,
                 color: K.text,
                 display: 'flex',
                 flexDirection: 'column',
@@ -35,6 +39,9 @@ const TemplateCard = ({template, loaded, onLoad}) => {
                 <div style={{flex: 1, fontSize: 13, fontWeight: 700}}>{template.name}</div>
                 {loaded ? (
                     <span style={{fontSize: 9, fontWeight: 800, color: K.accent}}>LOADED</span>
+                ) : null}
+                {comingSoon ? (
+                    <span style={{fontSize: 9, fontWeight: 800, color: K.dim}}>COMING SOON</span>
                 ) : null}
             </div>
             <div style={{fontSize: 11, color: K.dim, lineHeight: 1.4}}>{template.description}</div>

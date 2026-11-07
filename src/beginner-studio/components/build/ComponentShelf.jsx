@@ -5,6 +5,7 @@ import {hasBle, hasCloud} from '../../domain/cloud';
 import {MODULES} from '../../domain/modules';
 import {canRepeat} from '../../domain/partCopies';
 import {fitsWithCloud} from '../../domain/ports';
+import {COMING_SOON, comingSoonPart} from '../../domain/pycodegen';
 import PartIcon from '../shared/PartIcon.jsx';
 
 const FILTERS = [
@@ -17,7 +18,10 @@ const FILTERS = [
 const filterById = id => FILTERS.find(f => f.id === id) || FILTERS[0];
 
 /** Why a part cannot be picked right now (shown instead of its description), or null. */
-const unavailableReason = (mod, cloudOn, bleOn) => {
+const unavailableReason = (mod, cloudOn, bleOn, language) => {
+    if (comingSoonPart(language, mod.id)) {
+        return COMING_SOON;
+    }
     if (cloudOn && mod.id === 'ble') {
         return 'Not available with Cloud';
     }
@@ -132,6 +136,11 @@ const ComponentTile = ({mod, count, repeat, unavailable, selected, onSelect, K})
             >
                 {mod.name}
             </span>
+            {unavailable === COMING_SOON ? (
+                <span style={{fontSize: 9, fontWeight: 700, color: K.dim, textTransform: 'uppercase'}}>
+                    {'Coming soon'}
+                </span>
+            ) : null}
             {count > 0 ? (
                 <span
                     aria-hidden
@@ -167,6 +176,7 @@ const ComponentShelf = () => {
         selectedModule,
         selectModule,
         connections,
+        boardLanguage,
         K
     } = useStudio();
 
@@ -225,7 +235,8 @@ const ComponentShelf = () => {
                                 mod={mod}
                                 count={used[mod.id] || 0}
                                 repeat={repeat}
-                                unavailable={used[mod.id] && !repeat ? null : unavailableReason(mod, cloudOn, bleOn)}
+                                unavailable={used[mod.id] && !repeat ? null :
+                                    unavailableReason(mod, cloudOn, bleOn, boardLanguage)}
                                 selected={selectedModule === mod.id}
                                 onSelect={selectModule}
                                 K={K}

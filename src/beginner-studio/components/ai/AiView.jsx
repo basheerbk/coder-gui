@@ -3,6 +3,7 @@ import React, {useEffect, useMemo, useRef, useState} from 'react';
 import {useStudio} from '../../context/StudioContext.jsx';
 import {useUpload} from '../../context/UploadContext.jsx';
 import {usesAi} from '../../domain/ai/aiFirmware';
+import {MICROPYTHON} from '../../domain/boardLanguage';
 import {
     AI_KINDS,
     AI_LIMITS,
@@ -659,7 +660,36 @@ const AiPage = () => {
     );
 };
 
+/** The recorder and the AI program are Arduino: putting them on would wipe the board's MicroPython. */
+const AiComingSoon = () => {
+    const {K, setView} = useStudio();
+    return (
+        <main aria-label="Edge AI" style={{flex: 1, minHeight: 0, overflow: 'auto', background: K.canvas}}>
+            <div style={{maxWidth: 640, margin: '0 auto', padding: '40px 16px'}}>
+                <h2 style={{fontSize: 18, fontWeight: 800, color: K.text, margin: 0}}>Edge AI</h2>
+                <div style={{fontSize: 13, color: K.sub, marginTop: 2, marginBottom: 16}}>
+                    Teach your board to recognise things by showing it examples.
+                </div>
+                <Note
+                    K={K}
+                    tone="blue"
+                    title="Coming soon in MicroPython"
+                    actions={<Button K={K} onClick={() => setView('build')}>Back to Build</Button>}
+                >
+                    Edge AI is not ready for MicroPython boards yet. Your sensors, outputs and Cloud work already.
+                </Note>
+            </div>
+        </main>
+    );
+};
+
 /** Mounts the page only while it is open, so it measures its width and listens to the board then. */
-const AiView = () => (useStudio().view === 'ai' ? <AiPage /> : null);
+const AiView = () => {
+    const {view, boardLanguage} = useStudio();
+    if (view !== 'ai') {
+        return null;
+    }
+    return boardLanguage === MICROPYTHON ? <AiComingSoon /> : <AiPage />;
+};
 
 export default AiView;

@@ -1,11 +1,15 @@
 import React, {useState} from 'react';
 
 import {useStudio} from '../../context/StudioContext.jsx';
-import useSerialMonitor from '../../hooks/useSerialMonitor.js';
+import {MICROPYTHON} from '../../domain/boardLanguage';
+import useSerialMonitor, {BEGINNER_BAUD, MICROPYTHON_BAUD} from '../../hooks/useSerialMonitor.js';
 
 const SerialMonitorPanel = ({connected, fill}) => {
-    const {K} = useStudio();
-    const serial = useSerialMonitor({connected});
+    const {K, boardTarget} = useStudio();
+    const serial = useSerialMonitor({
+        connected,
+        baudRate: boardTarget === MICROPYTHON ? MICROPYTHON_BAUD : BEGINNER_BAUD
+    });
     const [draft, setDraft] = useState('');
 
     const btn = (active, danger) => ({

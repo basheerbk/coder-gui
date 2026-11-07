@@ -1,16 +1,19 @@
 import React from 'react';
 
 import {useStudio} from '../../context/StudioContext.jsx';
+import {MICROPYTHON} from '../../domain/boardLanguage';
 import {moduleById} from '../../domain/modules';
+import {micropythonGaps} from '../../domain/pycodegen';
 import {quickStartTemplates} from '../../domain/templates';
 import ModuleIcon from '../shared/ModuleIcon.jsx';
 
 const QuickStartBar = () => {
-    const {connections, view, loadTemplate, K} = useStudio();
+    const {connections, view, loadTemplate, boardLanguage, K} = useStudio();
     if (view !== 'build' || connections.length > 0) {
         return null;
     }
-    const items = quickStartTemplates();
+    const items = quickStartTemplates().filter(t => boardLanguage !== MICROPYTHON ||
+        micropythonGaps(t.connections, t.program).length === 0);
 
     return (
         <div

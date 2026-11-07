@@ -1,9 +1,11 @@
-import React, {useState} from 'react';
+import React, {useMemo, useState} from 'react';
 
 import {useStudio} from '../../context/StudioContext.jsx';
 import {useUpload} from '../../context/UploadContext.jsx';
 import {usesAi} from '../../domain/ai/aiFirmware';
+import {MICROPYTHON} from '../../domain/boardLanguage';
 import {generateArduino} from '../../domain/codegen';
+import {comingSoonNote, micropythonGaps} from '../../domain/pycodegen';
 
 import SerialMonitorPanel from './SerialMonitorPanel.jsx';
 
@@ -21,6 +23,25 @@ const colorize = (line, K) => {
         return {color: '#f472b6'};
     }
     if (/\bdelay\b/.test(line)) {
+        return {color: K.orange};
+    }
+    return {color: K.sub};
+};
+
+const colorizePython = (line, K) => {
+    if (/^\s*#/.test(line)) {
+        return {color: K.muted};
+    }
+    if (/^import\b/.test(line)) {
+        return {color: K.orange};
+    }
+    if (/^\s*(while|for|if|else)\b/.test(line)) {
+        return {color: K.accent};
+    }
+    if (/\btinkerbit\./.test(line)) {
+        return {color: '#f472b6'};
+    }
+    if (/\btime\.sleep/.test(line)) {
         return {color: K.orange};
     }
     return {color: K.sub};
@@ -46,14 +67,20 @@ const copyText = (text, done) => {
 };
 
 const CodeSection = ({K}) => {
-    const {generatedCode, connections, program, cloud, ai} = useStudio();
+    const {generatedCode, connections, program, cloud, ai, boardTarget} = useStudio();
     const upload = useUpload();
     const [copied, setCopied] = useState(false);
     const lines = (generatedCode || '').split('\n');
     const showDetails = Boolean(upload.log) || upload.phase === 'error';
+    const python = boardTarget === MICROPYTHON;
+    const gaps = useMemo(
+        () => (python ? micropythonGaps(connections, program) : []),
+        [python, connections, program]
+    );
+    const paint = python ? colorizePython : colorize;
 
     // The preview leaves out the AI's examples; a copy has to work on its own.
-    const handleCopy = () => copyText(usesAi(program) ?
+    const handleCopy = () => copyText(!python && usesAi(program) ?
         generateArduino(connections, program, {cloud, ai, aiModel: true}) :
         generatedCode, () => {
         setCopied(true);
@@ -71,7 +98,9 @@ const CodeSection = ({K}) => {
                     borderBottom: `1px solid ${K.border}`
                 }}
             >
-                <div style={{fontSize: 12, fontWeight: 700, flex: 1}}>Your program as code</div>
+                <div style={{fontSize: 12, fontWeight: 700, flex: 1}}>
+                    {python ? 'Your program as MicroPython' : 'Your program as code'}
+                </div>
                 <button
                     type="button"
                     onClick={handleCopy}
@@ -88,6 +117,12 @@ const CodeSection = ({K}) => {
                     {copied ? 'Copied' : 'Copy'}
                 </button>
             </div>
+
+            {gaps.length ? (
+                <div style={{padding: '6px 10px', borderBottom: `1px solid ${K.border}`, fontSize: 11, color: K.sub}}>
+                    {comingSoonNote(gaps)}
+                </div>
+            ) : null}
 
             {showDetails ? (
                 <details style={{padding: '6px 10px', borderBottom: `1px solid ${K.border}`, fontSize: 11}}>
@@ -140,7 +175,7 @@ const CodeSection = ({K}) => {
                         >
                             {i + 1}
                         </span>
-                        <span style={Object.assign({paddingRight: 10, whiteSpace: 'pre'}, colorize(line, K))}>
+                        <span style={Object.assign({paddingRight: 10, whiteSpace: 'pre'}, paint(line, K))}>
                             {line || ' '}
                         </span>
                     </div>

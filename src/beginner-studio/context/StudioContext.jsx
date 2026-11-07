@@ -6,6 +6,8 @@ import useGeneratedCode from '../hooks/useGeneratedCode';
 import useStudioActions from '../hooks/useStudioActions';
 import useUndoHistory from '../hooks/useUndoHistory';
 import {loadProject} from '../domain/autosave';
+import {readBoardLanguage} from '../domain/boardLanguage';
+import {boardTarget} from '../domain/pycodegen';
 import {readStoredTheme, tokensFor} from '../domain/tokens';
 
 const StudioContext = createContext(null);
@@ -47,14 +49,22 @@ const initialState = email => {
 const StudioProvider = ({user, children}) => {
     const email = user && user.email ? user.email : null;
     const [state, setState] = useState(() => initialState(email));
-    const actions = useStudioActions(state, setState);
+    const [boardLanguage] = useState(readBoardLanguage);
+    const actions = useStudioActions(state, setState, boardLanguage);
     const aiActions = useAiActions(setState);
     const history = useUndoHistory(state, setState);
     const autosave = useAutosave(state, email);
-    const generatedCode = useGeneratedCode(state.connections, state.program, state.cloud, state.ai);
+    const target = boardTarget(boardLanguage);
+    const generatedCode = useGeneratedCode(state.connections, state.program, state.cloud, state.ai, target);
     const K = tokensFor(state.theme);
 
-    const value = useMemo(() => Object.assign({}, state, actions, aiActions, history, autosave, {generatedCode, K, user}), [
+    const value = useMemo(() => Object.assign({}, state, actions, aiActions, history, autosave, {
+        generatedCode,
+        boardLanguage,
+        boardTarget: target,
+        K,
+        user
+    }), [
         state,
         actions,
         aiActions,
@@ -62,6 +72,8 @@ const StudioProvider = ({user, children}) => {
         autosave,
         user,
         generatedCode,
+        boardLanguage,
+        target,
         K
     ]);
 

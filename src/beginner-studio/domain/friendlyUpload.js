@@ -7,6 +7,19 @@ const BOOT_TIP = 'Tip: some laptops need the BOOT button on the board held down 
 
 const ERRORS = [
     {re: /chrome or edge|not supported/i, text: 'Open this page in Chrome or Edge on a computer to upload.'},
+    // MicroPython: the board's own error line is the most useful thing to show.
+    {re: /^your program stopped:/i,
+        raw: true,
+        tip: 'Your program reached the board but stopped with this error. Check your blocks and Upload again.'},
+    {re: /does not have micropython/i,
+        text: 'This board needs MicroPython first.',
+        tip: 'Open the menu at the top right and choose Update board. It takes about a minute, one time.'},
+    {re: /needs the tinkerbit firmware|older tinkerbit firmware/i,
+        raw: true,
+        tip: 'Update board keeps your parts and blocks here; only the program on the board is replaced.'},
+    {re: /(micropython|tinkerbit) firmware|different chip|not the tinkerbit esp32|micropython did not start/i,
+        raw: true},
+    {re: /stopped answering/i, text: 'The board stopped answering. Check the USB cable, then press Upload again.'},
     {re: /https|secure context/i, text: 'Open TinkerBit from https://tinkerbit.io to upload.'},
     {re: /no port selected|did not select|no web serial port/i,
         text: 'Pick your board in the list that pops up.'},
@@ -33,6 +46,21 @@ const busyText = message => {
     }
     if (/cancel/i.test(m)) {
         return 'Stopping…';
+    }
+    if (/^micropython:/i.test(m)) {
+        return 'Putting the TinkerBit firmware on your board (about a minute)…';
+    }
+    if (/checking your board/i.test(m)) {
+        return 'Checking your board…';
+    }
+    if (/library/i.test(m)) {
+        return 'Setting up your board (first time only)…';
+    }
+    if (/sending your program/i.test(m)) {
+        return 'Sending to your board…';
+    }
+    if (/starting your program/i.test(m)) {
+        return 'Starting your program…';
     }
     if (/complete/i.test(m)) {
         return 'Almost done…';
@@ -67,7 +95,7 @@ const friendlyUpload = ({phase, message, connected, supported}) => {
         const hit = ERRORS.find(e => e.re.test(String(message || '')));
         return {
             tone: 'error',
-            text: hit ? hit.text : UNKNOWN_ERROR,
+            text: hit ? (hit.raw ? String(message) : hit.text) : UNKNOWN_ERROR,
             tip: hit ? (hit.tip || '') : BOOT_TIP
         };
     }

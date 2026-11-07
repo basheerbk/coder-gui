@@ -1,6 +1,8 @@
 import React, {useMemo, useState} from 'react';
 
 import {useStudio} from '../../context/StudioContext.jsx';
+import {MICROPYTHON} from '../../domain/boardLanguage';
+import {micropythonGaps} from '../../domain/pycodegen';
 import {TEMPLATES} from '../../domain/templates';
 import Modal from '../shared/Modal.jsx';
 
@@ -29,13 +31,26 @@ const matches = (tpl, filter) => {
 };
 
 const ProjectLibraryModal = () => {
-    const {showProjectLibrary, setShowProjectLibrary, loadTemplate, activeTemplateId, K} = useStudio();
+    const {showProjectLibrary, setShowProjectLibrary, loadTemplate, activeTemplateId, boardLanguage, K} = useStudio();
     const [filter, setFilter] = useState('all');
+
+    const comingSoon = useMemo(() => {
+        const out = {};
+        if (boardLanguage === MICROPYTHON) {
+            TEMPLATES.forEach(t => {
+                out[t.id] = micropythonGaps(t.connections, t.program).length > 0;
+            });
+        }
+        return out;
+    }, [boardLanguage]);
 
     const filtered = useMemo(() => {
         const list = TEMPLATES.filter(t => matches(t, filter));
         const rank = {Beginner: 0, Medium: 1, Advanced: 2};
         return list.sort((a, b) => {
+            if (Boolean(comingSoon[a.id]) !== Boolean(comingSoon[b.id])) {
+                return comingSoon[a.id] ? 1 : -1;
+            }
             const da = rank[a.difficulty] != null ? rank[a.difficulty] : 9;
             const db = rank[b.difficulty] != null ? rank[b.difficulty] : 9;
             if (da !== db) {
@@ -43,7 +58,7 @@ const ProjectLibraryModal = () => {
             }
             return a.name.localeCompare(b.name);
         });
-    }, [filter]);
+    }, [filter, comingSoon]);
 
     if (!showProjectLibrary) {
         return null;
@@ -121,6 +136,7 @@ const ProjectLibraryModal = () => {
                         key={tpl.id}
                         template={tpl}
                         loaded={activeTemplateId === tpl.id}
+                        comingSoon={Boolean(comingSoon[tpl.id])}
                         onLoad={loadTemplate}
                     />
                 ))}

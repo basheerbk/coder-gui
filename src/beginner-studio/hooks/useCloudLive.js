@@ -13,12 +13,12 @@ const FAST_POLL_MS = 3000;
 const WATCH_POLL_MS = 4000;
 const SLOW_POLL_MS = 30000;
 const GIVE_UP_MS = 75000;
-const SERIAL_BAUD = 9600;
+const ARDUINO_BAUD = 9600;
 
 const progressReducer = (state, action) => (action.type === 'reset' ? initialProgress() : reduceProgress(state, action));
 
 /** Read what the freshly flashed board prints (the board resets right after flashing). */
-const listenToBoard = onLine => {
+const listenToBoard = (onLine, baud) => {
     let stopped = false;
     let remove = null;
     import('../../lib/web-serial/serial-monitor').then(async mon => {
@@ -28,7 +28,7 @@ const listenToBoard = onLine => {
         remove = mon.addSerialDataListener((decoder => bytes => onLine(decoder.decode(bytes, {stream: true})))(new TextDecoder()));
         if (!mon.isSerialMonitoring()) {
             try {
-                await mon.startSerialMonitor(SERIAL_BAUD);
+                await mon.startSerialMonitor(baud);
             } catch (err) {
                 // Board unplugged or port busy: the Cloud service check still works.
             }
@@ -50,10 +50,18 @@ const listenToBoard = onLine => {
  * @param {string} options.uploadPhase phase from useBoardUpload
  * @param {boolean} options.enabled the project has the Cloud part and a linked board
  * @param {boolean} options.watching the Cloud tab is open, so readings should update quickly
+ * @param {number} [options.baud] serial speed of the board's prints: 9600 for Arduino, 115200
+ *   for MicroPython
+ * @param {string} [options.startOutput] what the program printed while the upload still held the
+ *   port (MicroPython starts it before the upload ends)
  * @returns {object} live session state and controls
  */
-const useCloudLive = ({cloud, uploadPhase, enabled, watching}) => {
+const useCloudLive = ({cloud, uploadPhase, enabled, watching, baud = ARDUINO_BAUD, startOutput = ''}) => {
     const deviceId = enabled && cloud ? cloud.deviceId : null;
+    const baudRef = useRef(baud);
+    baudRef.current = baud;
+    const startRef = useRef(startOutput);
+    startRef.current = startOutput;
     const [stage, setStage] = useState('idle');
     const [detail, setDetail] = useState(null);
     const [pollTick, setPollTick] = useState(0);
@@ -127,12 +135,16 @@ const useCloudLive = ({cloud, uploadPhase, enabled, watching}) => {
         if (stage !== 'waiting') {
             return undefined;
         }
-        const stopListening = listenToBoard(createLineSplitter(line => {
+        const onChunk = createLineSplitter(line => {
             const event = parseCloudLine(line);
             if (event) {
                 dispatch(event);
             }
-        }));
+        });
+        if (startRef.current) {
+            onChunk(`${startRef.current}\n`);
+        }
+        const stopListening = listenToBoard(onChunk, baudRef.current);
         const giveUp = setTimeout(() => dispatch({type: 'timeout'}), GIVE_UP_MS);
         return () => {
             stopListening();

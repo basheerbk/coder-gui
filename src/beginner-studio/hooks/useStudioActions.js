@@ -3,12 +3,14 @@ import {useCallback} from 'react';
 import {clearOffset, spreadConnections} from '../components/build/ModuleArt.jsx';
 
 import {cleanAi} from '../domain/ai/aiState';
+import {MICROPYTHON} from '../domain/boardLanguage';
 import {cloudAddProblem, hasCloud} from '../domain/cloud';
 import {buildSensorOptions, buildValueOptions, defaultIfParams, ifParamsFor} from '../domain/condition';
 import {uid} from '../domain/ids';
 import {moduleById} from '../domain/modules';
 import {canRepeat, nextCopyNo, partName} from '../domain/partCopies';
 import {portById, isPortCompatible, compatibilityHint, fitsWithCloud} from '../domain/ports';
+import {COMING_SOON, comingSoonPart, micropythonGaps} from '../domain/pycodegen';
 import {SILENT_READS} from '../domain/sensorReads';
 import {playConnect, playDisconnect, playTick} from '../domain/sound';
 import {templateById} from '../domain/templates';
@@ -35,7 +37,14 @@ const starterBlock = (mod, conn, connections) => {
     return createBlock(first.type, {cid: conn.id, params: Object.assign({}, first.params || {})});
 };
 
-const useStudioActions = (state, setState) => {
+/**
+ * @param {object} state studio state
+ * @param {Function} setState state setter
+ * @param {string} [language] board language (boardLanguage.js); MicroPython refuses parts and
+ *   templates it cannot run yet
+ * @returns {object} studio actions
+ */
+const useStudioActions = (state, setState, language) => {
     const patch = useCallback(partial => {
         setState(prev => Object.assign({}, prev, partial));
     }, [setState]);
@@ -43,6 +52,9 @@ const useStudioActions = (state, setState) => {
     const selectModule = useCallback(moduleId => {
         setState(prev => {
             const mod = moduleById(moduleId);
+            if (comingSoonPart(language, moduleId)) {
+                return Object.assign({}, prev, {selectedModule: null, wireHint: `${mod.name}: ${COMING_SOON}`});
+            }
             const cloudOn = hasCloud(prev.connections);
             // BLE and Cloud are onboard — snap them in without picking a jack.
             if (mod && mod.onboard) {
@@ -103,7 +115,7 @@ const useStudioActions = (state, setState) => {
         setTimeout(() => {
             setState(prev => (prev.wireHint ? Object.assign({}, prev, {wireHint: null}) : prev));
         }, 4000);
-    }, [setState]);
+    }, [setState, language]);
 
     const clearSelection = useCallback(() => {
         setState(prev => (
@@ -267,7 +279,7 @@ const useStudioActions = (state, setState) => {
 
     const loadTemplate = useCallback(templateId => {
         const tpl = templateById(templateId);
-        if (!tpl) {
+        if (!tpl || (language === MICROPYTHON && micropythonGaps(tpl.connections, tpl.program).length)) {
             return;
         }
         playConnect();
@@ -283,7 +295,7 @@ const useStudioActions = (state, setState) => {
             showCloudSetup: false,
             view: 'build'
         }));
-    }, [setState]);
+    }, [setState, language]);
 
     const setView = useCallback(view => patch({view}), [patch]);
     const setProjectName = useCallback(projectName => patch({projectName}), [patch]);
