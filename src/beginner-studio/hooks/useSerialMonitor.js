@@ -3,7 +3,6 @@ import {useCallback, useEffect, useRef, useState} from 'react';
 import {isWebSerialSupported} from '../../lib/web-serial/supported-browsers';
 
 const BEGINNER_BAUD = 9600; // matches Serial.begin(9600) in codegen
-const MICROPYTHON_BAUD = 115200; // the MicroPython REPL, where print() goes
 
 /**
  * Beginner Studio serial monitor — reuses Advanced IDE Web Serial monitor helpers.
@@ -157,4 +156,4 @@ const useSerialMonitor = ({connected, baudRate = BEGINNER_BAUD} = {}) => {
 };
 
 export default useSerialMonitor;
-export {BEGINNER_BAUD, MICROPYTHON_BAUD};
+export {BEGINNER_BAUD};

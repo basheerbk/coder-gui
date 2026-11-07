@@ -10,13 +10,16 @@ from machine import Pin
 
 from . import board
 
-VERSION = "0.1.0"
-API = 1
+VERSION = "0.2.0"
+API = 2
 
 ANALOG_SAMPLES = 12
 DHT_PERIOD_MS = 2000
 MPU_RETRY_MS = 5000
+# A missing RFID reader or heartbeat sensor is looked for again this often.
+FIND_AGAIN_MS = 5000
 ULTRA_TIMEOUT_US = 30000
+RFID_SPI_HZ = 1000000
 
 
 class TinkerBitError(Exception):
@@ -603,8 +606,17 @@ class Ultrasonic(_Part):
         return self.cm()
 
 
+def _time_to_look(part):
+    """True when a missing part should be looked for now (at most every FIND_AGAIN_MS)."""
+    now = time.ticks_ms()
+    if part._looked_at is not None and time.ticks_diff(now, part._looked_at) < FIND_AGAIN_MS:
+        return False
+    part._looked_at = now
+    return True
+
+
 class Rfid(_Part):
-    """Claims the 3D jack (RC522). The card reader driver is not part of this prototype."""
+    """RC522 card reader on 3D."""
     NAME = "RFID reader"
     KINDS = ("spi",)
     DEFAULT = "3D"
@@ -613,9 +625,38 @@ class Rfid(_Part):
     def _setup(self):
         self._ss = Pin(self._gpio("ss"), Pin.OUT, value=1)
         self._rst = Pin(self._gpio("rst"), Pin.OUT, value=1)
+        self._dev = None
+        self._looked_at = None
+
+    def _reader(self):
+        if self._dev is None and _time_to_look(self):
+            from .rc522 import RC522
+
+            spi = machine.SPI(2, baudrate=RFID_SPI_HZ, polarity=0, phase=0, sck=Pin(self._gpio("sck")),
+                              mosi=Pin(self._gpio("mosi")), miso=Pin(self._gpio("miso")))
+            dev = RC522(spi, self._ss, self._rst)
+            if dev.begin():
+                self._dev = dev
+            else:
+                _say_once("rfid", "RFID reader not found - check the 3D cable.")
+        return self._dev
 
     def card(self):
-        return None
+        """The UID of a card just put on the reader, as hex ("04a3b2c1"), else "".
+        A card left on the reader is read once."""
+        dev = self._reader()
+        if dev is None:
+            return ""
+        uid = dev.read_uid()
+        if uid is None:
+            if not dev.present():
+                self._dev = None
+                self._looked_at = time.ticks_ms()
+            return ""
+        return "".join("%02x" % b for b in uid)
+
+    def read(self):
+        return self.card()
 
 
 class DHT11(_Part):
@@ -808,6 +849,71 @@ class Motion(_I2CPart):
         return self._tilt, self._shake
 
 
+class Heartbeat(_I2CPart):
+    """HW-605 (MAX30102) pulse sensor: put a fingertip on it and keep still."""
+    NAME = "heartbeat sensor"
+    # IR below this means no finger on the sensor (same rule as the Arduino code).
+    NO_FINGER = 50000
+    # SparkFun's getIR() waits this long for a new sample.
+    WAIT_MS = 250
+
+    def _setup(self):
+        self._dev = None
+        self._looked_at = None
+        self._bpm = 0
+
+    def _sensor(self):
+        if self._dev is None and _time_to_look(self):
+            from .max30102 import MAX30102, BeatDetector
+
+            dev = MAX30102(i2c())
+            try:
+                found = dev.begin()
+            except OSError:
+                found = False
+            if found:
+                self._dev = dev
+                self._beats = BeatDetector()
+                self._count = 0
+                self._last_beat = None
+            else:
+                _say_once("pulse", "Heartbeat sensor (HW-605) not found - check the I2C cable and 3.3V.")
+        return self._dev
+
+    def bpm(self):
+        """Beats per minute from the last two beats; 0 with no finger on the sensor, -1 while
+        the sensor is not answering."""
+        from .max30102 import SAMPLE_MS
+
+        dev = self._sensor()
+        if dev is None:
+            return -1
+        try:
+            samples, lost = dev.read_ir()
+            end = time.ticks_add(time.ticks_ms(), self.WAIT_MS)
+            while not samples and time.ticks_diff(end, time.ticks_ms()) > 0:
+                time.sleep_ms(SAMPLE_MS)
+                samples, lost = dev.read_ir()
+        except OSError:
+            self._dev = None
+            self._looked_at = time.ticks_ms()
+            return -1
+        # Beats are timed by sample number (one every SAMPLE_MS), so a slow loop does not skew them.
+        self._count += lost
+        for ir in samples:
+            self._count += 1
+            if self._beats.check(ir):
+                if self._last_beat is not None:
+                    self._bpm = 60000 // ((self._count - self._last_beat) * SAMPLE_MS)
+                self._last_beat = self._count
+        if samples and samples[-1] < self.NO_FINGER:
+            self._bpm = 0
+        return self._bpm
+
+    def read(self):
+        return self.bpm()
+
+
 class HC05(_Part):
     """HC-05 on the UART jack. It shares UART0 with USB serial and the REPL, so a program
     that uses it runs from Upload only and Stop needs a hard reset."""
@@ -843,3 +949,41 @@ class HC05(_Part):
                 return line
             self._buf += ch
         return None
+
+
+class Ble(_Part):
+    """Bluetooth LE built into the board, with the service phone apps used with the Arduino
+    code. Cloud and Bluetooth never run together."""
+    NAME = "Bluetooth"
+    KINDS = ("onboard",)
+    DEFAULT = "ESP"
+    WHERE = "ESP (built in)"
+
+    def _setup(self):
+        self._dev = None
+        self._peripheral()
+
+    def _peripheral(self):
+        if self._dev is None:
+            bluetooth(True)
+            from .ble import Peripheral
+
+            self._dev = Peripheral()
+        return self._dev
+
+    def advertise(self, name="TinkerBit"):
+        """Show up on phones as name (up to 29 bytes)."""
+        self._peripheral().advertise(name)
+
+    def send(self, text):
+        """Send text to a connected phone (the first 20 bytes)."""
+        return self._peripheral().send(text)
+
+    def connected(self):
+        return self._dev is not None and self._dev.connected()
+
+    def _stop(self):
+        if self._dev is not None:
+            self._dev.close()
+            self._dev = None
+        bluetooth(False)

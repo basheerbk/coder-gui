@@ -41,14 +41,16 @@ describe('parts and templates MicroPython does not have yet', () => {
         jest.useRealTimers();
     });
 
-    test('in MicroPython an RFID reader or Bluetooth cannot be added and says why', () => {
+    test('in MicroPython the RFID reader, heartbeat sensor and both Bluetooth parts go on', () => {
         mount(MICROPYTHON);
         act(() => api.actions.selectModule('rfid'));
-        expect(api.state.selectedModule).toBeNull();
-        expect(api.state.wireHint).toMatch(/Coming soon in MicroPython/);
+        expect(api.state.selectedModule).toBe('rfid');
+        expect(api.state.wireHint || '').not.toMatch(/Coming soon/);
         act(() => api.actions.selectModule('ble'));
-        expect(api.state.connections).toEqual([]);
-        expect(api.state.wireHint).toMatch(/Coming soon in MicroPython/);
+        act(() => api.actions.selectModule('hc05'));
+        act(() => api.actions.selectModule('pulse'));
+        expect(api.state.connections.map(c => c.moduleId)).toEqual(expect.arrayContaining(['ble']));
+        expect(api.state.wireHint || '').not.toMatch(/Coming soon/);
     });
 
     test('in MicroPython Cloud and ordinary parts still go on', () => {
@@ -60,7 +62,8 @@ describe('parts and templates MicroPython does not have yet', () => {
         expect(api.state.connections.map(c => c.moduleId)).toEqual(['cloud', 'led']);
     });
 
-    test('in MicroPython a template with such parts does not load; others do', () => {
+    test('in MicroPython an Edge AI template does not load; others do', () => {
+        expect(micropythonGaps(gapTemplate.connections, gapTemplate.program)).toEqual(['Edge AI']);
         mount(MICROPYTHON);
         act(() => api.actions.loadTemplate(gapTemplate.id));
         expect(api.state.activeTemplateId).toBeUndefined();

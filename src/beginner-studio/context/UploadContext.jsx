@@ -5,10 +5,10 @@ import {MICROPYTHON} from '../domain/boardLanguage';
 import {cloudUploadProblem, hasCloud} from '../domain/cloud';
 import {maskSecrets, readSecrets} from '../domain/cloudSecrets';
 import {generateArduino} from '../domain/codegen';
-import {comingSoonNote, micropythonCloudConfig, micropythonGaps} from '../domain/pycodegen';
+import {comingSoonNote, micropythonBaud, micropythonCloudConfig, micropythonGaps} from '../domain/pycodegen';
 import useBoardUpload from '../hooks/useBoardUpload.js';
 import useCloudLive from '../hooks/useCloudLive.js';
-import {BEGINNER_BAUD, MICROPYTHON_BAUD} from '../hooks/useSerialMonitor.js';
+import {BEGINNER_BAUD} from '../hooks/useSerialMonitor.js';
 
 import {useStudio} from './StudioContext.jsx';
 
@@ -30,7 +30,7 @@ const UploadProvider = ({children}) => {
         uploadPhase: upload.phase,
         enabled: cloudOn && Boolean(cloud),
         watching: view === 'cloud',
-        baud: python ? MICROPYTHON_BAUD : BEGINNER_BAUD,
+        baud: python ? micropythonBaud(connections) : BEGINNER_BAUD,
         startOutput: python ? upload.startOutput : ''
     });
     const beginLive = cloudLive.begin;

@@ -6,7 +6,7 @@ import {buildValueOptions, COMPARE_OPS, TEXT_VALUES} from './condition';
 import {moduleById} from './modules';
 import {copyTag, copyVar, partValues} from './partCopies';
 import {portById} from './ports';
-import {sensorReaders, varsReadBy, varsUsedBy} from './sensorReads';
+import {sensorReaders, varsReadBy, varsUsedBy, walkBlocks} from './sensorReads';
 
 /**
  * MicroPython for the same blocks as codegen.js, written against the tinkerbit library
@@ -38,27 +38,28 @@ const PY_CLASS = {
     ldr: 'Light',
     flame: 'Flame',
     water: 'Water',
-    mpu6050: 'Motion'
+    mpu6050: 'Motion',
+    pulse: 'Heartbeat',
+    rfid: 'Rfid',
+    ble: 'Ble',
+    hc05: 'HC05'
 };
 
 const DETECTORS = {ir: true, pir: true, reed: true, ldr: true, flame: true};
 
 /** Parts the MicroPython library cannot run yet, by the name a student sees. */
-const NOT_YET_PARTS = {
-    ble: 'Bluetooth (BLE)',
-    hc05: 'HC-05 Bluetooth',
-    rfid: 'RFID reader',
-    pulse: 'Heartbeat sensor'
-};
+const NOT_YET_PARTS = {};
 
 const NOT_YET_BLOCKS = {
-    rfid_read: 'RFID reader',
-    ble_advertise: 'Bluetooth (BLE)',
-    ble_send: 'Bluetooth (BLE)',
-    hc05_send: 'HC-05 Bluetooth',
-    hc05_read: 'HC-05 Bluetooth',
     ai_ask: 'Edge AI'
 };
+
+// Same limit as ble_send in codegen.js (one BLE value).
+const BLE_TEXT_MAX = 20;
+
+// print() goes to the REPL at 115200; an HC-05 program moves the shared UART to 9600.
+const REPL_BAUD = 115200;
+const HC05_BAUD = 9600;
 
 /** Dashboard controls: Arduino keeps them in globals, MicroPython asks tinkerbit.cloud. */
 const CLOUD_CONTROL_EXPR = {};
@@ -288,6 +289,41 @@ const emitLeaf = (block, ctx, level) => {
         say(`Stepper: ${steps} steps @ ${rpm} RPM`);
         break;
     }
+    case 'rfid_read': {
+        const v = valueVar('rfidUid');
+        add(`${v} = ${obj}.card()`);
+        add(`if ${v}:`);
+        say('RFID UID=', v, 1);
+        add('else:');
+        say('RFID: no card', null, 1);
+        break;
+    }
+    case 'ble_advertise': {
+        const name = String(p.name || 'TinkerBit');
+        add(`${obj}.advertise(${pyStr(name)})`);
+        say(`BLE advertising: ${name}`);
+        break;
+    }
+    case 'ble_send': {
+        const text = String(p.text || '').slice(0, BLE_TEXT_MAX);
+        add(`${obj}.send(${pyStr(text)})`);
+        say(`BLE send: ${text}`);
+        break;
+    }
+    case 'hc05_send':
+        add(`${obj}.send(${pyStr(p.text || '')})`);
+        break;
+    case 'hc05_read': {
+        // Like the Arduino code, the last message stays in the value until a new one arrives.
+        const v = valueVar('hc05Line');
+        add(`_line = ${obj}.read_line()`);
+        add('if _line is not None:');
+        add(`${v} = _line.strip()`, 1);
+        say('HC-05 RX=', v, 1);
+        add('else:');
+        say('HC-05: no data', null, 1);
+        break;
+    }
     case 'print_gas': {
         const v = valueVar('gasLevel');
         add('time.sleep_ms(400)');
@@ -315,6 +351,17 @@ const emitLeaf = (block, ctx, level) => {
             add('else:');
             add(`${v} = _pct`, 1);
             say(`Soil moisture${tag}=`, `str(${v}) + " % (raw=" + str(_raw) + ")"`, 1);
+            break;
+        }
+        if (mod.id === 'pulse') {
+            const v = valueVar('heartRate');
+            add(`${v} = ${obj}.bpm()`);
+            add(`if ${v} < 0:`);
+            add(`${v} = 0`, 1);
+            say('HW-605 not ready', null, 1);
+            add('time.sleep_ms(500)', 1);
+            add('else:');
+            say('HW-605 BPM=', `str(${v})`, 1);
             break;
         }
         add(`${valueVar('value')} = ${obj}.read()`);
@@ -516,10 +563,27 @@ const emitBlocks = (blocks, ctx, level, readers, fresh = {}) => {
     return lines;
 };
 
-const setupLines = conn => {
+// The name the Arduino code advertises from setup(): the first Turn on Bluetooth block's.
+const firstBleName = program => {
+    let name = null;
+    walkBlocks(program, block => {
+        if (name === null && block.type === 'ble_advertise' && block.params && block.params.name) {
+            name = String(block.params.name);
+        }
+    });
+    return name || 'TinkerBit';
+};
+
+const setupLines = (conn, program) => {
     const mod = partOf(conn);
     if (!mod) {
         return [];
+    }
+    if (mod.id === 'ble') {
+        return [`${partVar(conn)}.advertise(${pyStr(firstBleName(program))})`];
+    }
+    if (mod.id === 'hc05') {
+        return [`print("HC-05 ready on UART at ${HC05_BAUD} baud")`];
     }
     if (mod.id === 'dht') {
         return ['time.sleep_ms(2000)', 'print("DHT11 ready - sampling every 2s")'];
@@ -550,6 +614,7 @@ const telemetryLines = (connections, program, ctx) => telemetryReadings(connecti
 
 const build = (connections, program) => {
     const ctx = makeContext(connections);
+    const early = [];
     const parts = [];
     const values = [];
     const setup = [];
@@ -563,11 +628,13 @@ const build = (connections, program) => {
         if (!mod || !portById(c.portId)) {
             return;
         }
-        parts.push(`${partVar(c)} = tinkerbit.${PY_CLASS[mod.id]}("${JACK[c.portId] || c.portId}")`);
+        // The HC-05 moves the USB serial line to its baud rate: before anything is printed.
+        (mod.id === 'hc05' ? early : parts)
+            .push(`${partVar(c)} = tinkerbit.${PY_CLASS[mod.id]}("${JACK[c.portId] || c.portId}")`);
         partValues(c).forEach(v => {
             values.push(`${v.name} = ${v.type === 'String' ? '""' : v.type === 'float' ? '0.0' : '0'}`);
         });
-        setupLines(c).forEach(l => setup.push(l));
+        setupLines(c, program).forEach(l => setup.push(l));
     });
     const loop = fillBody(body(emitBlocks(program, ctx, 1, sensorReaders(connections))), 1);
     if (!(program || []).length) {
@@ -595,6 +662,7 @@ const build = (connections, program) => {
         out.push('from tinkerbit import cloud');
     }
     out.push('');
+    early.forEach(l => out.push(l));
     out.push('print("TinkerBit Beginner ready")');
     out.push('');
     if (parts.length) {
@@ -626,9 +694,19 @@ const generatePython = (connections, program) => build(connections, program).cod
  * Parts and blocks of this project the MicroPython preview leaves out.
  * @param {Array} connections wired parts
  * @param {Array} program block tree
- * @returns {Array<string>} names a student knows ("Cloud", "RFID reader"), empty when it runs all of it
+ * @returns {Array<string>} names a student knows ("Edge AI"), empty when it runs all of it
  */
 const micropythonGaps = (connections, program) => build(connections, program).notYet;
+
+/**
+ * The baud rate the board talks at once this project's main.py runs.
+ * @param {Array} connections wired parts
+ * @returns {number} 9600 with an HC-05 (it shares the USB serial line), else the REPL's 115200
+ */
+const micropythonBaud = connections => ((connections || []).some(c => {
+    const mod = moduleById(c.moduleId);
+    return Boolean(mod && mod.id === 'hc05');
+}) ? HC05_BAUD : REPL_BAUD);
 
 /**
  * What the board runs: the Studio's language. A MicroPython project with parts MicroPython
@@ -687,6 +765,7 @@ export {
     comingSoonNote,
     comingSoonPart,
     generatePython,
+    micropythonBaud,
     micropythonCloudConfig,
     micropythonGaps
 };

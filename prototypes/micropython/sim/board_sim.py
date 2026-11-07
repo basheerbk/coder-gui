@@ -18,6 +18,7 @@ import builtins
 import codeop
 import ctypes
 import importlib
+import math
 import os
 import re
 import threading
@@ -157,8 +158,10 @@ class Board:
         self.echo_us = 1160
         self.dht = {}
         self.dht_default = (24, 55)
-        self.i2c_devices = {0x3C: OledDevice(), 0x68: Mpu6050Device()}
+        self.i2c_devices = {0x3C: OledDevice(), 0x68: Mpu6050Device(), 0x57: Max30102Device(self)}
         self.i2c_freq = None
+        self.spi_device = Rc522Device()
+        self.ble = _ble_state()
         self.screen = []
         self.neopixels = []
         self.heap_total = 113664
@@ -334,6 +337,18 @@ class Board:
 
     def set_raw_mode(self):
         self.mode = "raw"
+
+    def ble_connect(self, conn=1):
+        """A phone connects (the IRQ runs on the board's thread in MicroPython; here, on the caller's)."""
+        self.ble["conns"].add(conn)
+        self.ble["advertising"] = None
+        if self.ble["irq"]:
+            self.ble["irq"](1, (conn, 0, b"\x00" * 6))
+
+    def ble_disconnect(self, conn=1):
+        self.ble["conns"].discard(conn)
+        if self.ble["irq"]:
+            self.ble["irq"](2, (conn, 0, b"\x00" * 6))
 
     @property
     def wifi_on(self):
@@ -548,6 +563,8 @@ class Board:
         self.pwm.clear()
         self.wifi.clear()
         self.wifi_connected = False
+        # A soft reset turns Bluetooth off (mp_bluetooth_deinit).
+        self.ble = _ble_state()
         self.cwd = "/"
         self.interrupt_char = -1
 
@@ -958,6 +975,201 @@ class OledDevice:
 
     def read(self, reg, n):
         return bytes(n)
+
+
+def _ble_state():
+    return {"active": False, "name": None, "advertising": None, "adverts": 0, "values": {}, "conns": set(),
+            "notified": [], "irq": None, "next_handle": 0}
+
+
+def crc_a(data):
+    """ISO 14443-A CRC, low byte first (what the RC522 puts in CRCResultReg)."""
+    crc = 0x6363
+    for b in data:
+        b ^= crc & 0xFF
+        b = (b ^ (b << 4)) & 0xFF
+        crc = (crc >> 8) ^ (b << 8) ^ (b << 3) ^ (b >> 4)
+    return bytes((crc & 0xFF, crc >> 8))
+
+
+class Rc522Device:
+    """RC522 reader with at most one card. put_card(uid) is a card placed on the reader;
+    a halted card answers again only after take_card() and put_card(), like lifting it off."""
+
+    def __init__(self):
+        self.version = 0x92
+        self.card = None
+        self.halted = False
+        self.regs = [0] * 64
+        self.fifo = []
+        self.selected = 0
+
+    def put_card(self, uid):
+        self.card = bytes(uid)
+        self.halted = False
+
+    def take_card(self):
+        self.card = None
+        self.halted = False
+
+    def transfer(self, data):
+        addr = data[0]
+        reg = (addr >> 1) & 0x3F
+        out = bytearray(len(data))
+        if addr & 0x80:
+            for i in range(1, len(data)):
+                out[i] = self._read(reg)
+        else:
+            for b in data[1:]:
+                self._write(reg, b)
+        return bytes(out)
+
+    def _read(self, reg):
+        if reg == 0x37:
+            return self.version
+        if reg == 0x09:
+            return self.fifo.pop(0) if self.fifo else 0
+        if reg == 0x0A:
+            return len(self.fifo)
+        return self.regs[reg]
+
+    def _write(self, reg, v):
+        if reg == 0x09:
+            self.fifo.append(v)
+        elif reg == 0x0A:
+            if v & 0x80:
+                self.fifo = []
+        elif reg in (0x04, 0x05):
+            # Bit 7 set: the other marked bits are set; clear: they are cleared.
+            self.regs[reg] = self.regs[reg] | (v & 0x7F) if v & 0x80 else self.regs[reg] & ~v & 0x7F
+        else:
+            self.regs[reg] = v
+            if reg == 0x01:
+                self._command(v & 0x0F)
+            elif reg == 0x0D and v & 0x80 and self.regs[0x01] & 0x0F == 0x0C:
+                self._transceive(v & 0x07)
+
+    def _command(self, cmd):
+        if cmd == 0x0F:
+            self.regs = [0] * 64
+            self.fifo = []
+        elif cmd == 0x03:
+            crc = crc_a(bytes(self.fifo))
+            self.regs[0x22], self.regs[0x21] = crc[0], crc[1]
+            self.regs[0x05] |= 0x04
+
+    def _transceive(self, bits):
+        data = bytes(self.fifo)
+        self.fifo = []
+        self.regs[0x06] = 0
+        answer = self._answer(data, bits)
+        if answer is None:
+            self.regs[0x04] |= 0x01
+        else:
+            self.fifo = list(answer)
+            self.regs[0x04] |= 0x30
+
+    def _part(self, level):
+        c = self.card
+        if len(c) == 4:
+            return c
+        return bytes((0x88,)) + c[:3] if level == 0 else c[3:7]
+
+    def _answer(self, data, bits):
+        c = self.card
+        if c is None:
+            return None
+        if bits == 7 and data == b"\x26":
+            if self.halted:
+                return None
+            return b"\x44\x00" if len(c) == 7 else b"\x04\x00"
+        if len(data) == 2 and data[1] == 0x20 and data[0] in (0x93, 0x95):
+            part = self._part((0x93, 0x95).index(data[0]))
+            return part + bytes((part[0] ^ part[1] ^ part[2] ^ part[3],))
+        if len(data) == 9 and data[1] == 0x70 and data[0] in (0x93, 0x95) and crc_a(data[:7]) == data[7:]:
+            level = (0x93, 0x95).index(data[0])
+            sak = 0x04 if len(c) == 7 and level == 0 else 0x08
+            if sak == 0x08:
+                self.selected += 1
+            return bytes((sak,)) + crc_a(bytes((sak,)))
+        if data[:2] == b"\x50\x00":
+            self.halted = True
+        return None
+
+
+class Max30102Device:
+    """MAX30102 making 100 samples a second in real time. With finger_bpm set, IR is a pulse wave
+    at that rate on top of a fingertip's DC level; with None, no finger (low IR)."""
+
+    DEPTH = 32
+
+    def __init__(self, board):
+        self.board = board
+        self.finger_bpm = None
+        self.mode = 0
+        self.regs = {}
+        self._restart()
+
+    def _restart(self):
+        self.queue = []
+        self.rd = 0
+        self.lost = 0
+        self._t0 = None
+        self._made = 0
+
+    def _ir(self, t_ms):
+        if self.finger_bpm is None:
+            return 2000
+        return int(80000 + 200 * math.sin(2 * math.pi * t_ms * self.finger_bpm / 60000.0))
+
+    def _fill(self):
+        now = self.board.ticks_ms()
+        if self._t0 is None:
+            self._t0 = now
+        while self._made < (now - self._t0) // 10:
+            self._made += 1
+            if len(self.queue) >= self.DEPTH:
+                self.queue.pop(0)
+                self.rd = (self.rd + 1) % self.DEPTH
+                self.lost = min(0x1F, self.lost + 1)
+            self.queue.append(self._ir(self._made * 10))
+
+    def write(self, data):
+        if data:
+            self.write_mem(data[0], data[1:])
+
+    def write_mem(self, reg, data):
+        v = data[0] if data else 0
+        if reg == 0x09:
+            # The reset bit clears itself at once.
+            self.mode = v & ~0x40
+            self._restart()
+        elif reg in (0x04, 0x05, 0x06):
+            self._restart()
+        else:
+            self.regs[reg] = v
+
+    def read(self, reg, n):
+        if reg == 0xFF:
+            return bytes((0x15,))[:n]
+        if reg == 0x09:
+            return bytes((self.mode,))[:n]
+        self._fill()
+        if reg == 0x04:
+            return bytes(((self.rd + len(self.queue)) % self.DEPTH,))[:n]
+        if reg == 0x05:
+            return bytes((self.lost,))[:n]
+        if reg == 0x06:
+            return bytes((self.rd,))[:n]
+        if reg == 0x07:
+            out = b""
+            for _ in range(n // 6):
+                ir = self.queue.pop(0) if self.queue else 0
+                self.rd = (self.rd + 1) % self.DEPTH
+                out += b"\x00\x10\x00" + ir.to_bytes(3, "big")
+            self.lost = 0
+            return out
+        return bytes((self.regs.get(reg, 0),))[:n]
 
 
 class Mpu6050Device:

@@ -4,7 +4,7 @@ import {flashEspImagesOnPort} from '../../lib/web-serial/esptool-flash';
 // TB_SAFE in _boot.py and the tbcloud module built in (prototypes/micropython/firmware).
 const FIRMWARE_URL = '/static/firmware/tinkerbit-esp32-v1.24.1.bin';
 const FIRMWARE_NAME = 'TinkerBit firmware (MicroPython 1.24.1)';
-const FIRMWARE_SHA256 = '112c5601f4fe744915cd573964ba4ece8bf491b8b52bd13a1c28869af5496000';
+const FIRMWARE_SHA256 = '23236190daa1651be541aed2769e77ddbdd25fa95a97493e8611d6de0ea9a822';
 
 const ESP_IMAGE_MAGIC = 0xE9;
 // A MicroPython ESP32 .bin is one image meant for 0x1000: bootloader, then the partition table

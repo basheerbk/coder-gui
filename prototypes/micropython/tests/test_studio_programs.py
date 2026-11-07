@@ -40,7 +40,7 @@ def _programs():
 
 
 PROGRAMS = _programs()
-RUNNABLE = sorted(k for k, v in PROGRAMS.items() if not v["gaps"])
+RUNNABLE = sorted(k for k, v in PROGRAMS.items() if not v["gaps"] and not k.startswith("extra-"))
 needs_node = pytest.mark.skipif(not NODE, reason="node is not installed")
 
 ERROR_LINE = re.compile(r"\b\w+(Error|Exception)\b")
@@ -96,3 +96,32 @@ def test_template_runs_on_the_board(make_board, tid):
     # The loop ran: something printed after the program's own setup lines.
     loop_lines = [l for l in out.splitlines() if l and "ready" not in l and "Traceback" not in l]
     assert len(loop_lines) > 3, out[-800:]
+
+
+@needs_node
+def test_hc05_project_talks_at_9600_and_safe_mode_gets_the_board_back(make_board):
+    p = PROGRAMS["extra-hc05-echo"]
+    assert not p["gaps"]
+    b, h = make_board()
+    h.read_until(">>> ")
+    h.enter_raw()
+    files = library_files(with_main=False)
+    files["/main.py"] = p["code"]
+    h.install_files(files)
+    b.time_scale = 0.05
+    h.soft_reset_run_main()
+    # Everything the program prints comes after the switch to 9600, the monitor's rate.
+    b.set_host_baud(9600)
+    out = h.read_until("HC-05: no data\r\n", timeout=5).decode("utf-8", "replace")
+    assert "TinkerBit Beginner ready" in out and "HC-05 ready on UART at 9600 baud" in out
+    h.write(b"hello\n")
+    out = h.read_until("got it\r\n", timeout=5).decode("utf-8", "replace")
+    assert "HC-05 RX=hello" in out
+    assert b.pins[gpio("D13")]["value"] == 1
+    # Ctrl-C is data for the HC-05 now; Upload gets the board back with a reset plus safe mode.
+    h.write(b"\x03")
+    time.sleep(0.3)
+    b.set_host_baud(115200)
+    assert h.recover()
+    h.read_until(">>> ")
+    assert b.uart_baud == 115200

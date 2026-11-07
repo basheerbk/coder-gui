@@ -4,6 +4,7 @@ import {act} from 'react-dom/test-utils';
 
 import UpdateBoardDialog from '../../../src/beginner-studio/components/layout/UpdateBoardDialog.jsx';
 import {StudioProvider} from '../../../src/beginner-studio/context/StudioContext.jsx';
+import {FIRMWARE_API} from '../../../src/beginner-studio/micropython/boardInfo';
 
 let mockUpload;
 jest.mock('../../../src/beginner-studio/context/UploadContext.jsx', () => ({useUpload: () => mockUpload}));
@@ -109,9 +110,9 @@ describe('Update board dialog', () => {
 
     test('it tells TinkerBit firmware, stock MicroPython and an out-of-date firmware apart', () => {
         const fw = {lang: 'micropython', mpy: '1.24.1', fw: 'tinkerbit', ver: '0.1.0'};
-        render({boardInfo: Object.assign({api: 1}, fw)});
+        render({boardInfo: Object.assign({api: FIRMWARE_API}, fw)});
         expect(status()).toMatch(/TinkerBit firmware is on this board and up to date/);
-        render({boardInfo: Object.assign({api: 0}, fw)});
+        render({boardInfo: Object.assign({api: FIRMWARE_API - 1}, fw)});
         expect(status()).toMatch(/older TinkerBit firmware/);
         render({boardInfo: {lang: 'micropython', mpy: '1.24.1', fw: 'stock', api: 0}});
         expect(status()).toMatch(/without the TinkerBit firmware.*Cloud/);

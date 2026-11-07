@@ -103,9 +103,9 @@ Not measured: how long after reset `boot.py` drives the pins (earlier runs put
 |---|---|
 | Build host (WSL / Linux / macOS) | Windows, Docker Desktop (engine 29.9.2), the `docker run` step of `build.sh` run from PowerShell; MicroPython checkout kept in the `tb-mp` volume |
 | `build.sh` exit status | 0 (2026-11-07) |
-| Image size (bytes) / app partition size | 1,773,264 bytes (SHA-256 `112c5601...f5496000`); app 1.71 MB, 16 % of the app partition free |
+| Image size (bytes) / app partition size | First build: 1,773,264 bytes, 16 % free. Rebuilt 2026-11-07 with library 0.2.0 (RFID, heartbeat, BLE frozen in): 1,781,600 bytes (SHA-256 `23236190...0ea9a822`); app 1.71 MB, 15 % of the app partition free |
 | Linker errors fixed (if any) | `tbcloud` no longer links `idf::mqtt` (it broke MicroPython's module scan); it adds the MQTT header folders instead. `LINE_MAX` renamed `TB_LINE_MAX` (clashed with libc). One harmless warning left: implicit `xTaskCreatePinnedToCore` |
-| `import tbsys, tbcloud` on the board | yes on COM19: `TB_INFO` reports `fw: tinkerbit`, `lib: 0.1.0`, `api: 1`; 154 KB heap free after the library; safe mode recovered a Ctrl-C-proof `main.py` |
+| `import tbsys, tbcloud` on the board | yes on COM19: `TB_INFO` reports `fw: tinkerbit`, `lib: 0.1.0`, `api: 1`; 154 KB heap free after the library; safe mode recovered a Ctrl-C-proof `main.py`. After the rebuild: `lib: 0.2.0`, `api: 2`; with no parts plugged in, `Rfid("3D").card()` gives "" and `Heartbeat("I2C1").bpm()` gives -1, each with its "not found" message once; `Ble("ESP")` advertises, sends and stops cleanly; 152 KB heap free afterwards. Not yet tried with a real reader, sensor or phone |
 
 The Studio now ships this image as `static/firmware/tinkerbit-esp32-v1.24.1.bin`.
 

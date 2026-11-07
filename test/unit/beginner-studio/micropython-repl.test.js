@@ -389,7 +389,7 @@ describe('TinkerBit firmware and Cloud settings', () => {
         expect(Object.keys(board.files).filter(k => k.indexOf('/lib/') === 0)).toEqual([]);
         expect(board.files['/boot.py']).toBe('import tinkerbit\n');
         expect(board.files[STAMP_PATH]).toBe('fw-test1');
-        expect(logs.join('')).toMatch(/Board: TinkerBit firmware \(library 0\.1\.0, API 1\)/);
+        expect(logs.join('')).toContain(`Board: TinkerBit firmware (library 0.1.0, API ${FIRMWARE_API})`);
 
         const second = await upload(board, {source: 'print(2)\n'});
         expect(second.libraryInstalled).toBe(false);

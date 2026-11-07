@@ -185,10 +185,10 @@ is not in CI yet, and there is no fuzzing or browser-side check.
 | HC-SR04 | `time_pulse_us` is C, so fine. Echo must never be an output. | Done |
 | OLED | The `ssd1306` driver is vendored. Its font is ASCII only, so student text in other scripts or emoji shows as boxes. | Must handle (filter or warn) |
 | MPU6050 | Ported; retries every 5 s; shake -1 when missing. | Done |
-| HW-605 pulse (MAX30102) | Needs a Python port of the SparkFun beat detector. BPM depends on sampling fast enough, and other blocks' waits slow the loop (already true in Arduino). | Must handle (largest part port) |
-| RFID RC522 | Needs a Python MFRC522 driver on SPI with the 3D pins (SCK 16, MOSI 23, MISO 34). | Must handle |
-| BLE | MicroPython's `bluetooth` module uses about 40 to 50 KB of RAM. It must keep the same service and characteristic UUIDs and the 20-byte limit so phone apps still work. Changing the name means restarting advertising. | Must handle |
-| HC-05 | Shares UART0 with the REPL: Upload-only, Ctrl-C off, the monitor at 9600, Stop by hard reset (built). Today the monitor and HC-05 both sit at 9600, so the student sees HC-05 traffic; with MicroPython the monitor has to follow the board between 115200 and 9600. Some HC-05 modules ship at 38400. | Must handle |
+| HW-605 pulse (MAX30102) | Needs a Python port of the SparkFun beat detector. BPM depends on sampling fast enough, and other blocks' waits slow the loop (already true in Arduino). | Done in the library (`max30102.py`, `Heartbeat`): the detector is a line-by-line port with C integer wrap-around, checked sample by sample against a C-typed reference in the tests. Each `bpm()` drains the 32-sample FIFO (320 ms at 100 Hz), so waits longer than that lose samples, as in Arduino. Still to try with a finger on a real sensor |
+| RFID RC522 | Needs a Python MFRC522 driver on SPI with the 3D pins (SCK 16, MOSI 23, MISO 34). | Done in the library (`rc522.py`, `Rfid`): hardware SPI 2 at 1 MHz, pins from `board.py`, 4-, 7- and 10-byte UIDs, the same hex text as Arduino. Still to try with a real reader and card |
+| BLE | MicroPython's `bluetooth` module uses about 40 to 50 KB of RAM. It must keep the same service and characteristic UUIDs and the 20-byte limit so phone apps still work. Changing the name means restarting advertising. | Done in the library (`ble.py`, `Ble`): same UUIDs, READ, WRITE and NOTIFY, 20 bytes, the name in the scan response. Cloud and BLE refuse to run together. Advertising checked on the board; still to try with a phone |
+| HC-05 | Shares UART0 with the REPL: Upload-only, Ctrl-C off, the monitor at 9600, Stop by hard reset (built). Today the monitor and HC-05 both sit at 9600, so the student sees HC-05 traffic; with MicroPython the monitor has to follow the board between 115200 and 9600. Some HC-05 modules ship at 38400. | Done in the Studio: the monitor and the Cloud dashboard open at 9600 when the project has an HC-05, else at 115200; Upload falls back to safe mode when Ctrl-C is off. 38400 modules are still not handled |
 | Copies of a part (LED 2, knob 2) | Each copy is its own cached object per jack; variable names keep the `2` suffix. | Must handle in the generator |
 
 ## 5. TinkerBit Cloud
@@ -325,7 +325,8 @@ yet**, so items 1 to 5, 7, 9 and 10 still need it.
    blocks and simple parts first, then OLED, MPU6050 and Edge AI, then RFID, pulse, BLE
    and Cloud. *Started (2026-11-07):* `src/beginner-studio/domain/pycodegen.js`, turned
    on with `?board=micropython` (remembered per browser, `?board=arduino` turns it off).
-   Every control block and every part except Edge AI, RFID, heartbeat, BLE and HC-05.
+   Every control block and every part except Edge AI (RFID, heartbeat, BLE and HC-05
+   were added later on 2026-11-07).
    Cloud was added on 2026-11-07 (`cloud.set`, `alert`, `send`, `switch(n)`,
    `slider(n)`; credentials in `/config.json`). The Studio uploads over the raw REPL.
 4. Equivalence tests: each block's Python and C++ produce the same printed lines and
@@ -333,7 +334,8 @@ yet**, so items 1 to 5, 7, 9 and 10 still need it.
 5. ~~Switch the default to MicroPython, keep Arduino as a fallback for one term, then
    remove it.~~ *Done (2026-11-07), changed:* Beginner Studio is MicroPython only and
    Arduino is reachable only through the hidden `?board=arduino` switch for teachers.
-   Edge AI, RFID, heartbeat, BLE and HC-05 are greyed out with "Coming soon in
-   MicroPython" and cannot be added; templates that use them cannot be opened.
-6. Next: the real broker run plus check 1, then port RFID, heartbeat, HC-05 and BLE,
-   then Edge AI.
+   Edge AI is greyed out with "Coming soon in MicroPython" and cannot be added;
+   templates that use it cannot be opened.
+6. *Done (2026-11-07):* RFID, HC-05, BLE and heartbeat are ported (library 0.2.0,
+   firmware API 2, the bundled image rebuilt). Next: the real broker run plus check 1,
+   the new parts on real hardware, then Edge AI.

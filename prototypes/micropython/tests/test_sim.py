@@ -1,7 +1,8 @@
 """Protocol and boot behaviour of the simulator (raw REPL, raw-paste, resets, safe mode)."""
+import re
 import time
 
-from conftest import library_files
+from conftest import library_files, read
 
 
 def test_power_on_boots_to_friendly_repl_and_creates_boot_py(make_board):
@@ -210,7 +211,8 @@ def test_stage_b_has_native_modules_and_frozen_library(make_board):
     h.read_until(">>> ")
     h.enter_raw()
     out, err = h.exec_raw("import tinkerbit, tbsys, tbcloud\nprint(tinkerbit.VERSION)")
-    assert err == "" and out.strip() == "0.1.0"
+    version = re.search(r'^VERSION = "([^"]+)"', read("lib/tinkerbit/__init__.py"), re.M).group(1)
+    assert err == "" and out.strip() == version
     assert not [f for f in b.files() if f.startswith("/lib/")]
 
 

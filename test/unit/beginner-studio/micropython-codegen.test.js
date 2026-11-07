@@ -4,9 +4,11 @@ import {
     comingSoonNote,
     comingSoonPart,
     generatePython,
+    micropythonBaud,
     micropythonCloudConfig,
     micropythonGaps
 } from '../../../src/beginner-studio/domain/pycodegen';
+import {MODULES} from '../../../src/beginner-studio/domain/modules';
 import {TEMPLATES, templateById} from '../../../src/beginner-studio/domain/templates';
 
 const conn = (id, moduleId, portId, extra) => Object.assign({id, moduleId, portId, pin: '-'}, extra);
@@ -64,23 +66,20 @@ describe('board language setting', () => {
 });
 
 describe('upload target', () => {
-    test('MicroPython never falls back to Arduino; parts it lacks are coming soon instead', () => {
+    test('MicroPython never falls back to Arduino; what it lacks is coming soon instead', () => {
         expect(boardTarget(MICROPYTHON)).toBe(MICROPYTHON);
-        const rfid = [conn('r', 'rfid', 'I2C')];
-        expect(micropythonGaps(rfid, [])).toEqual(['RFID reader']);
-        expect(comingSoonNote(['RFID reader'])).toBe('RFID reader is coming soon in MicroPython. ' +
+        expect(micropythonGaps([], [{uid: 'q', type: 'ai_ask', params: {}}])).toEqual(['Edge AI']);
+        expect(comingSoonNote(['Edge AI'])).toBe('Edge AI is coming soon in MicroPython. ' +
             'Remove it from your project to upload.');
-        expect(comingSoonNote(['RFID reader', 'Edge AI']))
-            .toMatch(/^RFID reader, Edge AI are coming soon.*Remove them/);
+        expect(comingSoonNote(['Edge AI', 'Something'])).toMatch(/^Edge AI, Something are coming soon.*Remove them/);
         expect(comingSoonNote([])).toBe('');
     });
 
-    test('only BLE, HC-05, RFID and heartbeat parts are coming soon, and only in MicroPython', () => {
-        ['ble', 'hc05', 'rfid', 'pulse'].forEach(id => expect(comingSoonPart(MICROPYTHON, id)).toBe(true));
-        ['cloud', 'btn', 'led', 'ultra', 'mpu6050', 'oled'].forEach(id => {
-            expect(comingSoonPart(MICROPYTHON, id)).toBe(false);
+    test('every kit part runs in MicroPython', () => {
+        MODULES.forEach(m => {
+            expect(comingSoonPart(MICROPYTHON, m.id)).toBe(false);
+            expect(comingSoonPart(ARDUINO, m.id)).toBe(false);
         });
-        expect(comingSoonPart(ARDUINO, 'rfid')).toBe(false);
     });
 
     test('the Arduino setting always uploads Arduino', () => {
@@ -102,14 +101,13 @@ describe('MicroPython for every template', () => {
         });
     });
 
-    test('only Edge AI, BLE, HC-05, RFID and heartbeat projects have gaps', () => {
-        const allowed = ['Edge AI', 'Bluetooth (BLE)', 'HC-05 Bluetooth', 'RFID reader', 'Heartbeat sensor'];
+    test('only Edge AI projects have gaps', () => {
         expect(TEMPLATES.some(t => t.cloud && micropythonGaps(t.connections, t.program).length === 0)).toBe(true);
         const full = TEMPLATES.filter(t => micropythonGaps(t.connections, t.program).length === 0);
         TEMPLATES.forEach(t => {
-            micropythonGaps(t.connections, t.program).forEach(g => expect(allowed).toContain(g));
+            micropythonGaps(t.connections, t.program).forEach(g => expect(g).toBe('Edge AI'));
         });
-        expect(full.length).toBeGreaterThan(TEMPLATES.length / 2);
+        expect(TEMPLATES.length - full.length).toBeLessThanOrEqual(3);
         full.forEach(t => expect(generatePython(t.connections, t.program)).not.toMatch(/Not in MicroPython yet/));
     });
 
@@ -218,17 +216,92 @@ describe('MicroPython blocks', () => {
         expect(bad).not.toContain('__import__');
     });
 
-    test('Edge AI and RFID are left out and reported', () => {
+    test('Edge AI is left out and reported', () => {
         const wired = [conn('r', 'rfid', '3D'), conn('c2', 'led', 'A1')];
         const program = [
             ifBlock({sensor: 'rfidUid', op: 'is', value: 0}, [ledOn]),
+            ifBlock({sensor: 'aiAnswer', op: 'is', value: 0}, [ledOn]),
             {uid: 'q', type: 'ai_ask', params: {}}
         ];
         const code = generatePython(wired, program);
-        expect(micropythonGaps(wired, program).sort()).toEqual(['Edge AI', 'RFID reader']);
-        expect(code).not.toMatch(/tinkerbit\.Rfid/);
-        expect(code).toContain('# Not in MicroPython yet: RFID reader');
-        expect((code.match(/if False:/g) || []).length).toBe(1);
+        expect(micropythonGaps(wired, program)).toEqual(['Edge AI']);
+        expect(code).toContain('# Not in MicroPython yet: Edge AI');
+        expect(code).toContain('if len(rfidUid) > 0:');
+    });
+});
+
+describe('MicroPython RFID, heartbeat, Bluetooth and HC-05', () => {
+    test('a card is read before the If that looks for it, and cleared when there is none', () => {
+        const code = generatePython([conn('r', 'rfid', '3D'), conn('c2', 'led', 'A1')], [
+            ifBlock({sensor: 'rfidUid', op: 'is', value: 0}, [ledOn])
+        ]);
+        expect(code).toContain('rfid = tinkerbit.Rfid("3D")');
+        expect(code).toContain('rfidUid = ""');
+        expect(code).toContain([
+            '    rfidUid = rfid.card()',
+            '    if rfidUid:',
+            '        print("RFID UID=" + rfidUid)',
+            '    else:',
+            '        print("RFID: no card")'
+        ].join('\n'));
+        expect(code.indexOf('rfidUid = rfid.card()')).toBeLessThan(code.indexOf('if len(rfidUid) > 0:'));
+    });
+
+    test('the heartbeat reads as BPM, 0 and a pause while the sensor is not answering', () => {
+        const code = generatePython([conn('h', 'pulse', 'I2C1'), conn('o', 'oled', 'I2C1')], [
+            {uid: 'n', type: 'show_number', cid: 'o', params: {varName: 'heartRate'}}
+        ]);
+        expect(code).toContain('pulse = tinkerbit.Heartbeat("I2C1")');
+        expect(code).toContain([
+            '    heartRate = pulse.bpm()',
+            '    if heartRate < 0:',
+            '        heartRate = 0',
+            '        print("HW-605 not ready")',
+            '        time.sleep_ms(500)',
+            '    else:',
+            '        print("HW-605 BPM=" + str(heartRate))'
+        ].join('\n'));
+        expect(code).toContain('oled.show(str(heartRate))');
+    });
+
+    test('Bluetooth advertises its first name from the start and sends at most 20 characters', () => {
+        const code = generatePython([conn('b', 'ble', 'ONBOARD')], [
+            {uid: 'a', type: 'ble_advertise', cid: 'b', params: {name: 'Desk "Lamp"'}},
+            {uid: 's', type: 'ble_send', cid: 'b', params: {text: 'This text is longer than twenty'}}
+        ]);
+        expect(code).toContain('ble = tinkerbit.Ble("ESP")');
+        expect(code.indexOf('ble.advertise("Desk \\"Lamp\\"")')).toBeLessThan(code.indexOf('while True:'));
+        expect(code).toContain('    ble.advertise("Desk \\"Lamp\\"")\n    print("BLE advertising: Desk \\"Lamp\\"")');
+        expect(code).toContain('    ble.send("This text is longer ")');
+        expect(generatePython([conn('b', 'ble', 'ONBOARD')], [])).toContain('ble.advertise("TinkerBit")');
+    });
+
+    test('HC-05 starts before the first print and keeps the last message, like the Arduino code', () => {
+        const hc = conn('h', 'hc05', 'UART');
+        const code = generatePython([hc, conn('c2', 'led', 'D13')], [
+            {uid: 'r', type: 'hc05_read', cid: 'h', params: {}},
+            ifBlock({sensor: 'hc05Line', op: 'is', value: 0}, [
+                {uid: 's', type: 'hc05_send', cid: 'h', params: {text: 'got "it"'}}
+            ])
+        ]);
+        expect(code.indexOf('hc05 = tinkerbit.HC05("UART")')).toBeLessThan(code.indexOf('print('));
+        expect(code).toContain('print("HC-05 ready on UART at 9600 baud")');
+        expect(code).toContain([
+            '    _line = hc05.read_line()',
+            '    if _line is not None:',
+            '        hc05Line = _line.strip()',
+            '        print("HC-05 RX=" + hc05Line)',
+            '    else:',
+            '        print("HC-05: no data")'
+        ].join('\n'));
+        expect(code).toContain('if len(hc05Line) > 0:');
+        expect(code).toContain('hc05.send("got \\"it\\"")');
+    });
+
+    test('the board talks at 9600 with an HC-05, else at the REPL rate', () => {
+        expect(micropythonBaud([conn('h', 'hc05', 'UART'), conn('c2', 'led', 'D13')])).toBe(9600);
+        expect(micropythonBaud([conn('c2', 'led', 'D13')])).toBe(115200);
+        expect(micropythonBaud(null)).toBe(115200);
     });
 });
 

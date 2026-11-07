@@ -2,13 +2,14 @@ import React, {useState} from 'react';
 
 import {useStudio} from '../../context/StudioContext.jsx';
 import {MICROPYTHON} from '../../domain/boardLanguage';
-import useSerialMonitor, {BEGINNER_BAUD, MICROPYTHON_BAUD} from '../../hooks/useSerialMonitor.js';
+import {micropythonBaud} from '../../domain/pycodegen';
+import useSerialMonitor, {BEGINNER_BAUD} from '../../hooks/useSerialMonitor.js';
 
 const SerialMonitorPanel = ({connected, fill}) => {
-    const {K, boardTarget} = useStudio();
+    const {K, boardTarget, connections} = useStudio();
     const serial = useSerialMonitor({
         connected,
-        baudRate: boardTarget === MICROPYTHON ? MICROPYTHON_BAUD : BEGINNER_BAUD
+        baudRate: boardTarget === MICROPYTHON ? micropythonBaud(connections) : BEGINNER_BAUD
     });
     const [draft, setDraft] = useState('');
 

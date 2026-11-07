@@ -34,13 +34,15 @@ def read(rel):
         return f.read()
 
 
+LIBRARY_MODULES = ("__init__", "board", "rc522", "max30102", "ble")
+
+
 def library_files(with_main=True):
-    files = {
-        "/lib/tinkerbit/__init__.py": read("lib/tinkerbit/__init__.py"),
-        "/lib/tinkerbit/board.py": read("lib/tinkerbit/board.py"),
+    files = {"/lib/tinkerbit/%s.py" % m: read("lib/tinkerbit/%s.py" % m) for m in LIBRARY_MODULES}
+    files.update({
         "/lib/ssd1306.py": read("lib/ssd1306.py"),
         "/boot.py": read("boot.py"),
-    }
+    })
     if with_main:
         files["/main.py"] = read("main.py")
     return files

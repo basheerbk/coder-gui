@@ -4,6 +4,9 @@
 import tinkerbitInit from '!!raw-loader!../../../prototypes/micropython/lib/tinkerbit/__init__.py';
 import tinkerbitBoard from '!!raw-loader!../../../prototypes/micropython/lib/tinkerbit/board.py';
 import tinkerbitCloud from '!!raw-loader!../../../prototypes/micropython/lib/tinkerbit/cloud.py';
+import tinkerbitRc522 from '!!raw-loader!../../../prototypes/micropython/lib/tinkerbit/rc522.py';
+import tinkerbitMax30102 from '!!raw-loader!../../../prototypes/micropython/lib/tinkerbit/max30102.py';
+import tinkerbitBle from '!!raw-loader!../../../prototypes/micropython/lib/tinkerbit/ble.py';
 import ssd1306 from '!!raw-loader!../../../prototypes/micropython/lib/ssd1306.py';
 import bootPy from '!!raw-loader!../../../prototypes/micropython/boot.py';
 /* eslint-enable import/no-unresolved */
@@ -12,6 +15,9 @@ const files = [
     {path: '/lib/tinkerbit/__init__.py', text: tinkerbitInit},
     {path: '/lib/tinkerbit/board.py', text: tinkerbitBoard},
     {path: '/lib/tinkerbit/cloud.py', text: tinkerbitCloud},
+    {path: '/lib/tinkerbit/rc522.py', text: tinkerbitRc522},
+    {path: '/lib/tinkerbit/max30102.py', text: tinkerbitMax30102},
+    {path: '/lib/tinkerbit/ble.py', text: tinkerbitBle},
     {path: '/lib/ssd1306.py', text: ssd1306},
     {path: '/boot.py', text: bootPy}
 ];

@@ -6,7 +6,7 @@ const STOCK_FW = 'stock';
 
 // tinkerbit.API in prototypes/micropython/lib/tinkerbit/__init__.py: the library calls the
 // generated main.py makes. A TinkerBit firmware with another API needs Update board.
-const FIRMWARE_API = 1;
+const FIRMWARE_API = 2;
 
 // Runs on any MicroPython, with or without the TinkerBit library. Only the TinkerBit firmware
 // imports tinkerbit here: it is frozen there, while stock MicroPython would compile /lib.

@@ -233,6 +233,39 @@ def build(board):
         def writeto_mem(self, addr, reg, buf, addrsize=8):
             self._dev(addr).write_mem(reg, bytes(buf))
 
+    class SPI:
+        """Hardware SPI 1 or 2 on any pins (GPIO matrix); talks to board.spi_device."""
+        MSB, LSB = 0, 1
+
+        def __init__(self, id, baudrate=1000000, *, polarity=0, phase=0, bits=8, firstbit=0,
+                     sck=None, mosi=None, miso=None):
+            if id not in (1, 2):
+                raise ValueError("SPI(%d) doesn't exist" % id)
+            for p in (sck, mosi):
+                if p is not None and (p.id if isinstance(p, Pin) else p) in INPUT_ONLY:
+                    raise ValueError("pin can only be input")
+            self.baudrate = baudrate
+
+        def _xfer(self, data):
+            dev = board.spi_device
+            # Nothing on the bus: MISO idles low.
+            return dev.transfer(bytes(data)) if dev is not None else bytes(len(data))
+
+        def write(self, buf):
+            self._xfer(buf)
+
+        def read(self, n, write=0):
+            return self._xfer(bytes([write]) * n)
+
+        def readinto(self, buf, write=0):
+            buf[:] = self.read(len(buf), write)
+
+        def write_readinto(self, out, into):
+            into[:] = self._xfer(out)
+
+        def deinit(self):
+            pass
+
     class UART:
         def __init__(self, id, baudrate=None, **kw):
             self.id = id
@@ -280,6 +313,8 @@ def build(board):
         ADC=ADC,
         I2C=I2C,
         SoftI2C=I2C,
+        SPI=SPI,
+        SoftSPI=SPI,
         UART=UART,
         time_pulse_us=time_pulse_us,
         reset=reset,
@@ -377,6 +412,86 @@ def build(board):
             return []
 
     mods["network"] = _module("network", WLAN=WLAN, STA_IF=0, AP_IF=1, hostname=lambda n=None: "tinkerbit")
+
+    # ---------------- bluetooth ----------------
+    class UUID:
+        def __init__(self, value):
+            if isinstance(value, UUID):
+                self._b = value._b
+            elif isinstance(value, int):
+                self._b = value.to_bytes(2, "little")
+            else:
+                self._b = bytes.fromhex(str(value).replace("-", ""))[::-1]
+
+        def __bytes__(self):
+            return self._b
+
+        def __eq__(self, other):
+            return isinstance(other, UUID) and other._b == self._b
+
+        def __hash__(self):
+            return hash(self._b)
+
+    class BLE:
+        """State lives in board.ble, so tests can play the phone (Board.ble_connect)."""
+
+        def _need_active(self):
+            if not board.ble["active"]:
+                raise _oserror(errno.EPERM)
+
+        def active(self, v=None):
+            if v is None:
+                return board.ble["active"]
+            board.ble["active"] = bool(v)
+            if not v:
+                board.ble.update(advertising=None, values={}, conns=set())
+
+        def config(self, *a, **kw):
+            if "gap_name" in kw:
+                name = kw["gap_name"]
+                board.ble["name"] = name.encode() if isinstance(name, str) else bytes(name)
+            if a and a[0] == "gap_name":
+                return board.ble["name"]
+            return None
+
+        def irq(self, handler):
+            board.ble["irq"] = handler
+
+        def gatts_register_services(self, services):
+            self._need_active()
+            out = []
+            for _uuid, chars in services:
+                handles = []
+                for _c in chars:
+                    board.ble["next_handle"] += 2
+                    handles.append(board.ble["next_handle"])
+                    board.ble["values"][board.ble["next_handle"]] = b""
+                out.append(tuple(handles))
+            return tuple(out)
+
+        def gatts_write(self, handle, data, send_update=False):
+            # The default attribute buffer is 20 bytes; longer writes are cut.
+            board.ble["values"][handle] = bytes(data)[:20]
+
+        def gatts_read(self, handle):
+            return board.ble["values"][handle]
+
+        def gatts_notify(self, conn, handle, data=None):
+            if conn not in board.ble["conns"]:
+                raise _oserror(errno.ENOTCONN)
+            board.ble["notified"].append((conn, bytes(data if data is not None else board.ble["values"][handle])))
+
+        def gap_advertise(self, interval_us, adv_data=None, resp_data=None, connectable=True):
+            self._need_active()
+            if interval_us is None:
+                board.ble["advertising"] = None
+            else:
+                if len(adv_data or b"") > 31 or len(resp_data or b"") > 31:
+                    raise _oserror(errno.EINVAL)
+                board.ble["advertising"] = {"adv": bytes(adv_data or b""), "resp": bytes(resp_data or b"")}
+                board.ble["adverts"] += 1
+
+    mods["bluetooth"] = _module("bluetooth", BLE=BLE, UUID=UUID, FLAG_READ=0x0002, FLAG_WRITE=0x0008, FLAG_NOTIFY=0x0010)
 
     # ---------------- dht / neopixel / framebuf ----------------
     class _DHT:
