@@ -305,6 +305,17 @@ yet**, so items 1 to 5, 7, 9 and 10 still need it.
    drivers. *Watch:* test once.
 4. **Weak USB power.** WiFi or BLE start can brown out the board and loop resets. This
    is the same as today, but `TB_INFO`'s `reset` field makes it visible. *Watch.*
+5. **Plugged into a laptop, the board starts in its flashing mode.** Seen on the COM19
+   CH340 board (2026-11-12): after a replug the ROM bootloader answered esptool with no
+   reset, and the saved `main.py` did not run; on a phone charger it ran every time, and
+   RST always fixed it. Windows toggles DTR/RTS while it sets up the CH340, and the
+   auto-reset circuit turns that into GPIO 0 low while EN rises. It happens before any
+   firmware, so Arduino sketches are hit the same way. *Board fix:* 1 to 10 µF from EN
+   to GND (Espressif's recommendation for this circuit) in the next board revision.
+   *Done in the Studio:* Upload already resets a silent board (safe mode); the serial
+   monitor's Start now restarts the board with GPIO 0 high, hides the ROM boot log
+   (garbage at 9600), and after 4 s of silence says to press RST once. The monitor
+   restarting the program on Start matches the Arduino IDE.
 
 ## 9. Security
 

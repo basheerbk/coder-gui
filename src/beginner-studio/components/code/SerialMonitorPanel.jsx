@@ -5,7 +5,7 @@ import {MICROPYTHON} from '../../domain/boardLanguage';
 import {micropythonBaud} from '../../domain/pycodegen';
 import useSerialMonitor, {BEGINNER_BAUD} from '../../hooks/useSerialMonitor.js';
 
-const SerialMonitorPanel = ({connected, fill}) => {
+const SerialMonitorPanel = ({connected, busy, fill}) => {
     const {K, boardTarget, connections} = useStudio();
     const serial = useSerialMonitor({
         connected,
@@ -141,6 +141,11 @@ const SerialMonitorPanel = ({connected, fill}) => {
             </div>
             {serial.error ? (
                 <div style={{padding: '0 10px 6px', fontSize: 10, color: K.red, fontWeight: 600}}>
+            {serial.hint && !serial.error ? (
+                <div style={{padding: '0 10px 6px', fontSize: 10, color: K.sub, fontWeight: 600}}>
+                    {serial.hint}
+                </div>
+            ) : null}
                     {serial.error}
                 </div>
             ) : null}

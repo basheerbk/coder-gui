@@ -210,6 +210,7 @@ const LiveCodePanel = () => {
             {showSerial ? (
                 <SerialMonitorPanel
                     connected={upload.connected}
+                    busy={upload.busy}
                     fill={!showCodePanel}
                 />
             ) : null}
